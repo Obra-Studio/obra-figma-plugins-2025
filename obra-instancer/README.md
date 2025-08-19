@@ -1,0 +1,1 @@
+Obra Instancer is a plugin akin to Propstar that generates property tables.
