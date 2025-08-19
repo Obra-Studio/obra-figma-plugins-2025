@@ -1,0 +1,1 @@
+This Figma plugin takes a selection (e.g. multiple colored rectangles) and places a text layer with the hex code of the variable behind the box.
