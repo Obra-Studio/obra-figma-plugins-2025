@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #ffffff;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #000;
+            text-align: center;
+        }
+        
+        .page-info {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 24px;
+            font-style: italic;
+        }
+        
+        .scan-section {
+            margin-bottom: 24px;
+        }
+        
+        .scan-button {
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        
+        .scan-button:hover {
+            background: #0052cc;
+        }
+        
+        .scan-button:active {
+            background: #004099;
+        }
+        
+        .scan-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            margin-top: 24px;
+        }
+        
+        .results-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 16px;
+        }
+        
+        .library-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        
+        .library-header {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .library-header:hover {
+            background: #f0f0f0;
+        }
+        
+        .library-header.collapsed {
+            border-bottom: none;
+        }
+        
+        .library-title {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .library-name {
+            font-weight: 600;
+            color: #000;
+            font-size: 13px;
+            margin-right: 8px;
+        }
+        
+        .element-count {
+            color: #666;
+            font-size: 11px;
+            font-weight: normal;
+        }
+        
+        .library-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .expand-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .library-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .library-type.local {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .library-type.remote {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .library-elements {
+            padding: 0;
+            display: block;
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+        }
+        
+        .library-elements.collapsed {
+            display: none;
+        }
+        
+        .element-item {
+            padding: 8px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .element-item:last-child {
+            border-bottom: none;
+        }
+        
+        .element-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+        
+        .element-type {
+            background: #f5f5f5;
+            color: #666;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-right: 8px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .element-info {
+            flex: 1;
+        }
+        
+        .element-name {
+            color: #333;
+            font-size: 11px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .node-name {
+            color: #666;
+            font-size: 10px;
+            font-style: italic;
+        }
+        
+        .inspect-button {
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: background 0.2s;
+        }
+        
+        .inspect-button:hover {
+            background: #0052cc;
+        }
+        
+        .inspect-button:active {
+            background: #004099;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 16px 0;
+            font-size: 12px;
+        }
+        
+        .message.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .message.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            color: #999;
+            font-style: italic;
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 24px 16px;
+            color: #666;
+        }
+        
+        .close-button {
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 11px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 24px;
+        }
+        
+        .close-button:hover {
+            background: #e0e0e0;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .accordion-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .accordion-control {
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .accordion-control:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Obra Remote Library Scanner</h1>
+    <div id="pageInfo" class="page-info">Ready to scan current page</div>
+    
+    <div class="scan-section">
+        <button id="scanButton" class="scan-button" onclick="scanElements()">
+            Scan Elements
+        </button>
+    </div>
+    
+    <div id="message"></div>
+    
+    <div class="results-section">
+        <div id="results" style="display: none;">
+            <div class="results-title">Libraries Found</div>
+            <div id="stats" class="stats" style="display: none;"></div>
+            <div class="accordion-controls" id="accordionControls" style="display: none;">
+                <button class="accordion-control" onclick="expandAll()">Expand All</button>
+                <button class="accordion-control" onclick="collapseAll()">Collapse All</button>
+            </div>
+            <div id="libraryList"></div>
+        </div>
+    </div>
+    
+    <button class="close-button" onclick="closePlugin()">Close Plugin</button>
+
+    <script>
+        let scanResults = [];
+        let expandedLibraries = new Set(); // Track which libraries are expanded
+        
+        function scanElements() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('message').innerHTML = '<div class="message">Scanning current page...</div>';
+            document.getElementById('scanButton').disabled = true;
+            document.getElementById('scanButton').textContent = 'Scanning...';
+            
+            parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
+        }
+        
+        function toggleLibrary(libraryName) {
+            if (expandedLibraries.has(libraryName)) {
+                expandedLibraries.delete(libraryName);
+            } else {
+                expandedLibraries.add(libraryName);
+            }
+            
+            const elementsDiv = document.querySelector(`[data-library="${libraryName}"] .library-elements`);
+            const iconDiv = document.querySelector(`[data-library="${libraryName}"] .expand-icon`);
+            const headerDiv = document.querySelector(`[data-library="${libraryName}"] .library-header`);
+            
+            if (expandedLibraries.has(libraryName)) {
+                elementsDiv.classList.remove('collapsed');
+                iconDiv.classList.add('expanded');
+                headerDiv.classList.remove('collapsed');
+            } else {
+                elementsDiv.classList.add('collapsed');
+                iconDiv.classList.remove('expanded');
+                headerDiv.classList.add('collapsed');
+            }
+        }
+        
+        function expandAll() {
+            scanResults.forEach(library => {
+                expandedLibraries.add(library.name);
+            });
+            updateAccordionStates();
+        }
+        
+        function collapseAll() {
+            expandedLibraries.clear();
+            updateAccordionStates();
+        }
+        
+        function updateAccordionStates() {
+            scanResults.forEach(library => {
+                const elementsDiv = document.querySelector(`[data-library="${library.name}"] .library-elements`);
+                const iconDiv = document.querySelector(`[data-library="${library.name}"] .expand-icon`);
+                const headerDiv = document.querySelector(`[data-library="${library.name}"] .library-header`);
+                
+                if (elementsDiv && iconDiv && headerDiv) {
+                    if (expandedLibraries.has(library.name)) {
+                        elementsDiv.classList.remove('collapsed');
+                        iconDiv.classList.add('expanded');
+                        headerDiv.classList.remove('collapsed');
+                    } else {
+                        elementsDiv.classList.add('collapsed');
+                        iconDiv.classList.remove('expanded');
+                        headerDiv.classList.add('collapsed');
+                    }
+                }
+            });
+        }
+        
+        function inspectElement(elementId) {
+            parent.postMessage({ 
+                pluginMessage: { 
+                    type: 'inspect-element', 
+                    elementId: elementId 
+                } 
+            }, '*');
+        }
+        
+        function closePlugin() {
+            parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
+        }
+        
+        function showMessage(text, type = 'success') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+        
+        // Handle messages from plugin code
+        window.onmessage = (event) => {
+            const msg = event.data.pluginMessage;
+            
+            switch (msg.type) {
+                case 'scan-started':
+                    document.getElementById('pageInfo').textContent = `Scanning: ${msg.pageName}`;
+                    break;
+                    
+                case 'scan-complete':
+                    scanResults = msg.libraries;
+                    document.getElementById('pageInfo').textContent = `Scanned: ${msg.pageName}`;
+                    renderResults();
+                    if (msg.message) {
+                        showMessage(msg.message, msg.messageType || 'info');
+                    }
+                    // Reset button
+                    document.getElementById('scanButton').disabled = false;
+                    document.getElementById('scanButton').textContent = 'Scan Elements';
+                    break;
+                    
+                case 'element-selected':
+                    showMessage(`Selected: ${msg.nodeName}`, 'success');
+                    break;
+                    
+                case 'scan-error':
+                    document.getElementById('results').innerHTML = '<div class="empty-state">Scan failed</div>';
+                    showMessage(msg.message, 'error');
+                    // Reset button
+                    document.getElementById('scanButton').disabled = false;
+                    document.getElementById('scanButton').textContent = 'Scan Elements';
+                    break;
+            }
+        };
+        
+        function renderResults() {
+            const resultsDiv = document.getElementById('results');
+            const statsDiv = document.getElementById('stats');
+            const libraryListDiv = document.getElementById('libraryList');
+            const accordionControlsDiv = document.getElementById('accordionControls');
+            
+            resultsDiv.style.display = 'block';
+            
+            if (scanResults.length === 0) {
+                libraryListDiv.innerHTML = '<div class="empty-state">No libraries found on this page</div>';
+                statsDiv.style.display = 'none';
+                accordionControlsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Show stats
+            const localCount = scanResults.filter(lib => lib.type === 'local').length;
+            const remoteCount = scanResults.filter(lib => lib.type === 'remote').length;
+            const totalElements = scanResults.reduce((sum, lib) => sum + lib.elements.length, 0);
+            
+            statsDiv.innerHTML = `
+                <span>Total Libraries: ${scanResults.length}</span>
+                <span>Local: ${localCount} | Remote: ${remoteCount}</span>
+                <span>Total Elements: ${totalElements}</span>
+            `;
+            statsDiv.style.display = 'flex';
+            accordionControlsDiv.style.display = 'flex';
+            
+            // Default expansion: remote expanded, local collapsed
+            if (expandedLibraries.size === 0) {
+                scanResults.forEach(library => {
+                    if (library.type === 'remote') {
+                        expandedLibraries.add(library.name);
+                    }
+                    // Local libraries remain collapsed by default
+                });
+            }
+            
+            // Render libraries
+            libraryListDiv.innerHTML = scanResults.map(library => {
+                const isExpanded = expandedLibraries.has(library.name);
+                return `
+                <div class="library-item" data-library="${library.name}">
+                    <div class="library-header ${isExpanded ? '' : 'collapsed'}" onclick="toggleLibrary('${library.name}')">
+                        <div class="library-title">
+                            <div class="library-name">${library.name}</div>
+                            <div class="element-count">(${library.elements.length} element${library.elements.length !== 1 ? 's' : ''})</div>
+                        </div>
+                        <div class="library-controls">
+                            <div class="library-type ${library.type}">${library.type}</div>
+                            <div class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</div>
+                        </div>
+                    </div>
+                    <div class="library-elements ${isExpanded ? '' : 'collapsed'}">
+                        ${library.elements.map(element => `
+                            <div class="element-item">
+                                <div class="element-content">
+                                    <div class="element-type">${element.type}</div>
+                                    <div class="element-info">
+                                        <div class="element-name">${element.name}</div>
+                                        <div class="node-name">${element.nodeName}</div>
+                                    </div>
+                                </div>
+                                <button class="inspect-button" onclick="inspectElement('${element.elementId}')">
+                                    Inspect
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `}).join('');
+        }
+    </script>
+</body>
+</html>

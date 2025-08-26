@@ -1,0 +1,15 @@
+{
+  "name": "Obra Remote Library Scanner",
+  "id": "obra-remote-library-scanner",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": [
+    "figma"
+  ],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}
