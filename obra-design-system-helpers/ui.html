@@ -113,10 +113,21 @@
   <div class="button-group">
     <button id="rename-al">Rename to "AL"</button>
     <p class="guidelines small muted">Guideline: If you don't know what to name your auto layout layers, just name them "AL".</p>
-    <button id="deprecate-component">🛑 Deprecate component</button>
-    <p class="guidelines small muted">Guideline: Mark components as deprecated by adding 🛑DEPRECATED prefix to the layer name.</p>
   </div>
 </div>
+
+
+<div class="section">
+  <h2>Component deprecation</h2>
+  <div class="button-group">
+    <button id="deprecate-component">🛑 Deprecate component</button>
+    <p class="guidelines small muted">Guideline: Mark components as deprecated by adding 🛑DEPRECATED prefix to the layer name.</p>
+    <button id="visual-deprecate-component">🛑 Visual deprecation overlay</button>
+    <p class="guidelines small muted">Guideline: Add a red 20% opacity overlay to all component variants for visual deprecation indication.</p>
+  </div>
+</div>
+
+
 
 <div class="section">
   <h2>Individual section(s)</h2>
@@ -124,6 +135,8 @@
     <button id="rename-section">Rename to "Section"</button>
     <button id="spacing-64" class="spacing-button">Set 64px spacing + 32px gap</button>
     <p class="guidelines small muted">Guideline: all layers documenting a component should use "Section" as their layer name. They should have 64px outer spacing and a 32px gap.</p>
+    <button id="wrap-in-section">Wrap component in new section</button>
+    <p class="guidelines small muted">Guideline: Create a new "Section" frame around the component with proper spacing and heading text.</p>
   </div>
 </div>
 
@@ -142,12 +155,20 @@
   <div class="button-group">
     <button id="spacing-0" class="spacing-button">Set 0px spacing + 0px gap</button>
     <p class="guidelines small muted">Guideline: all top level frames should have 0px spacing and 0px gap, since the spacing is contained in the sections.</p>
+    <button id="mark-stop-frame">🛑 Mark frame with stop emoji</button>
+    <p class="guidelines small muted">Guideline: Add stop emoji prefix to frame names for marking purposes.</p>
   </div>
 </div>
 
 <div class="section">
   <h2>Component properties documentation</h2>
   <p class="small muted">Please use <a href="https://www.figma.com/community/plugin/1116018586739867857/propstar">Propstar</a> for component documentation.</p>
+  <div class="button-group">
+    <button id="post-propstar-treatment">Post-Prop Star Treatment</button>
+    <p class="guidelines small muted">Guideline: After running Prop Star, this organizes the documentation frame and positions the component in the top-right.</p>
+    <button id="prop-star-cleanup">De-Propstar</button>
+    <p class="guidelines small muted">Guideline: Remove Prop Star generated elements (labels group and instances frame) from selected frames.</p>
+  </div>
 </div>
 
 <script>
@@ -192,6 +213,31 @@
   // Deprecate component button
   document.getElementById('deprecate-component').onclick = () => {
     parent.postMessage({ pluginMessage: { type: 'deprecate-component' } }, '*');
+  };
+
+  // Visual deprecate component button
+  document.getElementById('visual-deprecate-component').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'visual-deprecate-component' } }, '*');
+  };
+
+  // Wrap in section button
+  document.getElementById('wrap-in-section').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'wrap-in-section' } }, '*');
+  };
+
+  // Mark stop frame button
+  document.getElementById('mark-stop-frame').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'mark-stop-frame' } }, '*');
+  };
+
+  // Post-Prop Star treatment button
+  document.getElementById('post-propstar-treatment').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'post-propstar-treatment' } }, '*');
+  };
+
+  // Prop Star cleanup button
+  document.getElementById('prop-star-cleanup').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'prop-star-cleanup' } }, '*');
   };
 
   // Guidelines toggle
