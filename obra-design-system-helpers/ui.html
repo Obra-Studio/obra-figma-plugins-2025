@@ -37,12 +37,12 @@
     }
 
     button {
-      background: #DDD;
+      background: #f3f4f6;
       color: #000;
       border: none;
       border-radius: 6px;
       padding: 6px 8px;
-      font-size: 11px;
+      font-size: 10px;
       cursor: pointer;
       transition: background-color 0.2s;
       font-family: inherit;
@@ -65,6 +65,10 @@
       font-size: 11px;
       text-align: center;
       display: none;
+      white-space: normal;
+      word-wrap: break-word;
+      box-sizing: border-box;
+      z-index: 1000;
     }
 
     .status.success {
@@ -78,6 +82,22 @@
       color: #dc2626;
       border: 1px solid #fecaca;
     }
+
+    .guidelines {
+      display: none;
+    }
+
+    .guidelines.visible {
+      display: block;
+    }
+
+    .toggle-guidelines {
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 10px;
+      padding: 4px 6px;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 
@@ -86,11 +106,15 @@
 
 <div id="status" class="status"></div>
 
+<button id="toggle-guidelines" class="toggle-guidelines">Show Guidelines</button>
+
 <div class="section">
   <h2>General</h2>
   <div class="button-group">
     <button id="rename-al">Rename to "AL"</button>
-    <p class="small muted">Guideline: If you don't know what to name your auto layout layers, just name them "AL".</p>
+    <p class="guidelines small muted">Guideline: If you don't know what to name your auto layout layers, just name them "AL".</p>
+    <button id="deprecate-component">🛑 Deprecate component</button>
+    <p class="guidelines small muted">Guideline: Mark components as deprecated by adding 🛑DEPRECATED prefix to the layer name.</p>
   </div>
 </div>
 
@@ -99,18 +123,17 @@
   <div class="button-group">
     <button id="rename-section">Rename to "Section"</button>
     <button id="spacing-64" class="spacing-button">Set 64px spacing + 32px gap</button>
-    <p class="small muted">Guideline: all layers documenting a component should use "Section" as their layer name. They should have 64px outer spacing and a 32px gap.</p>
+    <p class="guidelines small muted">Guideline: all layers documenting a component should use "Section" as their layer name. They should have 64px outer spacing and a 32px gap.</p>
   </div>
 </div>
 
 <div class="section">
-  <!-- Not implemtned yet -->
   <h2>Spacing between top level frames</h2>
   <div class="button-group">
-    <button>Set 256px spacing between frames (vertically)</button>
-    <p class="small muted">Guideline: between top level frames there should be a 256px spacing horizontally</p>
-    <button>Set 256px spacing between frames (horizontally)</button>
-    <p class="small muted">Guideline: between top level frames there should be a 256px spacing horizontally</p>
+    <button id="frame-spacing-vertical">Set 256px spacing between frames (vertically)</button>
+    <p class="guidelines small muted">Guideline: between top level frames there should be a 256px spacing vertically</p>
+    <button id="frame-spacing-horizontal">Set 256px spacing between frames (horizontally)</button>
+    <p class="guidelines small muted">Guideline: between top level frames there should be a 256px spacing horizontally</p>
   </div>
 </div>
 
@@ -118,7 +141,7 @@
   <h2>Top level frames</h2>
   <div class="button-group">
     <button id="spacing-0" class="spacing-button">Set 0px spacing + 0px gap</button>
-    <p class="small muted">Guideline: all top level frames should have 0px spacing and 0px gap, since the spacing is contained in the sections.</p>
+    <p class="guidelines small muted">Guideline: all top level frames should have 0px spacing and 0px gap, since the spacing is contained in the sections.</p>
   </div>
 </div>
 
@@ -155,6 +178,33 @@
 
   document.getElementById('spacing-0').onclick = () => {
     parent.postMessage({ pluginMessage: { type: 'set-spacing', spacing: 0 } }, '*');
+  };
+
+  // Frame spacing buttons
+  document.getElementById('frame-spacing-vertical').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'set-frame-spacing', direction: 'vertical' } }, '*');
+  };
+
+  document.getElementById('frame-spacing-horizontal').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'set-frame-spacing', direction: 'horizontal' } }, '*');
+  };
+
+  // Deprecate component button
+  document.getElementById('deprecate-component').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'deprecate-component' } }, '*');
+  };
+
+  // Guidelines toggle
+  document.getElementById('toggle-guidelines').onclick = () => {
+    const guidelines = document.querySelectorAll('.guidelines');
+    const toggleBtn = document.getElementById('toggle-guidelines');
+    const isVisible = guidelines[0].classList.contains('visible');
+    
+    guidelines.forEach(guideline => {
+      guideline.classList.toggle('visible');
+    });
+    
+    toggleBtn.textContent = isVisible ? 'Show Guidelines' : 'Hide Guidelines';
   };
 
   // Listen for messages from the plugin code
