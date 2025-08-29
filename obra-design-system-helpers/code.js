@@ -42,6 +42,8 @@ figma.ui.onmessage = msg => {
     handleSet32pxInnerSpacing();
   } else if (msg.type === 'reset-component-set-style') {
     handleResetComponentSetStyle();
+  } else if (msg.type === 'detect-components') {
+    handleDetectComponents();
   }
 };
 
@@ -799,6 +801,79 @@ function handleResetComponentSetStyle() {
       type: 'status',
       message: `Reset default component set style on ${resetCount} ${setText}`,
       success: true
+    });
+  }
+}
+
+function handleDetectComponents() {
+  const selection = figma.currentPage.selection;
+
+  if (selection.length === 0) {
+    figma.ui.postMessage({
+      type: 'status',
+      message: 'Please select frames to scan for component violations',
+      success: false
+    });
+    return;
+  }
+
+  const violations = [];
+  let scannedFrames = 0;
+
+  function scanNode(node, frameName) {
+    if (node.type === 'COMPONENT') {
+      // Check if it's a hidden component (starts with . or _)
+      if (!node.name.startsWith('.') && !node.name.startsWith('_')) {
+        violations.push({
+          frameName: frameName,
+          componentName: node.name,
+          nodeId: node.id
+        });
+      }
+    }
+
+    // Recursively scan children
+    if ('children' in node) {
+      node.children.forEach(child => scanNode(child, frameName));
+    }
+  }
+
+  selection.forEach(node => {
+    if (node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE') {
+      scannedFrames++;
+      scanNode(node, node.name);
+    }
+  });
+
+  if (scannedFrames === 0) {
+    figma.ui.postMessage({
+      type: 'status',
+      message: 'Please select frames, components, or instances to scan',
+      success: false
+    });
+    return;
+  }
+
+  if (violations.length === 0) {
+    figma.ui.postMessage({
+      type: 'status',
+      message: `✅ No component violations found in ${scannedFrames} frame(s). All components are properly hidden (start with . or _) or are instances.`,
+      success: true
+    });
+  } else {
+    const violationText = violations.length === 1 ? 'violation' : 'violations';
+    let message = `⚠️ Found ${violations.length} component ${violationText} in ${scannedFrames} frame(s):\n\n`;
+    
+    violations.forEach((violation, index) => {
+      message += `${index + 1}. "${violation.componentName}" in "${violation.frameName}"\n`;
+    });
+    
+    message += '\nGuideline: Screen designs should only contain hidden components (starting with . or _) or instances, not published components.';
+
+    figma.ui.postMessage({
+      type: 'status',
+      message: message,
+      success: false
     });
   }
 }
