@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Component Variant Validator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #1e1e1e;
+      background: #ffffff;
+      overflow-x: hidden;
+    }
+
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid #e5e5e5;
+      background: #f8f8f8;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 11px;
+    }
+
+    .controls {
+      padding: 16px;
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .btn {
+      background: #0066ff;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .btn:hover {
+      background: #0056d6;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .summary {
+      padding: 16px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .summary h3 {
+      font-size: 12px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stat-value {
+      font-weight: 600;
+    }
+
+    .results {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 400px;
+    }
+
+    .empty-state {
+      padding: 32px 16px;
+      text-align: center;
+      color: #666;
+    }
+
+    .empty-state h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .violation-card {
+      border-bottom: 1px solid #e5e5e5;
+      padding: 16px;
+      cursor: pointer;
+      transition: background-color 0.1s;
+    }
+
+    .violation-card:hover {
+      background: #f8f8f8;
+    }
+
+    .violation-card.high-severity {
+      border-left: 3px solid #ff4757;
+    }
+
+    .violation-card.medium-severity {
+      border-left: 3px solid #ffa726;
+    }
+
+    .violation-card.low-severity {
+      border-left: 3px solid #66bb6a;
+    }
+
+    .violation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .violation-title {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .violation-meta {
+      font-size: 10px;
+      color: #666;
+    }
+
+    .issues {
+      margin-bottom: 12px;
+    }
+
+    .issue {
+      padding: 6px 8px;
+      margin: 4px 0;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .issue.high {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .issue.medium {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .issue.low {
+      background: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .issue-type {
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+    }
+
+    .issue-message {
+      display: block;
+      margin-top: 2px;
+    }
+
+    .suggestions {
+      margin-top: 8px;
+    }
+
+    .suggestion {
+      padding: 6px 8px;
+      background: #e3f2fd;
+      border-radius: 3px;
+      font-size: 11px;
+      margin: 4px 0;
+      color: #1565c0;
+    }
+
+    .suggestion::before {
+      content: "💡 ";
+    }
+
+    .guidelines {
+      padding: 16px;
+      background: #f0f7ff;
+      border-top: 1px solid #e5e5e5;
+    }
+
+    .guidelines h4 {
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: #1565c0;
+    }
+
+    .guidelines ul {
+      font-size: 11px;
+      color: #333;
+      padding-left: 16px;
+    }
+
+    .guidelines li {
+      margin-bottom: 4px;
+    }
+
+    .loading {
+      padding: 32px 16px;
+      text-align: center;
+      color: #666;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e5e5e5;
+      border-top: 2px solid #0066ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>Component Variant Validator</h1>
+  <p>Detect illegal component variants that violate orthogonal design principles</p>
+</div>
+
+<div class="controls">
+  <button id="scan-page" class="btn">Scan Current Page</button>
+  <button id="scan-all" class="btn btn-secondary">Scan All Pages</button>
+</div>
+
+<div id="loading" class="loading" style="display: none;">
+  <div class="spinner"></div>
+  <p>Analyzing components...</p>
+</div>
+
+<div id="summary" class="summary" style="display: none;">
+  <h3>Analysis Results</h3>
+  <div class="stats">
+    <div class="stat">
+      <span>Components Scanned:</span>
+      <span class="stat-value" id="components-scanned">0</span>
+    </div>
+    <div class="stat">
+      <span>Violations Found:</span>
+      <span class="stat-value" id="violations-found">0</span>
+    </div>
+    <div class="stat">
+      <span>Scope:</span>
+      <span class="stat-value" id="scan-scope">-</span>
+    </div>
+  </div>
+</div>
+
+<div class="results">
+  <div id="empty-state" class="empty-state">
+    <h3>Ready to Scan</h3>
+    <p>Click "Scan Current Page" to analyze components for variant violations.</p>
+  </div>
+
+  <div id="violations-list"></div>
+</div>
+
+<div class="guidelines">
+  <h4>Design System Guidelines</h4>
+  <ul>
+    <li>Each variant property should be orthogonal (independent)</li>
+    <li>Grid completeness should be >80% for clean architecture</li>
+    <li>Avoid properties that only work in specific contexts</li>
+    <li>Consider splitting components with >2 orphaned properties</li>
+    <li>Maximum 4 variant properties per component recommended</li>
+  </ul>
+</div>
+
+<script>
+  const elements = {
+    scanPage: document.getElementById('scan-page'),
+    scanAll: document.getElementById('scan-all'),
+    loading: document.getElementById('loading'),
+    summary: document.getElementById('summary'),
+    emptyState: document.getElementById('empty-state'),
+    violationsList: document.getElementById('violations-list'),
+    componentsScanned: document.getElementById('components-scanned'),
+    violationsFound: document.getElementById('violations-found'),
+    scanScope: document.getElementById('scan-scope')
+  };
+
+  let currentResults = null;
+
+  // Event listeners
+  elements.scanPage.addEventListener('click', () => {
+    startScan('scan-current-page');
+  });
+
+  elements.scanAll.addEventListener('click', () => {
+    startScan('scan-all-pages');
+  });
+
+  // Handle messages from plugin code
+  window.onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+
+    if (msg.type === 'scan-results') {
+      handleScanResults(msg.data);
+    }
+  };
+
+  function startScan(type) {
+    elements.loading.style.display = 'block';
+    elements.summary.style.display = 'none';
+    elements.emptyState.style.display = 'none';
+    elements.violationsList.innerHTML = '';
+
+    elements.scanPage.disabled = true;
+    elements.scanAll.disabled = true;
+
+    parent.postMessage({ pluginMessage: { type } }, '*');
+  }
+
+  function handleScanResults(results) {
+    currentResults = results;
+
+    elements.loading.style.display = 'none';
+    elements.scanPage.disabled = false;
+    elements.scanAll.disabled = false;
+
+    updateSummary(results);
+    displayViolations(results.violations);
+  }
+
+  function updateSummary(results) {
+    elements.summary.style.display = 'block';
+    elements.componentsScanned.textContent = results.componentsScanned;
+    elements.violationsFound.textContent = results.violationsFound;
+    elements.scanScope.textContent = results.scope === 'all-pages' ?
+            `All ${results.pagesScanned} pages` :
+            results.page || 'Current page';
+  }
+
+  function displayViolations(violations) {
+    if (violations.length === 0) {
+      elements.emptyState.innerHTML = `
+          <h3>🎉 No Violations Found!</h3>
+          <p>All scanned components follow good variant design principles.</p>
+        `;
+      elements.emptyState.style.display = 'block';
+      return;
+    }
+
+    elements.emptyState.style.display = 'none';
+
+    violations.forEach(violation => {
+      const card = createViolationCard(violation);
+      elements.violationsList.appendChild(card);
+    });
+  }
+
+  function createViolationCard(violation) {
+    const maxSeverity = getMaxSeverity(violation.issues);
+
+    const card = document.createElement('div');
+    card.className = `violation-card ${maxSeverity}-severity`;
+    card.addEventListener('click', () => {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'focus-component',
+          id: violation.id
+        }
+      }, '*');
+    });
+
+    card.innerHTML = `
+        <div class="violation-header">
+          <div class="violation-title">${violation.name}</div>
+          <div class="violation-meta">
+            ${violation.analysis.totalVariants}/${violation.analysis.possibleVariants} variants
+            (${Math.round(violation.analysis.gridCompleteness * 100)}%)
+          </div>
+        </div>
+
+        <div class="issues">
+          ${violation.issues.map(issue => `
+            <div class="issue ${issue.severity}">
+              <span class="issue-type">${issue.type.replace(/_/g, ' ')}</span>
+              <span class="issue-message">${issue.message}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        ${violation.suggestions.length > 0 ? `
+          <div class="suggestions">
+            ${violation.suggestions.map(suggestion => `
+              <div class="suggestion">${suggestion.message}</div>
+            `).join('')}
+          </div>
+        ` : ''}
+      `;
+
+    return card;
+  }
+
+  function getMaxSeverity(issues) {
+    const severityOrder = { low: 0, medium: 1, high: 2 };
+    return issues.reduce((max, issue) => {
+      return severityOrder[issue.severity] > severityOrder[max] ? issue.severity : max;
+    }, 'low');
+  }
+</script>
+</body>
+</html>
