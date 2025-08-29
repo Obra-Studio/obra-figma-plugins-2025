@@ -1,5 +1,3 @@
-
-<!-- ui.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -59,9 +57,11 @@
     }
 
     .status {
-      margin-top: 16px;
       padding: 8px;
-      border-radius: 4px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
       font-size: 11px;
       text-align: center;
       display: none;
@@ -84,6 +84,8 @@
 <body>
 
 
+<div id="status" class="status"></div>
+
 <div class="section">
   <h2>General</h2>
   <div class="button-group">
@@ -102,6 +104,17 @@
 </div>
 
 <div class="section">
+  <!-- Not implemtned yet -->
+  <h2>Spacing between top level frames</h2>
+  <div class="button-group">
+    <button>Set 256px spacing between frames (vertically)</button>
+    <p class="small muted">Guideline: between top level frames there should be a 256px spacing horizontally</p>
+    <button>Set 256px spacing between frames (horizontally)</button>
+    <p class="small muted">Guideline: between top level frames there should be a 256px spacing horizontally</p>
+  </div>
+</div>
+
+<div class="section">
   <h2>Top level frames</h2>
   <div class="button-group">
     <button id="spacing-0" class="spacing-button">Set 0px spacing + 0px gap</button>
@@ -109,7 +122,10 @@
   </div>
 </div>
 
-<div id="status" class="status"></div>
+<div class="section">
+  <h2>Component properties documentation</h2>
+  <p class="small muted">Please use <a href="https://www.figma.com/community/plugin/1116018586739867857/propstar">Propstar</a> for component documentation.</p>
+</div>
 
 <script>
   function showStatus(message, type = 'success') {
