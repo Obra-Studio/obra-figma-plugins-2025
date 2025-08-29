@@ -4,6 +4,24 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
+  "menu": [
+    {
+      "name": "Show UI",
+      "command": "show-ui"
+    },
+    {
+      "name": "Post-Prop Star Treatment",
+      "command": "post-propstar-treatment"
+    },
+    {
+      "name": "De-Propstar",
+      "command": "prop-star-cleanup"
+    },
+    {
+      "name": "Set 256px Vertical Spacing",
+      "command": "frame-spacing-vertical"
+    }
+  ],
   "capabilities": [],
   "enableProposedApi": false,
   "editorType": ["figma"],

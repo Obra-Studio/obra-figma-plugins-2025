@@ -1,7 +1,22 @@
 
 <!-- code.js -->
-// Show the plugin UI
-figma.showUI(__html__, { width: 280, height: 480 });
+// Handle direct commands
+if (figma.command === 'post-propstar-treatment') {
+  handlePostPropstarTreatment(true);
+  figma.closePlugin();
+} else if (figma.command === 'prop-star-cleanup') {
+  handlePropStarCleanup(true);
+  figma.closePlugin();
+} else if (figma.command === 'frame-spacing-vertical') {
+  handleSetFrameSpacing('vertical', true);
+  figma.closePlugin();
+} else if (figma.command === 'show-ui') {
+  // Show the plugin UI
+  figma.showUI(__html__, { width: 280, height: 480 });
+} else {
+  // Default: show UI if no specific command
+  figma.showUI(__html__, { width: 280, height: 480 });
+}
 
 // Handle messages from the UI
 figma.ui.onmessage = msg => {
@@ -23,6 +38,10 @@ figma.ui.onmessage = msg => {
     handlePostPropstarTreatment();
   } else if (msg.type === 'prop-star-cleanup') {
     handlePropStarCleanup();
+  } else if (msg.type === 'set-32px-inner-spacing') {
+    handleSet32pxInnerSpacing();
+  } else if (msg.type === 'reset-component-set-style') {
+    handleResetComponentSetStyle();
   }
 };
 
@@ -125,15 +144,19 @@ function handleSetSpacing(spacing) {
   }
 }
 
-function handleSetFrameSpacing(direction) {
+function handleSetFrameSpacing(direction, isDirectCommand = false) {
   const selection = figma.currentPage.selection;
 
   if (selection.length < 2) {
-    figma.ui.postMessage({
-      type: 'status',
-      message: 'Please select at least 2 frames to set spacing between them',
-      success: false
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: 'Please select at least 2 frames to set spacing between them',
+        success: false
+      });
+    } else {
+      figma.notify('Please select at least 2 frames to set spacing between them');
+    }
     return;
   }
 
@@ -143,11 +166,15 @@ function handleSetFrameSpacing(direction) {
   );
 
   if (topLevelFrames.length < 2) {
-    figma.ui.postMessage({
-      type: 'status',
-      message: 'Please select at least 2 top-level frames',
-      success: false
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: 'Please select at least 2 top-level frames',
+        success: false
+      });
+    } else {
+      figma.notify('Please select at least 2 top-level frames');
+    }
     return;
   }
 
@@ -170,11 +197,15 @@ function handleSetFrameSpacing(direction) {
   }
 
   const frameText = topLevelFrames.length === 1 ? 'frame' : 'frames';
-  figma.ui.postMessage({
-    type: 'status',
-    message: `Set 256px ${direction} spacing between ${topLevelFrames.length} ${frameText}`,
-    success: true
-  });
+  if (!isDirectCommand) {
+    figma.ui.postMessage({
+      type: 'status',
+      message: `Set 256px ${direction} spacing between ${topLevelFrames.length} ${frameText}`,
+      success: true
+    });
+  } else {
+    figma.notify(`Set 256px ${direction} spacing between ${topLevelFrames.length} ${frameText}`);
+  }
 }
 
 function handleDeprecateComponent() {
@@ -435,15 +466,19 @@ function handleMarkStopFrame() {
   });
 }
 
-function handlePostPropstarTreatment() {
+function handlePostPropstarTreatment(isDirectCommand = false) {
   const selection = figma.currentPage.selection;
 
   if (selection.length === 0) {
-    figma.ui.postMessage({
-      type: 'status',
-      message: 'Please select a component to apply Post-Prop Star treatment',
-      success: false
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: 'Please select a component to apply Post-Prop Star treatment',
+        success: false
+      });
+    } else {
+      figma.notify('Please select a component to apply Post-Prop Star treatment');
+    }
     return;
   }
 
@@ -451,21 +486,29 @@ function handlePostPropstarTreatment() {
 
   selection.forEach(component => {
     if (component.type !== 'COMPONENT' && component.type !== 'COMPONENT_SET') {
-      figma.ui.postMessage({
-        type: 'status',
-        message: `Selected node type: ${component.type}. Please select components or component sets only`,
-        success: false
-      });
+      if (!isDirectCommand) {
+        figma.ui.postMessage({
+          type: 'status',
+          message: `Selected node type: ${component.type}. Please select components or component sets only`,
+          success: false
+        });
+      } else {
+        figma.notify(`Selected node type: ${component.type}. Please select components or component sets only`);
+      }
       return;
     }
 
     const parent = component.parent;
     if (!parent || parent.type === 'PAGE') {
-      figma.ui.postMessage({
-        type: 'status',
-        message: 'Component must have a parent frame',
-        success: false
-      });
+      if (!isDirectCommand) {
+        figma.ui.postMessage({
+          type: 'status',
+          message: 'Component must have a parent frame',
+          success: false
+        });
+      } else {
+        figma.notify('Component must have a parent frame');
+      }
       return;
     }
 
@@ -494,11 +537,15 @@ function handlePostPropstarTreatment() {
     }
 
     if (!docFrame) {
-      figma.ui.postMessage({
-        type: 'status',
-        message: `No empty documentation frame found for "${component.name}"`,
-        success: false
-      });
+      if (!isDirectCommand) {
+        figma.ui.postMessage({
+          type: 'status',
+          message: `No empty documentation frame found for "${component.name}"`,
+          success: false
+        });
+      } else {
+        figma.notify(`No empty documentation frame found for "${component.name}"`);
+      }
       return;
     }
 
@@ -530,35 +577,48 @@ function handlePostPropstarTreatment() {
 
   if (treatedCount > 0) {
     const componentText = treatedCount === 1 ? 'component' : 'components';
-    figma.ui.postMessage({
-      type: 'status',
-      message: `Applied Post-Prop Star treatment to ${treatedCount} ${componentText}`,
-      success: true
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: `Applied Post-Prop Star treatment to ${treatedCount} ${componentText}`,
+        success: true
+      });
+    } else {
+      figma.notify(`Applied Post-Prop Star treatment to ${treatedCount} ${componentText}`);
+    }
   }
 }
 
-function handlePropStarCleanup() {
+function handlePropStarCleanup(isDirectCommand = false) {
   const selection = figma.currentPage.selection;
 
   if (selection.length === 0) {
-    figma.ui.postMessage({
-      type: 'status',
-      message: 'Please select a frame to clean up Prop Star elements',
-      success: false
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: 'Please select a frame to clean up Prop Star elements',
+        success: false
+      });
+    } else {
+      figma.notify('Please select a frame to clean up Prop Star elements');
+    }
     return;
   }
 
   let cleanedCount = 0;
+  const componentsToSelect = [];
 
   selection.forEach(node => {
     if (node.type !== 'FRAME') {
-      figma.ui.postMessage({
-        type: 'status',
-        message: 'Please select frames only',
-        success: false
-      });
+      if (!isDirectCommand) {
+        figma.ui.postMessage({
+          type: 'status',
+          message: 'Please select the parent frame of the component, that contains the generated Propstar layers.',
+          success: false
+        });
+      } else {
+        figma.notify('Please select the parent frame of the component, that contains the generated Propstar layers.');
+      }
       return;
     }
 
@@ -581,11 +641,15 @@ function handlePropStarCleanup() {
     });
 
     if (!labelsFound && !instancesFound) {
-      figma.ui.postMessage({
-        type: 'status',
-        message: `No Prop Star elements found in "${node.name}"`,
-        success: false
-      });
+      if (!isDirectCommand) {
+        figma.ui.postMessage({
+          type: 'status',
+          message: `No Prop Star elements found in "${node.name}"`,
+          success: false
+        });
+      } else {
+        figma.notify(`No Prop Star elements found in "${node.name}"`);
+      }
       return;
     }
 
@@ -601,6 +665,9 @@ function handlePropStarCleanup() {
       component.x = nodeX;
       component.y = nodeY;
       
+      // Add component to selection list
+      componentsToSelect.push(component);
+      
       // Remove the now-empty frame
       node.remove();
     }
@@ -608,11 +675,129 @@ function handlePropStarCleanup() {
     cleanedCount++;
   });
 
+  // Update selection to the extracted components
+  if (componentsToSelect.length > 0) {
+    figma.currentPage.selection = componentsToSelect;
+  }
+
   if (cleanedCount > 0) {
     const frameText = cleanedCount === 1 ? 'frame' : 'frames';
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: `De-Propstarred ${cleanedCount} ${frameText}`,
+        success: true
+      });
+    } else {
+      figma.notify(`De-Propstarred ${cleanedCount} ${frameText}`);
+    }
+  }
+}
+
+function handleSet32pxInnerSpacing() {
+  const selection = figma.currentPage.selection;
+
+  if (selection.length === 0) {
     figma.ui.postMessage({
       type: 'status',
-      message: `De-Propstarred ${cleanedCount} ${frameText}`,
+      message: 'Please select a component variant to set inner spacing',
+      success: false
+    });
+    return;
+  }
+
+  let updatedCount = 0;
+
+  selection.forEach(node => {
+    // Check if the node supports auto layout
+    if (node.type === 'FRAME' || node.type === 'COMPONENT' || node.type === 'INSTANCE' || node.type === 'COMPONENT_SET') {
+      // Check if auto layout is enabled
+      if (node.layoutMode !== 'NONE') {
+        // Set padding to 32px on all sides
+        node.paddingTop = 32;
+        node.paddingRight = 32;
+        node.paddingBottom = 32;
+        node.paddingLeft = 32;
+        
+        // Set item spacing (gap between children) to 32px
+        node.itemSpacing = 32;
+        
+        updatedCount++;
+      } else {
+        figma.ui.postMessage({
+          type: 'status',
+          message: `"${node.name}" doesn't have auto layout enabled. Enable auto layout to set spacing.`,
+          success: false
+        });
+        return;
+      }
+    } else {
+      figma.ui.postMessage({
+        type: 'status',
+        message: `"${node.name}" doesn't support spacing. Select frames, components, or instances with auto layout.`,
+        success: false
+      });
+      return;
+    }
+  });
+
+  if (updatedCount > 0) {
+    const layerText = updatedCount === 1 ? 'variant' : 'variants';
+    figma.ui.postMessage({
+      type: 'status',
+      message: `Set 32px inner spacing on ${updatedCount} ${layerText}`,
+      success: true
+    });
+  }
+}
+
+function handleResetComponentSetStyle() {
+  const selection = figma.currentPage.selection;
+
+  if (selection.length === 0) {
+    figma.ui.postMessage({
+      type: 'status',
+      message: 'Please select a component set to reset its style',
+      success: false
+    });
+    return;
+  }
+
+  let resetCount = 0;
+
+  selection.forEach(node => {
+    if (node.type === 'COMPONENT_SET') {
+      // Remove fills (transparent background)
+      node.fills = [];
+      
+      // Reset stroke to default component set style: #9747FF, inside, 1px, dashed 10-5
+      node.strokes = [{
+        type: 'SOLID',
+        color: { r: 0.592, g: 0.278, b: 1 } // #9747FF
+      }];
+      node.strokeWeight = 1;
+      node.strokeAlign = 'INSIDE';
+      node.dashPattern = [10, 5]; // 10px dash, 5px gap
+      
+      // Reset corner radius to 5px
+      node.cornerRadius = 5;
+      
+      resetCount++;
+    } else {
+      figma.ui.postMessage({
+        type: 'status',
+        message: `"${node.name}" is not a component set`,
+        success: false
+      });
+      return;
+    }
+  });
+
+  if (resetCount > 0) {
+    const setText = resetCount === 1 ? 'component set' : 'component sets';
+    figma.ui.postMessage({
+      type: 'status',
+      message: `Reset default component set style on ${resetCount} ${setText}`,
       success: true
     });
   }
