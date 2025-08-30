@@ -29,7 +29,8 @@ The plugin supports both UI-driven interactions and direct menu commands for com
 - `handlePostPropstarTreatment()`: Organizes Propstar generated documentation (code.js:467)
 - `handlePropStarCleanup()`: Removes Prop Star elements and ungroups frames (code.js:570)
 - `handleSet32pxInnerSpacing()`: Sets 32px padding and gap for component variants (code.js:650)
-- `handleResetComponentSetStyle()`: Resets component sets to default purple styling (code.js:707)
+- `handleResetComponentSetStyle()`: Resets component sets to default styling (code.js:804)
+- `handleDetectComponents()`: Scans for component violations in screen designs (code.js:868)
 
 ## Plugin Features
 
@@ -57,8 +58,11 @@ The plugin supports both UI-driven interactions and direct menu commands for com
 - Post-treatment: Provide a helper after generating Propstar documentation that repositions the original component
 - Cleanup: Removes Propstar generated elements (Labels group, Instances frame) and ungroups documentation to provide a clean slate
 
+### Screen Design Validation
+- Component detection: Scans selected frames for component violations (only hidden components starting with . or _ allowed)
+
 ### Component Set Styling
-- Reset to default purple styling for better designer experience
+- Reset to default styling (transparent background, #9747FF dashed border) for better designer experience
 
 ### Design Guidelines Enforced
 - Auto layout frames use consistent naming conventions
@@ -72,6 +76,7 @@ The plugin supports both UI-driven interactions and direct menu commands for com
 
 The UI is organized into logical sections:
 - General: Basic layer operations
+- Screen design validation: Component violation detection for screen designs
 - Component deprecation: Text and visual deprecation tools
 - Individual sections: Section-specific operations and wrapping
 - Spacing between frames: Inter-frame spacing management
@@ -88,6 +93,7 @@ Direct access commands available via Figma's plugin menu:
 - Post-Prop Star Treatment: Direct access to post-Prop Star organization
 - De-Propstar: Direct cleanup of Prop Star elements
 - Set 256px Vertical Spacing: Direct vertical spacing between selected frames
+- Reset Component Set Style: Direct reset to default component set styling
 
 ## Development
 
