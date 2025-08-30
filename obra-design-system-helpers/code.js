@@ -10,6 +10,9 @@ if (figma.command === 'post-propstar-treatment') {
 } else if (figma.command === 'frame-spacing-vertical') {
   handleSetFrameSpacing('vertical', true);
   figma.closePlugin();
+} else if (figma.command === 'reset-component-set-style') {
+  handleResetComponentSetStyle(true);
+  figma.closePlugin();
 } else if (figma.command === 'show-ui') {
   // Show the plugin UI
   figma.showUI(__html__, { width: 280, height: 480 });
@@ -798,15 +801,19 @@ function handleSet32pxInnerSpacing() {
   }
 }
 
-function handleResetComponentSetStyle() {
+function handleResetComponentSetStyle(isDirectCommand = false) {
   const selection = figma.currentPage.selection;
 
   if (selection.length === 0) {
-    figma.ui.postMessage({
-      type: 'status',
-      message: 'Please select a component set to reset its style',
-      success: false
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: 'Please select a component set to reset its style',
+        success: false
+      });
+    } else {
+      figma.notify('Please select a component set to reset its style');
+    }
     return;
   }
 
@@ -831,22 +838,30 @@ function handleResetComponentSetStyle() {
       
       resetCount++;
     } else {
-      figma.ui.postMessage({
-        type: 'status',
-        message: `"${node.name}" is not a component set`,
-        success: false
-      });
+      if (!isDirectCommand) {
+        figma.ui.postMessage({
+          type: 'status',
+          message: `"${node.name}" is not a component set`,
+          success: false
+        });
+      } else {
+        figma.notify(`"${node.name}" is not a component set`);
+      }
       return;
     }
   });
 
   if (resetCount > 0) {
     const setText = resetCount === 1 ? 'component set' : 'component sets';
-    figma.ui.postMessage({
-      type: 'status',
-      message: `Reset default component set style on ${resetCount} ${setText}`,
-      success: true
-    });
+    if (!isDirectCommand) {
+      figma.ui.postMessage({
+        type: 'status',
+        message: `Reset default component set style on ${resetCount} ${setText}`,
+        success: true
+      });
+    } else {
+      figma.notify(`Reset default component set style on ${resetCount} ${setText}`);
+    }
   }
 }
 

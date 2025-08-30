@@ -20,6 +20,10 @@
     {
       "name": "Set 256px Vertical Spacing",
       "command": "frame-spacing-vertical"
+    },
+    {
+      "name": "Reset Component Set Style",
+      "command": "reset-component-set-style"
     }
   ],
   "capabilities": [],
