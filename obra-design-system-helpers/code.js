@@ -609,20 +609,65 @@ function handlePropStarCleanup(isDirectCommand = false) {
 
   let cleanedCount = 0;
   const componentsToSelect = [];
+  const framesToProcess = [];
 
   selection.forEach(node => {
-    if (node.type !== 'FRAME') {
+    if (node.type === 'FRAME') {
+      // Direct frame selection - use as-is
+      framesToProcess.push(node);
+    } else if (node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') {
+      // Component selected - find its parent frame
+      const parent = node.parent;
+      if (parent && parent.type === 'FRAME') {
+        // Check if parent contains Prop Star elements
+        const hasLabels = parent.children.some(child => 
+          child.type === 'GROUP' && child.name.toLowerCase() === 'labels'
+        );
+        const hasInstances = parent.children.some(child => 
+          child.type === 'FRAME' && child.name.toLowerCase() === 'instances'
+        );
+        
+        if (hasLabels || hasInstances) {
+          framesToProcess.push(parent);
+        } else {
+          if (!isDirectCommand) {
+            figma.ui.postMessage({
+              type: 'status',
+              message: `No Prop Star elements found in parent frame of "${node.name}"`,
+              success: false
+            });
+          } else {
+            figma.notify(`No Prop Star elements found in parent frame of "${node.name}"`);
+          }
+          return;
+        }
+      } else {
+        if (!isDirectCommand) {
+          figma.ui.postMessage({
+            type: 'status',
+            message: `"${node.name}" must have a parent frame with Prop Star elements`,
+            success: false
+          });
+        } else {
+          figma.notify(`"${node.name}" must have a parent frame with Prop Star elements`);
+        }
+        return;
+      }
+    } else {
       if (!isDirectCommand) {
         figma.ui.postMessage({
           type: 'status',
-          message: 'Please select the parent frame of the component, that contains the generated Propstar layers.',
+          message: 'Please select frames or components to clean up Prop Star elements',
           success: false
         });
       } else {
-        figma.notify('Please select the parent frame of the component, that contains the generated Propstar layers.');
+        figma.notify('Please select frames or components to clean up Prop Star elements');
       }
       return;
     }
+  });
+
+  framesToProcess.forEach(node => {
 
     const children = [...node.children];
     let labelsFound = false;
