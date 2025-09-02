@@ -5,10 +5,10 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 16px;
+            padding: 12px;
             background: #ffffff;
-            color: #333;
-            font-size: 14px;
+            color: #333333;
+            font-size: 11px;
         }
         
         .header {
@@ -30,24 +30,24 @@
         }
         
         .section {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         
         .button {
-            background: #0066ff;
+            background: #18a0fb;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             width: 100%;
             margin-bottom: 8px;
         }
         
         .button:hover {
-            background: #0052cc;
+            background: #0d8ce8;
         }
         
         .button:disabled {
@@ -88,59 +88,69 @@
         }
         
         .status {
-            background: #f8f9fa;
-            padding: 12px;
+            background: #f7f7f7;
+            padding: 8px 12px;
             border-radius: 6px;
-            margin-bottom: 16px;
-            font-size: 12px;
+            margin-bottom: 12px;
+            font-size: 10px;
+            color: #8c8c8c;
         }
         
         .accordion {
-            border: 1px solid #e5e5e5;
-            border-radius: 6px;
-            margin-bottom: 12px;
+            border: none;
+            border-radius: 0;
+            margin-bottom: 0;
             overflow: hidden;
         }
         
         .accordion-header {
-            background: #f8f9fa;
-            padding: 12px 16px;
+            background: transparent;
+            padding: 8px 0;
             cursor: pointer;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 6px;
             font-weight: 500;
-            font-size: 13px;
-            border-bottom: 1px solid #e5e5e5;
+            font-size: 11px;
+            border-bottom: 1px solid #e1e1e1;
             transition: background-color 0.15s;
         }
         
         .accordion-header:hover {
-            background: #e9ecef;
+            background: #f7f7f7;
         }
         
         .accordion-header.has-problems {
-            background: #fff3cd;
-            border-bottom-color: #ffeaa7;
+            background: transparent;
         }
         
         .accordion-header.has-problems:hover {
-            background: #ffeaa7;
+            background: #f7f7f7;
         }
         
         .accordion-toggle {
             font-size: 12px;
             color: #666;
             transition: transform 0.2s;
+            flex-shrink: 0;
+            width: 12px;
+            text-align: center;
         }
         
         .accordion-toggle.open {
             transform: rotate(90deg);
         }
         
+        .accordion-title {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
         .accordion-content {
             display: none;
-            padding: 16px;
+            padding: 12px 0 16px 0;
         }
         
         .accordion-content.open {
@@ -166,20 +176,25 @@
         }
         
         .variables-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 4px;
             font-size: 11px;
             line-height: 1.4;
+            max-width: 100%;
         }
         
         .variable-tag {
-            background: #e3f2fd;
-            color: #0066ff;
-            padding: 4px 8px;
-            border-radius: 12px;
+            background: #ffffff;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            padding: 4px 6px;
+            border-radius: 4px;
             font-size: 10px;
             white-space: nowrap;
+            text-align: center;
+            overflow: visible;
+            word-break: keep-all;
         }
         
         .ignore-section {
@@ -205,14 +220,16 @@
         .ignore-add-btn {
             padding: 6px 12px;
             font-size: 10px;
-            background: #f0f0f0;
-            border: 1px solid #e5e5e5;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
             border-radius: 4px;
             cursor: pointer;
+            color: #475569;
         }
         
         .ignore-add-btn:hover {
-            background: #e0e0e0;
+            background: #e2e8f0;
+            border-color: #94a3b8;
         }
         
         .ignore-list {
@@ -223,8 +240,8 @@
         }
         
         .ignore-tag {
-            background: #f8d7da;
-            color: #721c24;
+            background: #e2e8f0;
+            color: #475569;
             padding: 3px 8px;
             border-radius: 10px;
             font-size: 10px;
@@ -237,29 +254,30 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 12px;
+            color: #64748b;
         }
         
         .ignore-remove:hover {
-            color: #dc3545;
+            color: #1e293b;
         }
         
         .layers-list {
             max-height: 300px;
             overflow-y: auto;
-            border: 1px solid #e5e5e5;
-            border-radius: 6px;
-            margin-bottom: 16px;
+            border: none;
+            border-radius: 0;
+            margin-bottom: 12px;
         }
         
         .layer-item {
-            padding: 12px;
+            padding: 8px 12px;
             border-bottom: 1px solid #f0f0f0;
             cursor: pointer;
             transition: background-color 0.15s;
         }
         
         .layer-item:hover {
-            background: #f8f9fa;
+            background: #f7f7f7;
         }
         
         .layer-item:last-child {
@@ -273,25 +291,25 @@
         
         .layer-name {
             font-weight: 500;
-            font-size: 13px;
-            margin-bottom: 4px;
+            font-size: 11px;
+            margin-bottom: 3px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
         .layer-radius {
-            font-size: 11px;
-            color: #0066ff;
-            background: #e3f2fd;
-            padding: 2px 6px;
-            border-radius: 3px;
+            font-size: 10px;
+            color: #18a0fb;
+            background: #e8f4fd;
+            padding: 2px 4px;
+            border-radius: 4px;
         }
         
         .layer-details {
-            font-size: 11px;
-            color: #666;
-            margin-bottom: 6px;
+            font-size: 10px;
+            color: #8c8c8c;
+            margin-bottom: 4px;
         }
         
         .layer-suggestion {
@@ -396,77 +414,144 @@
         .hidden {
             display: none;
         }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e1e1;
+            margin: -12px -12px 12px -12px;
+            padding: 0;
+            background: #ffffff;
+        }
+        
+        .tab {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 400;
+            color: #8c8c8c;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.15s ease;
+            position: relative;
+            line-height: 1.2;
+        }
+        
+        .tab:hover {
+            color: #333333;
+            background: #f7f7f7;
+        }
+        
+        .tab.active {
+            color: #333333;
+            font-weight: 500;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #18a0fb;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('layers')">Layers</button>
+        <button class="tab" onclick="switchTab('settings')">Settings</button>
+    </div>
 
     <div id="errorBanner" class="error-banner hidden">
         <span class="error-icon">⚠</span>
         <span id="errorMessage"></span>
     </div>
 
-    <div id="scanSection" class="section">
-        <button id="scanBtn" class="button">Scan Selected Layers</button>
-        <div id="status" class="status hidden">Ready to scan...</div>
+    <!-- Layers Tab -->
+    <div id="layersTab" class="tab-content active">
+        <div id="scanSection" class="section">
+            <button id="scanBtn" class="button">Scan Selected Layers</button>
+            <div id="status" class="status hidden">Ready to scan...</div>
+        </div>
+
+        <div id="layersAccordion" class="accordion hidden">
+            <div class="accordion-header" id="layersHeader" onclick="toggleAccordion('layers')">
+                <span class="accordion-toggle open" id="layersToggle">▶</span>
+                <span class="accordion-title">
+                    <span id="layersTitle">Layers with Problems</span>
+                    <span id="problemsCount" class="problem-count hidden"></span>
+                </span>
+            </div>
+            <div class="accordion-content open" id="layersContent">
+                <div id="layersList" class="layers-list"></div>
+            </div>
+        </div>
+
+        <div id="fixedLayersAccordion" class="accordion hidden">
+            <div class="accordion-header" onclick="toggleAccordion('fixed')">
+                <span class="accordion-toggle" id="fixedToggle">▶</span>
+                <span class="accordion-title">
+                    <span>Layers Already Fixed</span>
+                    <span id="fixedCount" class="success-count hidden"></span>
+                </span>
+            </div>
+            <div class="accordion-content" id="fixedContent">
+                <div id="fixedLayersList" class="layers-list"></div>
+            </div>
+        </div>
+
+        <div id="selectedLayerAccordion" class="accordion hidden">
+            <div class="accordion-header" onclick="toggleAccordion('selected')">
+                <span class="accordion-toggle open" id="selectedToggle">▶</span>
+                <span id="selectedLayerTitle" class="accordion-title">Selected Layer</span>
+            </div>
+            <div class="accordion-content open" id="selectedContent">
+                <div id="selectedLayerInfo" class="selected-layer-info">
+                    <div id="selectedLayerName" class="selected-layer-name"></div>
+                    <div id="selectedLayerDetails" style="font-size: 11px; color: #666; margin-bottom: 8px;"></div>
+                    <div id="selectedLayerSuggestion"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="accordion">
-        <div class="accordion-header" onclick="toggleAccordion('variables')">
-            <span>Available Variables & Settings</span>
-            <span class="accordion-toggle" id="variablesToggle">▶</span>
-        </div>
-        <div class="accordion-content open" id="variablesContent">
-            <div id="variablesList" class="variables-list">
-                <div style="color: #999; font-style: italic;">Loading...</div>
+    <!-- Settings Tab -->
+    <div id="settingsTab" class="tab-content">
+        <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion('variables')">
+                <span class="accordion-toggle open" id="variablesToggle">▶</span>
+                <span class="accordion-title">Available Variables</span>
             </div>
-            
-            <div class="ignore-section">
-                <div style="font-size: 11px; font-weight: 500; margin-bottom: 8px;">Ignore Layer Names (Exact Match):</div>
+            <div class="accordion-content open" id="variablesContent">
+                <div id="variablesList" class="variables-list">
+                    <div style="color: #999; font-style: italic;">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion('ignored')">
+                <span class="accordion-toggle open" id="ignoredToggle">▶</span>
+                <span class="accordion-title">Ignored Layer Names</span>
+            </div>
+            <div class="accordion-content open" id="ignoredContent">
+                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Layers with these exact names will be skipped during scanning:</div>
                 <div class="ignore-input-container">
                     <input type="text" id="ignoreInput" class="ignore-input" placeholder="Enter exact layer name to ignore">
                     <button id="addIgnoreBtn" class="ignore-add-btn">Add</button>
                 </div>
                 <div id="ignoreList" class="ignore-list"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="layersAccordion" class="accordion hidden">
-        <div class="accordion-header" id="layersHeader" onclick="toggleAccordion('layers')">
-            <span>
-                <span id="layersTitle">Layers with Problems</span>
-                <span id="problemsCount" class="problem-count hidden"></span>
-            </span>
-            <span class="accordion-toggle open" id="layersToggle">▼</span>
-        </div>
-        <div class="accordion-content open" id="layersContent">
-            <div id="layersList" class="layers-list"></div>
-        </div>
-    </div>
-
-    <div id="fixedLayersAccordion" class="accordion hidden">
-        <div class="accordion-header" onclick="toggleAccordion('fixed')">
-            <span>
-                <span>Layers Already Fixed</span>
-                <span id="fixedCount" class="success-count hidden"></span>
-            </span>
-            <span class="accordion-toggle" id="fixedToggle">▶</span>
-        </div>
-        <div class="accordion-content" id="fixedContent">
-            <div id="fixedLayersList" class="layers-list"></div>
-        </div>
-    </div>
-
-    <div id="selectedLayerAccordion" class="accordion hidden">
-        <div class="accordion-header" onclick="toggleAccordion('selected')">
-            <span id="selectedLayerTitle">Selected Layer</span>
-            <span class="accordion-toggle open" id="selectedToggle">▼</span>
-        </div>
-        <div class="accordion-content open" id="selectedContent">
-            <div id="selectedLayerInfo" class="selected-layer-info">
-                <div id="selectedLayerName" class="selected-layer-name"></div>
-                <div id="selectedLayerDetails" style="font-size: 11px; color: #666; margin-bottom: 8px;"></div>
-                <div id="selectedLayerSuggestion"></div>
             </div>
         </div>
     </div>
@@ -536,53 +621,18 @@
                 }
             });
 
-            // Load ignored names on startup
-            loadIgnoredNames();
+            // Request ignored names from plugin on startup
+            parent.postMessage({ pluginMessage: { type: 'load-ignored-names' } }, '*');
 
-            // Local storage functions
+            // Save ignored names via plugin clientStorage
             function saveIgnoredNames() {
-                try {
-                    if (typeof Storage !== 'undefined' && window.localStorage) {
-                        var dataToSave = JSON.stringify(ignoredLayerNames);
-                        window.localStorage.setItem('borderRadiusFixer_ignoredNames', dataToSave);
-                        console.log('Saved to localStorage:', dataToSave);
-                        
-                        // Verify it was saved
-                        var verification = window.localStorage.getItem('borderRadiusFixer_ignoredNames');
-                        console.log('Verification read:', verification);
-                    } else {
-                        console.log('localStorage not available for saving');
-                    }
-                } catch (e) {
-                    console.log('Could not save to localStorage:', e);
-                }
-            }
-
-            function loadIgnoredNames() {
-                try {
-                    if (typeof Storage !== 'undefined' && window.localStorage) {
-                        var saved = window.localStorage.getItem('borderRadiusFixer_ignoredNames');
-                        console.log('Loading from localStorage:', saved);
-                        if (saved) {
-                            ignoredLayerNames = JSON.parse(saved);
-                            console.log('Loaded ignored names:', ignoredLayerNames);
-                        } else {
-                            console.log('No saved data found, using defaults');
-                            // Pre-populate with default values
-                            ignoredLayerNames = ['Labels', 'Bracket', 'Instances'];
-                            saveIgnoredNames();
-                        }
-                    } else {
-                        console.log('localStorage not available, using defaults');
-                        // Fallback if localStorage not available
-                        ignoredLayerNames = ['Labels', 'Bracket', 'Instances'];
-                    }
-                    updateIgnoreList();
-                } catch (e) {
-                    console.log('Could not load from localStorage:', e);
-                    ignoredLayerNames = ['Labels', 'Bracket', 'Instances'];
-                    updateIgnoreList();
-                }
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        type: 'save-ignored-names',
+                        ignoredNames: ignoredLayerNames
+                    } 
+                }, '*');
+                console.log('Requested save of ignored names:', ignoredLayerNames);
             }
 
             // Show error banner
@@ -651,17 +701,37 @@
                     if (content.classList.contains('open')) {
                         content.classList.remove('open');
                         toggle.classList.remove('open');
-                        toggle.textContent = '▶';
                     } else {
                         content.classList.add('open');
                         toggle.classList.add('open');
-                        toggle.textContent = '▼';
                     }
                 }
             }
 
             // Make toggleAccordion available globally
             window.toggleAccordion = toggleAccordion;
+
+            // Tab switching function
+            function switchTab(tabName) {
+                // Remove active class from all tabs
+                var tabs = document.querySelectorAll('.tab');
+                for (var i = 0; i < tabs.length; i++) {
+                    tabs[i].classList.remove('active');
+                }
+                
+                // Remove active class from all tab contents
+                var contents = document.querySelectorAll('.tab-content');
+                for (var j = 0; j < contents.length; j++) {
+                    contents[j].classList.remove('active');
+                }
+                
+                // Add active class to clicked tab and its content
+                event.target.classList.add('active');
+                document.getElementById(tabName + 'Tab').classList.add('active');
+            }
+
+            // Make switchTab available globally
+            window.switchTab = switchTab;
 
             // Update variables list
             function updateVariablesList(variableData) {
@@ -1003,6 +1073,12 @@
                         if (elements.scanBtn) {
                             elements.scanBtn.disabled = false;
                         }
+                        break;
+                    
+                    case 'ignored-names-loaded':
+                        ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
+                        console.log('Loaded ignored names from plugin:', ignoredLayerNames);
+                        updateIgnoreList();
                         break;
                 }
             });

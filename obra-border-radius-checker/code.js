@@ -532,6 +532,46 @@ function applyVariableToLayer(layerId, variableId, applyMode) {
   }
 }
 
+// Load ignored names from clientStorage on startup
+async function loadIgnoredNames() {
+  try {
+    var savedNames = await figma.clientStorage.getAsync('borderRadiusChecker_ignoredNames');
+    if (savedNames) {
+      figma.ui.postMessage({
+        type: 'ignored-names-loaded',
+        ignoredNames: savedNames
+      });
+    } else {
+      // Set default ignored names if nothing saved
+      var defaultNames = ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
+      await figma.clientStorage.setAsync('borderRadiusChecker_ignoredNames', defaultNames);
+      figma.ui.postMessage({
+        type: 'ignored-names-loaded',
+        ignoredNames: defaultNames
+      });
+    }
+  } catch (e) {
+    console.log('Error loading ignored names:', e);
+    figma.ui.postMessage({
+      type: 'ignored-names-loaded',
+      ignoredNames: ['Labels', 'Label', 'Bracket', 'Instances', 'Instance']
+    });
+  }
+}
+
+// Save ignored names to clientStorage
+async function saveIgnoredNames(names) {
+  try {
+    await figma.clientStorage.setAsync('borderRadiusChecker_ignoredNames', names);
+    console.log('Saved ignored names to clientStorage:', names);
+  } catch (e) {
+    console.log('Error saving ignored names:', e);
+  }
+}
+
+// Load ignored names on startup
+loadIgnoredNames();
+
 // Handle messages from UI
 figma.ui.onmessage = function(msg) {
   console.log('Received message:', msg.type);
@@ -551,6 +591,14 @@ figma.ui.onmessage = function(msg) {
     
     case 'rescan-variables':
       scanForBorderRadiusVariables();
+      break;
+    
+    case 'save-ignored-names':
+      saveIgnoredNames(msg.ignoredNames);
+      break;
+    
+    case 'load-ignored-names':
+      loadIgnoredNames();
       break;
     
     case 'close':
