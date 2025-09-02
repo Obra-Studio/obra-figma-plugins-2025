@@ -118,8 +118,7 @@ function hasSpacingVariable(node) {
   try {
     if (!node.boundVariables) return false;
     
-    var spacingProperties = ['itemSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 
-                            'horizontalPadding', 'verticalPadding'];
+    var spacingProperties = ['itemSpacing', 'counterAxisSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
     
     for (var i = 0; i < spacingProperties.length; i++) {
       var prop = spacingProperties[i];
@@ -171,14 +170,12 @@ function getDetailedSpacingInfo(node) {
   
   var spacingInfo = {
     itemSpacing: getNumericValue(node.itemSpacing),
+    counterAxisSpacing: getNumericValue(node.counterAxisSpacing),
     paddingTop: getNumericValue(node.paddingTop),
     paddingRight: getNumericValue(node.paddingRight),
     paddingBottom: getNumericValue(node.paddingBottom),
     paddingLeft: getNumericValue(node.paddingLeft),
-    horizontalPadding: getNumericValue(node.horizontalPadding),
-    verticalPadding: getNumericValue(node.verticalPadding),
     hasIndividualPadding: false,
-    hasUniformPadding: false,
     hasVariables: false,
     primaryLayoutMode: node.primaryAxisAlignItems ? 'auto-layout' : 'none'
   };
@@ -197,16 +194,10 @@ function getDetailedSpacingInfo(node) {
     }
   }
   
-  // Check for uniform padding
-  if (spacingInfo.horizontalPadding !== null || spacingInfo.verticalPadding !== null) {
-    spacingInfo.hasUniformPadding = true;
-    if (spacingInfo.horizontalPadding === 'variable' || spacingInfo.verticalPadding === 'variable') {
-      spacingInfo.hasVariables = true;
-    }
-  }
+  // Note: horizontalPadding and verticalPadding are deprecated, using individual padding only"
   
   // Check if gap has variable
-  if (spacingInfo.itemSpacing === 'variable') {
+  if (spacingInfo.itemSpacing === 'variable' || spacingInfo.counterAxisSpacing === 'variable') {
     spacingInfo.hasVariables = true;
   }
   
@@ -259,13 +250,15 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
     }
 
     // Check if node has spacing properties (auto-layout with gap or padding)
-    if (node.itemSpacing !== undefined || 
-        node.paddingTop !== undefined || 
-        node.paddingRight !== undefined || 
-        node.paddingBottom !== undefined || 
-        node.paddingLeft !== undefined ||
-        node.horizontalPadding !== undefined ||
-        node.verticalPadding !== undefined) {
+    var hasCounterAxisSpacing = node.layoutWrap === 'WRAP' && node.counterAxisSpacing !== undefined;
+    var hasAutoLayoutSpacing = (node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL') && 
+                               (node.itemSpacing !== undefined || hasCounterAxisSpacing);
+    var hasPadding = node.paddingTop !== undefined || 
+                     node.paddingRight !== undefined || 
+                     node.paddingBottom !== undefined || 
+                     node.paddingLeft !== undefined;
+    
+    if (hasAutoLayoutSpacing || hasPadding) {
       
       try {
         var spacingInfo = getDetailedSpacingInfo(node);
@@ -279,11 +272,16 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
         // Check gap/itemSpacing - but skip if using auto-spacing (SPACE_BETWEEN)
         var isAutoSpaced = node.primaryAxisAlignItems === 'SPACE_BETWEEN';
         
+        console.log('Node:', node.name, 'layoutMode:', node.layoutMode, 'layoutWrap:', node.layoutWrap, 'primaryAxisAlignItems:', node.primaryAxisAlignItems, 'itemSpacing:', node.itemSpacing, 'counterAxisSpacing:', node.counterAxisSpacing, 'children:', node.children ? node.children.length : 0, 'isAutoSpaced:', isAutoSpaced);
+        
         if (isAutoSpaced) {
           console.log('Skipping gap check for', node.name, '- using auto spacing (SPACE_BETWEEN)');
         }
         
-        if (!isAutoSpaced && spacingInfo.itemSpacing !== null && spacingInfo.itemSpacing !== 'variable' && spacingInfo.itemSpacing > 0) {
+        // Only check for gaps if auto-layout is actually enabled
+        var hasAutoLayout = node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL';
+        
+        if (hasAutoLayout && !isAutoSpaced && spacingInfo.itemSpacing !== null && spacingInfo.itemSpacing !== 'variable' && spacingInfo.itemSpacing > 0) {
           spacingIssues.push({
             type: 'gap',
             value: spacingInfo.itemSpacing,
@@ -291,24 +289,21 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
           });
         }
         
-        // Check padding values - prioritize uniform padding if available
-        if (spacingInfo.hasUniformPadding) {
-          if (spacingInfo.horizontalPadding !== null && spacingInfo.horizontalPadding !== 'variable' && spacingInfo.horizontalPadding > 0) {
-            spacingIssues.push({
-              type: 'padding',
-              value: spacingInfo.horizontalPadding,
-              property: 'horizontalPadding'
-            });
-          }
-          if (spacingInfo.verticalPadding !== null && spacingInfo.verticalPadding !== 'variable' && spacingInfo.verticalPadding > 0) {
-            spacingIssues.push({
-              type: 'padding',
-              value: spacingInfo.verticalPadding,
-              property: 'verticalPadding'
-            });
-          }
-        } else if (spacingInfo.hasIndividualPadding) {
-          // Check individual padding values
+        // Check counterAxisSpacing (cross-axis gap for wrapped auto-layout)
+        // Only applies when layoutWrap is "WRAP" AND auto-layout is enabled
+        // When counterAxisSpacing is null, it syncs with itemSpacing, so we skip it
+        if (hasAutoLayout && node.layoutWrap === 'WRAP' && spacingInfo.counterAxisSpacing !== null && spacingInfo.counterAxisSpacing !== 'variable' && spacingInfo.counterAxisSpacing > 0) {
+          spacingIssues.push({
+            type: 'gap',
+            value: spacingInfo.counterAxisSpacing,
+            property: 'counterAxisSpacing'
+          });
+        }
+        
+        // Check padding values - but avoid double-tracking since horizontalPadding/verticalPadding 
+        // are deprecated and we apply to individual padding properties anyway
+        if (spacingInfo.hasIndividualPadding) {
+          // Check individual padding values only
           var paddingProps = [
             {prop: 'paddingTop', value: spacingInfo.paddingTop},
             {prop: 'paddingRight', value: spacingInfo.paddingRight},
@@ -334,8 +329,19 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
           var issueType = null;
           var suggestion = null;
           
-          // Determine issue type and suggestion
-          if (!hasVariable && matchingVariable) {
+          // Check if THIS specific property has a variable bound
+          var hasPropertyVariable = false;
+          try {
+            if (node.boundVariables && node.boundVariables[issue.property]) {
+              hasPropertyVariable = true;
+              console.log('Found bound variable for', issue.property, 'on node', node.name);
+            }
+          } catch (e) {
+            console.log('Error checking bound variable for', issue.property + ':', e.message);
+          }
+          
+          // Determine issue type and suggestion based on THIS property's variable state
+          if (!hasPropertyVariable && matchingVariable) {
             issueType = 'missing_variable';
             suggestion = {
               type: 'apply_variable',
@@ -344,7 +350,7 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
               property: issue.property,
               propertyType: issue.type
             };
-          } else if (!hasVariable && !matchingVariable) {
+          } else if (!hasPropertyVariable && !matchingVariable) {
             issueType = 'no_matching_variable';
             suggestion = {
               type: 'no_suggestion',
@@ -352,10 +358,16 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
               property: issue.property,
               propertyType: issue.type
             };
+          } else if (hasPropertyVariable) {
+            issueType = 'has_variable';
+            suggestion = {
+              type: 'already_fixed',
+              message: 'Already using variable for ' + issue.property
+            };
           }
           
-          // Only add if there's an issue (skip if already has variable)
-          if (issueType && !hasVariable) {
+          // Add the issue regardless of variable state (for tracking purposes)
+          if (issueType) {
             results.push({
               id: node.id,
               name: node.name,
@@ -363,7 +375,7 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
               spacingValue: issue.value,
               spacingProperty: issue.property,
               propertyType: issue.type,
-              hasVariable: hasVariable,
+              hasVariable: hasPropertyVariable,
               issueType: issueType,
               matchingVariable: matchingVariable,
               suggestion: suggestion,
@@ -372,23 +384,7 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
           }
         }
         
-        // If node has variables but we still want to track it
-        if (hasVariable && spacingIssues.length === 0) {
-          results.push({
-            id: node.id,
-            name: node.name,
-            type: node.type,
-            spacingValue: 0,
-            spacingProperty: 'various',
-            hasVariable: true,
-            issueType: 'has_variable',
-            suggestion: {
-              type: 'already_fixed',
-              message: 'Already using spacing variables'
-            },
-            spacingInfo: spacingInfo
-          });
-        }
+        // Note: Individual properties with variables are now tracked in the loop above
       } catch (e) {
         console.log('Error processing node', node.name + ':', e.message);
         console.log('Error details:', e);
@@ -542,6 +538,8 @@ function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
       // Direct property application
       if (propertyName === 'itemSpacing') {
         node.setBoundVariable('itemSpacing', variable);
+      } else if (propertyName === 'counterAxisSpacing') {
+        node.setBoundVariable('counterAxisSpacing', variable);
       } else if (propertyName === 'horizontalPadding') {
         // Apply to left and right padding for horizontal
         node.setBoundVariable('paddingLeft', variable);
@@ -633,6 +631,94 @@ function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
   }
 }
 
+// Apply variables to all fixable layers at once
+function autofixAllLayers() {
+  console.log('Starting autofix for all layers...');
+  
+  // Get current layers with issues
+  var currentLayers = layersWithIssues.slice(); // Create a copy to avoid modification issues
+  var fixedLayers = [];
+  var failedLayers = [];
+  
+  for (var i = 0; i < currentLayers.length; i++) {
+    var layer = currentLayers[i];
+    
+    // Only attempt to fix layers that have actionable suggestions
+    if (layer.issueType === 'missing_variable' && 
+        layer.suggestion && 
+        layer.suggestion.type === 'apply_variable') {
+      
+      try {
+        var node = figma.getNodeById(layer.id);
+        if (!node) {
+          failedLayers.push({
+            layerName: layer.name,
+            reason: 'Layer not found'
+          });
+          continue;
+        }
+        
+        var variable = figma.variables.getVariableById(layer.suggestion.variable.id);
+        if (!variable) {
+          failedLayers.push({
+            layerName: layer.name,
+            reason: 'Variable not found'
+          });
+          continue;
+        }
+        
+        var propertyName = layer.suggestion.property || layer.spacingProperty;
+        
+        // Apply the variable
+        if (propertyName === 'itemSpacing') {
+          node.setBoundVariable('itemSpacing', variable);
+        } else if (propertyName === 'counterAxisSpacing') {
+          node.setBoundVariable('counterAxisSpacing', variable);
+        } else if (propertyName === 'horizontalPadding') {
+          // Apply to left and right padding for horizontal
+          node.setBoundVariable('paddingLeft', variable);
+          node.setBoundVariable('paddingRight', variable);
+        } else if (propertyName === 'verticalPadding') {
+          // Apply to top and bottom padding for vertical
+          node.setBoundVariable('paddingTop', variable);
+          node.setBoundVariable('paddingBottom', variable);
+        } else if (['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].indexOf(propertyName) !== -1) {
+          node.setBoundVariable(propertyName, variable);
+        }
+        
+        fixedLayers.push({
+          layerName: layer.name,
+          variableName: variable.name,
+          property: propertyName
+        });
+        
+        console.log('Fixed layer:', layer.name, 'with variable:', variable.name);
+        
+      } catch (error) {
+        console.error('Error fixing layer:', layer.name, error);
+        failedLayers.push({
+          layerName: layer.name,
+          reason: error.message
+        });
+      }
+    }
+  }
+  
+  // Send results back to UI
+  figma.ui.postMessage({
+    type: 'autofix-complete',
+    fixedLayers: fixedLayers,
+    failedLayers: failedLayers,
+    totalFixed: fixedLayers.length,
+    totalFailed: failedLayers.length
+  });
+  
+  // Rescan to update the UI
+  setTimeout(function() {
+    scanForSpacingVariables();
+  }, 100);
+}
+
 // Load ignored names from clientStorage on startup
 async function loadIgnoredNames() {
   try {
@@ -700,6 +786,10 @@ figma.ui.onmessage = function(msg) {
     
     case 'load-ignored-names':
       loadIgnoredNames();
+      break;
+    
+    case 'autofix_all':
+      autofixAllLayers();
       break;
     
     case 'close':
