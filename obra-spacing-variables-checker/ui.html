@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #ffffff;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 12px;
+            margin: 0;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+        }
+        
+        .button {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        
+        .button:hover {
+            background: #0052cc;
+        }
+        
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .button-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            width: auto;
+            margin: 0;
+        }
+        
+        .button-success {
+            background: #28a745;
+        }
+        
+        .button-success:hover {
+            background: #218838;
+        }
+        
+        .error-banner {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .error-icon {
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        
+        .status {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 12px;
+        }
+        
+        .accordion {
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        
+        .accordion-header {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            font-size: 13px;
+            border-bottom: 1px solid #e5e5e5;
+            transition: background-color 0.15s;
+        }
+        
+        .accordion-header:hover {
+            background: #e9ecef;
+        }
+        
+        .accordion-header.has-problems {
+            background: #fff3cd;
+            border-bottom-color: #ffeaa7;
+        }
+        
+        .accordion-header.has-problems:hover {
+            background: #ffeaa7;
+        }
+        
+        .accordion-toggle {
+            font-size: 12px;
+            color: #666;
+            transition: transform 0.2s;
+        }
+        
+        .accordion-toggle.open {
+            transform: rotate(90deg);
+        }
+        
+        .accordion-content {
+            display: none;
+            padding: 16px;
+        }
+        
+        .accordion-content.open {
+            display: block;
+        }
+        
+        .problem-count {
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        
+        .success-count {
+            background: #28a745;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        
+        .variables-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .variable-tag {
+            background: #e3f2fd;
+            color: #0066ff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+        
+        .ignore-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e5e5;
+        }
+        
+        .ignore-input-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .ignore-input {
+            flex-grow: 1;
+            padding: 6px 8px;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .ignore-add-btn {
+            padding: 6px 12px;
+            font-size: 10px;
+            background: #f0f0f0;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .ignore-add-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .ignore-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        
+        .ignore-tag {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .ignore-remove {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .ignore-remove:hover {
+            color: #dc3545;
+        }
+        
+        .layers-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .layer-item {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        
+        .layer-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .layer-item:last-child {
+            border-bottom: none;
+        }
+        
+        .layer-item.selected {
+            background: #e3f2fd;
+            border-left: 3px solid #0066ff;
+        }
+        
+        .layer-name {
+            font-weight: 500;
+            font-size: 13px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .layer-radius {
+            font-size: 11px;
+            color: #0066ff;
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        .layer-details {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        
+        .layer-suggestion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            gap: 8px;
+        }
+        
+        .suggestion-text {
+            font-size: 11px;
+            color: #333;
+            flex-grow: 1;
+        }
+        
+        .suggestion-button {
+            padding: 4px 8px;
+            font-size: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .suggestion-button:hover {
+            background: #218838;
+        }
+        
+        .apply-options {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 120px;
+            font-size: 10px;
+        }
+        
+        .apply-option {
+            padding: 6px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .apply-option:hover {
+            background: #f5f5f5;
+        }
+        
+        .apply-option:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-button-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-arrow {
+            margin-left: 2px;
+            font-size: 8px;
+        }
+        
+        .issue-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+        
+        .issue-missing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .issue-no-match {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .issue-fixed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .selected-layer-info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .selected-layer-name {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="errorBanner" class="error-banner hidden">
+        <span class="error-icon">⚠</span>
+        <span id="errorMessage"></span>
+    </div>
+
+    <div id="scanSection" class="section">
+        <button id="scanBtn" class="button">Scan Selected Layers</button>
+        <div id="status" class="status hidden">Ready to scan...</div>
+    </div>
+
+    <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion('variables')">
+            <span>Available Variables & Settings</span>
+            <span class="accordion-toggle" id="variablesToggle">▶</span>
+        </div>
+        <div class="accordion-content open" id="variablesContent">
+            <div id="variablesList" class="variables-list">
+                <div style="color: #999; font-style: italic;">Loading...</div>
+            </div>
+            
+            <div class="ignore-section">
+                <div style="font-size: 11px; font-weight: 500; margin-bottom: 8px;">Ignore Layer Names (Exact Match):</div>
+                <div class="ignore-input-container">
+                    <input type="text" id="ignoreInput" class="ignore-input" placeholder="Enter exact layer name to ignore">
+                    <button id="addIgnoreBtn" class="ignore-add-btn">Add</button>
+                </div>
+                <div id="ignoreList" class="ignore-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="layersAccordion" class="accordion hidden">
+        <div class="accordion-header" id="layersHeader" onclick="toggleAccordion('layers')">
+            <span>
+                <span id="layersTitle">Layers with Problems</span>
+                <span id="problemsCount" class="problem-count hidden"></span>
+            </span>
+            <span class="accordion-toggle open" id="layersToggle">▼</span>
+        </div>
+        <div class="accordion-content open" id="layersContent">
+            <div id="layersList" class="layers-list"></div>
+        </div>
+    </div>
+
+    <div id="fixedLayersAccordion" class="accordion hidden">
+        <div class="accordion-header" onclick="toggleAccordion('fixed')">
+            <span>
+                <span>Layers Already Fixed</span>
+                <span id="fixedCount" class="success-count hidden"></span>
+            </span>
+            <span class="accordion-toggle" id="fixedToggle">▶</span>
+        </div>
+        <div class="accordion-content" id="fixedContent">
+            <div id="fixedLayersList" class="layers-list"></div>
+        </div>
+    </div>
+
+    <div id="selectedLayerAccordion" class="accordion hidden">
+        <div class="accordion-header" onclick="toggleAccordion('selected')">
+            <span id="selectedLayerTitle">Selected Layer</span>
+            <span class="accordion-toggle open" id="selectedToggle">▼</span>
+        </div>
+        <div class="accordion-content open" id="selectedContent">
+            <div id="selectedLayerInfo" class="selected-layer-info">
+                <div id="selectedLayerName" class="selected-layer-name"></div>
+                <div id="selectedLayerDetails" style="font-size: 11px; color: #666; margin-bottom: 8px;"></div>
+                <div id="selectedLayerSuggestion"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePlugin();
+        });
+
+        // If DOMContentLoaded already fired, initialize immediately
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializePlugin);
+        } else {
+            initializePlugin();
+        }
+
+        function initializePlugin() {
+            var elements = {
+                scanBtn: document.getElementById('scanBtn'),
+                status: document.getElementById('status'),
+                errorBanner: document.getElementById('errorBanner'),
+                errorMessage: document.getElementById('errorMessage'),
+                variablesList: document.getElementById('variablesList'),
+                ignoreInput: document.getElementById('ignoreInput'),
+                addIgnoreBtn: document.getElementById('addIgnoreBtn'),
+                ignoreList: document.getElementById('ignoreList'),
+                layersAccordion: document.getElementById('layersAccordion'),
+                layersHeader: document.getElementById('layersHeader'),
+                layersTitle: document.getElementById('layersTitle'),
+                problemsCount: document.getElementById('problemsCount'),
+                layersList: document.getElementById('layersList'),
+                fixedLayersAccordion: document.getElementById('fixedLayersAccordion'),
+                fixedCount: document.getElementById('fixedCount'),
+                fixedLayersList: document.getElementById('fixedLayersList'),
+                selectedLayerAccordion: document.getElementById('selectedLayerAccordion'),
+                selectedLayerTitle: document.getElementById('selectedLayerTitle'),
+                selectedLayerName: document.getElementById('selectedLayerName'),
+                selectedLayerDetails: document.getElementById('selectedLayerDetails'),
+                selectedLayerSuggestion: document.getElementById('selectedLayerSuggestion')
+            };
+
+            var variables = [];
+            var layers = [];
+            var problemLayers = [];
+            var fixedLayers = [];
+            var selectedLayer = null;
+            var ignoredLayerNames = [];
+
+            // Check all elements exist before adding event listeners
+            if (!elements.scanBtn || !elements.addIgnoreBtn || !elements.ignoreInput) {
+                console.error('Required DOM elements not found');
+                return;
+            }
+
+            // Event listeners
+            elements.scanBtn.addEventListener('click', function() {
+                hideError();
+                parent.postMessage({ pluginMessage: { type: 'start-scan', ignoredNames: ignoredLayerNames } }, '*');
+            });
+
+            elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
+            
+            elements.ignoreInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addIgnoreItem();
+                }
+            });
+
+            // Request ignored names from plugin on startup
+            parent.postMessage({ pluginMessage: { type: 'load-ignored-names' } }, '*');
+
+            // Save ignored names via plugin clientStorage
+            function saveIgnoredNames() {
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        type: 'save-ignored-names',
+                        ignoredNames: ignoredLayerNames
+                    } 
+                }, '*');
+                console.log('Requested save of ignored names:', ignoredLayerNames);
+            }
+
+
+            // Show error banner
+            function showError(message) {
+                if (elements.errorMessage && elements.errorBanner) {
+                    elements.errorMessage.textContent = message;
+                    elements.errorBanner.classList.remove('hidden');
+                }
+            }
+
+            // Hide error banner
+            function hideError() {
+                if (elements.errorBanner) {
+                    elements.errorBanner.classList.add('hidden');
+                }
+            }
+
+            // Ignore list management
+            function addIgnoreItem() {
+                var name = elements.ignoreInput.value.trim();
+                if (name && ignoredLayerNames.indexOf(name) === -1) {
+                    ignoredLayerNames.push(name);
+                    elements.ignoreInput.value = '';
+                    updateIgnoreList();
+                    saveIgnoredNames();
+                }
+            }
+
+            function removeIgnoreItem(name) {
+                var index = ignoredLayerNames.indexOf(name);
+                if (index !== -1) {
+                    ignoredLayerNames.splice(index, 1);
+                    updateIgnoreList();
+                    saveIgnoredNames();
+                }
+            }
+
+            function updateIgnoreList() {
+                if (!elements.ignoreList) return;
+
+                if (ignoredLayerNames.length === 0) {
+                    elements.ignoreList.innerHTML = '<div style="color: #999; font-size: 10px; font-style: italic;">No ignored layer names</div>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < ignoredLayerNames.length; i++) {
+                    var name = ignoredLayerNames[i];
+                    html += '<div class="ignore-tag">' +
+                           '<span>' + name + '</span>' +
+                           '<span class="ignore-remove" onclick="window.removeIgnoreItem(\'' + name + '\')">&times;</span>' +
+                           '</div>';
+                }
+                elements.ignoreList.innerHTML = html;
+            }
+
+            // Make removeIgnoreItem available globally
+            window.removeIgnoreItem = removeIgnoreItem;
+
+            // Toggle accordion sections
+            function toggleAccordion(section) {
+                var content = document.getElementById(section + 'Content');
+                var toggle = document.getElementById(section + 'Toggle');
+                
+                if (content && toggle) {
+                    if (content.classList.contains('open')) {
+                        content.classList.remove('open');
+                        toggle.classList.remove('open');
+                        toggle.textContent = '▶';
+                    } else {
+                        content.classList.add('open');
+                        toggle.classList.add('open');
+                        toggle.textContent = '▼';
+                    }
+                }
+            }
+
+            // Make toggleAccordion available globally
+            window.toggleAccordion = toggleAccordion;
+
+            // Update variables list
+            function updateVariablesList(variableData) {
+                if (!elements.variablesList) return;
+
+                variables = variableData.variables || [];
+                
+                if (variableData.error) {
+                    elements.variablesList.innerHTML = '<div style="color: #ff0000;">Error: ' + variableData.error + '</div>';
+                    return;
+                }
+                
+                if (variables.length === 0) {
+                    elements.variablesList.innerHTML = '<div style="color: #999; font-style: italic;">No spacing variables found</div>';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < variables.length; i++) {
+                    var variable = variables[i];
+                    html += '<div class="variable-tag">' + variable.name + ' = ' + variable.value + 'px</div>';
+                }
+                
+                elements.variablesList.innerHTML = html;
+            }
+
+            // Update layers list with separation
+            function updateLayersList(layersData) {
+                layers = layersData;
+                
+                // Separate layers by problem type
+                problemLayers = [];
+                fixedLayers = [];
+                
+                for (var i = 0; i < layers.length; i++) {
+                    if (layers[i].issueType === 'has_variable') {
+                        fixedLayers.push(layers[i]);
+                    } else {
+                        problemLayers.push(layers[i]);
+                    }
+                }
+                
+                // Update problem layers accordion
+                if (problemLayers.length > 0 && elements.layersAccordion && elements.problemsCount) {
+                    elements.problemsCount.textContent = problemLayers.length;
+                    elements.problemsCount.classList.remove('hidden');
+                    elements.layersHeader.classList.add('has-problems');
+                    elements.layersAccordion.classList.remove('hidden');
+                    
+                    var problemHtml = '';
+                    for (var j = 0; j < problemLayers.length; j++) {
+                        problemHtml += createLayerItemHtml(problemLayers[j]);
+                    }
+                    elements.layersList.innerHTML = problemHtml;
+                    addLayerClickHandlers(elements.layersList);
+                } else if (elements.layersAccordion) {
+                    elements.layersAccordion.classList.add('hidden');
+                }
+                
+                // Update fixed layers accordion
+                if (fixedLayers.length > 0 && elements.fixedLayersAccordion && elements.fixedCount) {
+                    elements.fixedCount.textContent = fixedLayers.length;
+                    elements.fixedCount.classList.remove('hidden');
+                    elements.fixedLayersAccordion.classList.remove('hidden');
+                    
+                    var fixedHtml = '';
+                    for (var k = 0; k < fixedLayers.length; k++) {
+                        fixedHtml += createLayerItemHtml(fixedLayers[k]);
+                    }
+                    elements.fixedLayersList.innerHTML = fixedHtml;
+                    addLayerClickHandlers(elements.fixedLayersList);
+                } else if (elements.fixedLayersAccordion) {
+                    elements.fixedLayersAccordion.classList.add('hidden');
+                }
+                
+                // Show message if no layers found
+                if (layers.length === 0 && elements.layersList && elements.layersAccordion) {
+                    elements.layersList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No layers with spacing properties found</div>';
+                    elements.layersAccordion.classList.remove('hidden');
+                    elements.layersHeader.classList.remove('has-problems');
+                }
+            }
+
+            // Create HTML for a layer item
+            function createLayerItemHtml(layer) {
+                var issueClass = 'issue-missing';
+                var issueBadge = 'Missing Variable';
+                var suggestionButton = '';
+                
+                if (layer.issueType === 'has_variable') {
+                    issueClass = 'issue-fixed';
+                    issueBadge = 'Has Variable';
+                } else if (layer.issueType === 'no_matching_variable') {
+                    issueClass = 'issue-no-match';
+                    issueBadge = 'No Match';
+                } else if (layer.issueType === 'missing_variable' && layer.suggestion.type === 'apply_variable') {
+                    // Create dropdown ID
+                    var dropdownId = 'dropdown-' + layer.id;
+                    
+                    // For spacing, apply directly to the detected property
+                    suggestionButton = '<button class="suggestion-button" onclick="window.applyVariable(\'' + 
+                                     layer.id + '\', \'' + layer.suggestion.variable.id + '\', null, \'' + 
+                                     (layer.suggestion.property || layer.spacingProperty) + '\')">Apply</button>';
+                }
+                
+                return '<div class="layer-item" data-layer-id="' + layer.id + '">' +
+                       '<div class="layer-name">' +
+                       '<span>' + layer.name + '</span>' +
+                       '<span class="layer-radius">' + (layer.spacingValue || layer.radiusValue) + 'px</span>' +
+                       '</div>' +
+                       '<div class="layer-details">' + layer.type + '</div>' +
+                       '<div class="layer-suggestion">' +
+                       '<span class="suggestion-text">' + layer.suggestion.message + '</span>' +
+                       '<div style="display: flex; gap: 4px; align-items: center;">' +
+                       suggestionButton +
+                       '<span class="issue-badge ' + issueClass + '">' + issueBadge + '</span>' +
+                       '</div>' +
+                       '</div>' +
+                       '</div>';
+            }
+
+            // Add click handlers to layer items
+            function addLayerClickHandlers(container) {
+                if (!container) return;
+                var items = container.querySelectorAll('.layer-item');
+                for (var i = 0; i < items.length; i++) {
+                    (function(item) {
+                        item.addEventListener('click', function() {
+                            var layerId = this.getAttribute('data-layer-id');
+                            selectLayer(layerId);
+                        });
+                    })(items[i]);
+                }
+            }
+
+            // Select a layer
+            function selectLayer(layerId) {
+                // Remove previous selection from both lists
+                var prevSelected = document.querySelector('.layer-item.selected');
+                if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                }
+
+                // Add selection to clicked item
+                var newSelected = document.querySelector('[data-layer-id="' + layerId + '"]');
+                if (newSelected) {
+                    newSelected.classList.add('selected');
+                }
+
+                // Navigate to layer in Figma
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        type: 'navigate-to-layer', 
+                        layerId: layerId 
+                    } 
+                }, '*');
+            }
+
+            // Update selected layer info
+            function updateSelectedLayerInfo(layer) {
+                selectedLayer = layer;
+                
+                if (elements.selectedLayerTitle && elements.selectedLayerName && elements.selectedLayerDetails) {
+                    elements.selectedLayerTitle.textContent = 'Selected: ' + layer.name;
+                    elements.selectedLayerName.textContent = layer.name;
+                    elements.selectedLayerDetails.textContent = layer.type + ' • ' + (layer.spacingValue || layer.radiusValue) + 'px ' + (layer.spacingProperty || 'spacing');
+                    
+                    var suggestionHtml = '';
+                    if (layer.suggestion.type === 'apply_variable') {
+                        suggestionHtml = '<div style="margin-bottom: 8px;">' + layer.suggestion.message + '</div>' +
+                                       '<button class="button button-success button-small" onclick="window.applyVariable(\'' + 
+                                       layer.id + '\', \'' + layer.suggestion.variable.id + '\', null, \'' + 
+                                       (layer.suggestion.property || layer.spacingProperty) + '\')">Apply Variable</button>';
+                    } else {
+                        suggestionHtml = '<div style="color: #666; font-size: 11px;">' + layer.suggestion.message + '</div>';
+                    }
+                    
+                    elements.selectedLayerSuggestion.innerHTML = suggestionHtml;
+                    elements.selectedLayerAccordion.classList.remove('hidden');
+                }
+            }
+
+            // Apply variable to layer
+            function applyVariable(layerId, variableId, applyMode, propertyName) {
+                // Hide any open dropdowns
+                var dropdowns = document.querySelectorAll('.apply-options');
+                for (var i = 0; i < dropdowns.length; i++) {
+                    dropdowns[i].style.display = 'none';
+                }
+                
+                parent.postMessage({ 
+                    pluginMessage: { 
+                        type: 'apply-variable', 
+                        layerId: layerId,
+                        variableId: variableId,
+                        applyMode: applyMode,
+                        propertyName: propertyName
+                    } 
+                }, '*');
+            }
+
+            // Toggle apply dropdown
+            function toggleApplyDropdown(dropdownId) {
+                var dropdown = document.getElementById(dropdownId);
+                if (dropdown) {
+                    // Hide all other dropdowns first
+                    var allDropdowns = document.querySelectorAll('.apply-options');
+                    for (var i = 0; i < allDropdowns.length; i++) {
+                        if (allDropdowns[i].id !== dropdownId) {
+                            allDropdowns[i].style.display = 'none';
+                        }
+                    }
+                    
+                    // Toggle this dropdown
+                    if (dropdown.style.display === 'block') {
+                        dropdown.style.display = 'none';
+                    } else {
+                        dropdown.style.display = 'block';
+                        
+                        // Position dropdown relative to button
+                        var rect = dropdown.parentElement.getBoundingClientRect();
+                        dropdown.style.top = '100%';
+                        dropdown.style.right = '0';
+                    }
+                }
+            }
+
+            // Hide dropdowns when clicking elsewhere
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.suggestion-button-dropdown')) {
+                    var dropdowns = document.querySelectorAll('.apply-options');
+                    for (var i = 0; i < dropdowns.length; i++) {
+                        dropdowns[i].style.display = 'none';
+                    }
+                }
+            });
+
+            // Make functions available globally
+            window.toggleApplyDropdown = toggleApplyDropdown;
+
+            // Make applyVariable available globally
+            window.applyVariable = applyVariable;
+
+            // Handle messages from plugin
+            window.addEventListener('message', function(event) {
+                var msg = event.data.pluginMessage;
+                if (!msg) return;
+
+                console.log('UI received message:', msg.type);
+
+                switch (msg.type) {
+                    case 'variables-found':
+                        updateVariablesList(msg);
+                        break;
+                    
+                    case 'scan-started':
+                        hideError();
+                        if (elements.status) {
+                            elements.status.textContent = 'Scanning selected layers...';
+                            elements.status.classList.remove('hidden');
+                        }
+                        if (elements.scanBtn) {
+                            elements.scanBtn.disabled = true;
+                        }
+                        break;
+                    
+                    case 'scan-complete':
+                        if (elements.status && elements.scanBtn) {
+                            elements.status.textContent = 'Found ' + msg.totalLayers + ' layers with spacing properties';
+                            elements.scanBtn.disabled = false;
+                        }
+                        updateLayersList(msg.layers);
+                        break;
+                    
+                    case 'layer-selected':
+                        updateSelectedLayerInfo(msg.layer);
+                        break;
+                    
+                    case 'variable-applied':
+                        hideError();
+                        if (elements.status) {
+                            elements.status.textContent = 'Applied "' + msg.variableName + '" to "' + msg.layerName + '"';
+                            elements.status.classList.remove('hidden');
+                        }
+                        
+                        // Update the layer in our lists
+                        for (var i = 0; i < layers.length; i++) {
+                            if (layers[i].id === msg.layerId) {
+                                layers[i].hasVariable = true;
+                                layers[i].issueType = 'has_variable';
+                                layers[i].suggestion = {
+                                    type: 'already_fixed',
+                                    message: 'Already using variable'
+                                };
+                                break;
+                            }
+                        }
+                        
+                        // Update problem and fixed arrays
+                        for (var j = 0; j < problemLayers.length; j++) {
+                            if (problemLayers[j].id === msg.layerId) {
+                                problemLayers[j].hasVariable = true;
+                                problemLayers[j].issueType = 'has_variable';
+                                problemLayers[j].suggestion = {
+                                    type: 'already_fixed',
+                                    message: 'Already using variable'
+                                };
+                                break;
+                            }
+                        }
+                        
+                        // Refresh the layers list to move item to fixed section and remove apply button
+                        updateLayersList(layers);
+                        
+                        // Update selected layer info if it's the same layer
+                        if (selectedLayer && selectedLayer.id === msg.layerId) {
+                            selectedLayer.hasVariable = true;
+                            selectedLayer.issueType = 'has_variable';
+                            selectedLayer.suggestion = {
+                                type: 'already_fixed',
+                                message: 'Already using variable'
+                            };
+                            updateSelectedLayerInfo(selectedLayer);
+                        }
+                        break;
+                    
+                    case 'error':
+                        showError(msg.message);
+                        if (elements.scanBtn) {
+                            elements.scanBtn.disabled = false;
+                        }
+                        break;
+                    
+                    case 'ignored-names-loaded':
+                        ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
+                        console.log('Loaded ignored names from plugin:', ignoredLayerNames);
+                        updateIgnoreList();
+                        break;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

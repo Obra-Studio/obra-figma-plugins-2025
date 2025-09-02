@@ -10,8 +10,20 @@ if (figma.command === 'post-propstar-treatment') {
 } else if (figma.command === 'frame-spacing-vertical') {
   handleSetFrameSpacing('vertical', true);
   figma.closePlugin();
+} else if (figma.command === 'frame-spacing-horizontal') {
+  handleSetFrameSpacing('horizontal', true);
+  figma.closePlugin();
 } else if (figma.command === 'reset-component-set-style') {
   handleResetComponentSetStyle(true);
+  figma.closePlugin();
+} else if (figma.command === 'rename-layer-al') {
+  handleRenameLayer('AL', true);
+  figma.closePlugin();
+} else if (figma.command === 'rename-layer-section') {
+  handleRenameLayer('Section', true);
+  figma.closePlugin();
+} else if (figma.command === 'create-new-section') {
+  handleCreateNewSection(true);
   figma.closePlugin();
 } else if (figma.command === 'show-ui') {
   // Show the plugin UI
@@ -400,18 +412,54 @@ function handleWrapInSection() {
     const headingText = figma.createText();
     headingText.name = node.name;
     
-    // Load Inter font and set text properties
-    figma.loadFontAsync({ family: "Inter", style: "Medium" }).then(() => {
-      headingText.fontName = { family: "Inter", style: "Medium" };
-      headingText.fontSize = 16;
-      headingText.characters = node.name;
-      headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
-    }).catch(() => {
-      // Fallback if Inter is not available
-      headingText.fontSize = 16;
-      headingText.characters = node.name;
-      headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+    // Try to find a heading text style
+    const textStyles = figma.getLocalTextStyles();
+    console.log('Available text styles:', textStyles.map(style => style.name));
+    const headingStyle = textStyles.find(style => {
+      const name = style.name.toLowerCase();
+      return name.includes('heading') && name.includes('2') ||
+             name.includes('h2') || 
+             name.includes('heading') ||
+             name.includes('title');
     });
+    
+    if (headingStyle) {
+      // Apply the found heading style
+      console.log('Using heading style:', headingStyle.name);
+      
+      // Load the font used by the text style first
+      figma.loadFontAsync(headingStyle.fontName).then(() => {
+        headingText.textStyleId = headingStyle.id;
+        headingText.characters = node.name;
+      }).catch((error) => {
+        console.log('Failed to load font for style:', headingStyle.name, error);
+        // Fallback to manual styling if font loading fails
+        figma.loadFontAsync({ family: "Inter", style: "Medium" }).then(() => {
+          headingText.fontName = { family: "Inter", style: "Medium" };
+          headingText.fontSize = 16;
+          headingText.characters = node.name;
+          headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+        }).catch(() => {
+          headingText.fontSize = 16;
+          headingText.characters = node.name;
+          headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+        });
+      });
+    } else {
+      // Fallback to manual styling
+      console.log('No heading style found, using manual styling');
+      figma.loadFontAsync({ family: "Inter", style: "Medium" }).then(() => {
+        headingText.fontName = { family: "Inter", style: "Medium" };
+        headingText.fontSize = 16;
+        headingText.characters = node.name;
+        headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+      }).catch(() => {
+        // Fallback if Inter is not available
+        headingText.fontSize = 16;
+        headingText.characters = node.name;
+        headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+      });
+    }
     
     // Add section frame to original parent at original position
     originalParent.insertChild(originalIndex, sectionFrame);
@@ -431,6 +479,100 @@ function handleWrapInSection() {
     message: `Wrapped ${wrappedCount} ${componentText} in section`,
     success: true
   });
+}
+
+function handleCreateNewSection(isDirectCommand = false) {
+  // Create section frame
+  const sectionFrame = figma.createFrame();
+  sectionFrame.name = 'Section';
+  
+  // Set up auto layout
+  sectionFrame.layoutMode = 'VERTICAL';
+  sectionFrame.primaryAxisSizingMode = 'AUTO';
+  sectionFrame.counterAxisSizingMode = 'AUTO';
+  
+  // Set section spacing (64px padding, 32px gap)
+  sectionFrame.paddingTop = 64;
+  sectionFrame.paddingRight = 64;
+  sectionFrame.paddingBottom = 64;
+  sectionFrame.paddingLeft = 64;
+  sectionFrame.itemSpacing = 32;
+  
+  // Set fills to transparent
+  sectionFrame.fills = [];
+  
+  // Create heading text
+  const headingText = figma.createText();
+  headingText.name = 'Section Title';
+  
+  // Try to find a heading text style
+  const textStyles = figma.getLocalTextStyles();
+  console.log('Available text styles:', textStyles.map(style => style.name));
+  const headingStyle = textStyles.find(style => {
+    const name = style.name.toLowerCase();
+    return name.includes('heading') && name.includes('2') ||
+           name.includes('h2') || 
+           name.includes('heading') ||
+           name.includes('title');
+  });
+  
+  if (headingStyle) {
+    // Apply the found heading style
+    console.log('Using heading style:', headingStyle.name);
+    
+    // Load the font used by the text style first
+    figma.loadFontAsync(headingStyle.fontName).then(() => {
+      headingText.textStyleId = headingStyle.id;
+      headingText.characters = 'Section Title';
+    }).catch((error) => {
+      console.log('Failed to load font for style:', headingStyle.name, error);
+      // Fallback to manual styling if font loading fails
+      figma.loadFontAsync({ family: "Inter", style: "Medium" }).then(() => {
+        headingText.fontName = { family: "Inter", style: "Medium" };
+        headingText.fontSize = 16;
+        headingText.characters = 'Section Title';
+        headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+      }).catch(() => {
+        headingText.fontSize = 16;
+        headingText.characters = 'Section Title';
+        headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+      });
+    });
+  } else {
+    // Fallback to manual styling
+    figma.loadFontAsync({ family: "Inter", style: "Medium" }).then(() => {
+      headingText.fontName = { family: "Inter", style: "Medium" };
+      headingText.fontSize = 16;
+      headingText.characters = 'Section Title';
+      headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+    }).catch(() => {
+      // Fallback if Inter is not available
+      headingText.fontSize = 16;
+      headingText.characters = 'Section Title';
+      headingText.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+    });
+  }
+  
+  // Add to current page
+  figma.currentPage.appendChild(sectionFrame);
+  
+  // Add heading text to section frame
+  sectionFrame.appendChild(headingText);
+  
+  // Position at viewport center
+  sectionFrame.x = figma.viewport.center.x - sectionFrame.width / 2;
+  sectionFrame.y = figma.viewport.center.y - sectionFrame.height / 2;
+  
+  // Select the new section
+  figma.currentPage.selection = [sectionFrame];
+  
+  if (!isDirectCommand) {
+    figma.ui.postMessage({
+      type: 'status',
+      message: 'Created new section',
+      success: true
+    });
+  }
 }
 
 function handleMarkStopFrame() {

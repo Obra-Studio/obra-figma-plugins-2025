@@ -22,8 +22,24 @@
       "command": "frame-spacing-vertical"
     },
     {
+      "name": "Set 256px Horizontal Spacing",
+      "command": "frame-spacing-horizontal"
+    },
+    {
       "name": "Reset Component Set Style",
       "command": "reset-component-set-style"
+    },
+    {
+      "name": "Rename Layer to AL",
+      "command": "rename-layer-al"
+    },
+    {
+      "name": "Rename Layer to Section",
+      "command": "rename-layer-section"
+    },
+    {
+      "name": "Create New Section",
+      "command": "create-new-section"
     }
   ],
   "capabilities": [],

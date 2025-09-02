@@ -1,0 +1,2 @@
+Please write me a Figma plugin that detects if layers that contain variables have an external reference (e.g. a layer is tied to foreground/primary but foreground/primary is tied to slate 950). What I want is a plugin that removes the semantic layer but keeps the primitive layer. 
+Write it in js using es5
