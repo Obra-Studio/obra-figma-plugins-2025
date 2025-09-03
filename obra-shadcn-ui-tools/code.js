@@ -7,7 +7,10 @@ if (figma.command === 'post-propstar-treatment') {
 } else if (figma.command === 'prop-star-cleanup') {
   handlePropStarCleanup(true);
   figma.closePlugin();
-}  else {
+} else if (figma.command === 'reset-component-set-style') {
+  handleResetComponentSetStyle(true);
+  figma.closePlugin();
+} else {
   // Default: show UI if no specific command
   figma.showUI(__html__, { width: 280, height: 240 });
 }
@@ -19,6 +22,8 @@ figma.ui.onmessage = msg => {
     handlePostPropstarTreatment();
   } else if (msg.type === 'prop-star-cleanup') {
     handlePropStarCleanup();
+  } else if (msg.type === 'reset-component-set-style') {
+    handleResetComponentSetStyle();
   }
 };
 
