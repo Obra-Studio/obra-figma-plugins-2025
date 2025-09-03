@@ -1,6 +1,6 @@
 {
-  "name": "Border Radius Variable Fixer",
-  "id": "border-radius-fixer",
+  "name": "Obra Border Radius Variable Fixer",
+  "id": "obra-border-radius-variable-fixer",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",

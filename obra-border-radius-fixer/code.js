@@ -196,9 +196,9 @@ function findLayersWithRadiusIssues(node, results, ignoredNames) {
   try {
     console.log('Checking node:', node.name, 'type:', node.type);
 
-    // Always ignore COMPONENT_SET layers (component variants)
-    if (node.type === 'COMPONENT_SET') {
-      console.log('Ignoring COMPONENT_SET:', node.name);
+    // Always ignore COMPONENT_SET layers (component variants) and ELLIPSE (already round)
+    if (node.type === 'COMPONENT_SET' || node.type === 'ELLIPSE') {
+      console.log('Ignoring', node.type + ':', node.name);
       // Still check children but don't include this node
       if ('children' in node) {
         try {
@@ -206,7 +206,7 @@ function findLayersWithRadiusIssues(node, results, ignoredNames) {
             findLayersWithRadiusIssues(node.children[j], results, ignoredNames);
           }
         } catch (e) {
-          console.log('Error processing children of COMPONENT_SET', node.name + ':', e.message);
+          console.log('Error processing children of', node.type, node.name + ':', e.message);
         }
       }
       return results;
@@ -569,6 +569,117 @@ async function saveIgnoredNames(names) {
   }
 }
 
+// Autofix all layers with matching variables
+function autofixAll() {
+  console.log('Starting autofix for all layers...');
+  
+  var fixableLayers = [];
+  var totalFixed = 0;
+  var totalFailed = 0;
+  var failedLayers = [];
+  
+  // Find all fixable layers
+  for (var i = 0; i < layersWithIssues.length; i++) {
+    var layer = layersWithIssues[i];
+    if (layer.issueType === 'missing_variable' && layer.suggestion && layer.suggestion.type === 'apply_variable') {
+      fixableLayers.push(layer);
+    }
+  }
+  
+  console.log('Found', fixableLayers.length, 'fixable layers');
+  
+  // Apply variables to each fixable layer
+  for (var j = 0; j < fixableLayers.length; j++) {
+    var layerInfo = fixableLayers[j];
+    var node = figma.getNodeById(layerInfo.id);
+    
+    if (!node) {
+      totalFailed++;
+      failedLayers.push({
+        layerName: layerInfo.name,
+        reason: 'Layer no longer exists'
+      });
+      continue;
+    }
+    
+    try {
+      var variable = figma.variables.getVariableById(layerInfo.suggestion.variable.id);
+      if (!variable) {
+        totalFailed++;
+        failedLayers.push({
+          layerName: layerInfo.name,
+          reason: 'Variable no longer exists'
+        });
+        continue;
+      }
+      
+      // Determine apply mode based on corner details
+      var applyMode = 'global';
+      if (layerInfo.cornerDetails && layerInfo.cornerDetails.hasIndividual) {
+        // If layer has individual corners set, apply to all individual corners
+        applyMode = 'individual';
+      }
+      
+      // Apply variable based on mode
+      if (applyMode === 'global') {
+        node.setBoundVariable('cornerRadius', variable);
+      } else if (applyMode === 'individual') {
+        // Apply to all individual corners
+        node.setBoundVariable('topLeftRadius', variable);
+        node.setBoundVariable('topRightRadius', variable);
+        node.setBoundVariable('bottomLeftRadius', variable);
+        node.setBoundVariable('bottomRightRadius', variable);
+      }
+      
+      // Update layer info
+      layerInfo.hasVariable = true;
+      layerInfo.issueType = 'has_variable';
+      layerInfo.suggestion = {
+        type: 'already_fixed',
+        message: 'Already using variable'
+      };
+      
+      totalFixed++;
+      console.log('Fixed layer:', layerInfo.name);
+      
+    } catch (e) {
+      totalFailed++;
+      failedLayers.push({
+        layerName: layerInfo.name,
+        reason: e.message
+      });
+      console.log('Failed to fix layer', layerInfo.name + ':', e.message);
+    }
+  }
+  
+  console.log('Autofix complete. Fixed:', totalFixed, 'Failed:', totalFailed);
+  
+  // Send updated layers list to UI
+  figma.ui.postMessage({
+    type: 'scan-complete',
+    totalLayers: layersWithIssues.length,
+    layers: layersWithIssues.map(function(layer) {
+      return {
+        id: layer.id,
+        name: layer.name,
+        type: layer.type,
+        radiusValue: layer.radiusValue,
+        hasVariable: layer.hasVariable,
+        issueType: layer.issueType,
+        suggestion: layer.suggestion
+      };
+    })
+  });
+  
+  // Send autofix complete message
+  figma.ui.postMessage({
+    type: 'autofix-complete',
+    totalFixed: totalFixed,
+    totalFailed: totalFailed,
+    failedLayers: failedLayers
+  });
+}
+
 // Load ignored names on startup
 loadIgnoredNames();
 
@@ -599,6 +710,10 @@ figma.ui.onmessage = function(msg) {
     
     case 'load-ignored-names':
       loadIgnoredNames();
+      break;
+    
+    case 'autofix_all':
+      autofixAll();
       break;
     
     case 'close':

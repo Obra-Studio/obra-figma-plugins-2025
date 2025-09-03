@@ -1,6 +1,13 @@
-# Obra Spacing Variable Applicator
+# Obra Spacing Variable Fixer
 
-This plugin will detect your spacing variables.
+This plugin will detect the available spacing variables in your file.
 
-These are Figma variables tied to spacing values (vertical gap, horizontal padding, vertical padding)
+These are Figma variables tied to spacing values (vertical gap, horizontal gap, horizontal padding, vertical padding or individual paddings)
 
+Make sure you have variables of the type “number” that are ideally scoped to the “Width and height” and “Gap (Auto layout)” property.
+
+Now, use this plugin to scan a selection of layer to see if they comply with the “legal” spacing values.
+
+Don't select too many layers at once or the plugin will crash. But depending on your system specs, it can handle +-10k layers at once (tested on my Macbook Pro M3).
+
+Now either apply fixes individually, or use the “autofix” button to apply the border radius variables.
