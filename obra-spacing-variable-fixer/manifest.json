@@ -1,12 +1,13 @@
 {
   "name": "Obra Spacing Variable Fixer",
-  "id": "obra-spacing-variable-fixer",
+  "id": "1545126955319474817",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
   "capabilities": [],
   "enableProposedApi": false,
   "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": ["none"]
   }
