@@ -1,3 +1,3 @@
-This Figma plugin finds and replaces the variables in a selection.
+This Figma plugin that scans the entire file for components or instances that whose names start with “oi-”.
 
-For example. I have 9 colored rectangles with variables indigo-50, indigo-100, indigo-200 etc. attached to it in color docs. I select the 9 rectangles, and swap to “indigo” to “red”.
+This functionality is meant to detect which Obra icons are in use. 

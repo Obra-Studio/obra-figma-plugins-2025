@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #ffffff;
+    }
+    
+    h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0c0d0f;
+      margin: 0 0 16px 0;
+    }
+    
+    .stats {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    
+    .stat-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .stat-label {
+      color: #5c5c5c;
+    }
+    
+    .stat-value {
+      font-weight: 600;
+      color: #0c0d0f;
+    }
+    
+    .scan-button {
+      width: 100%;
+      padding: 10px;
+      background: #18a0fb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+    
+    .scan-button:hover {
+      background: #0090e7;
+    }
+    
+    .scan-button:disabled {
+      background: #c4c4c4;
+      cursor: not-allowed;
+    }
+    
+    .generate-button {
+      width: 100%;
+      padding: 10px;
+      background: #00d084;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+    
+    .generate-button:hover {
+      background: #00b574;
+    }
+    
+    .generate-button:disabled {
+      background: #c4c4c4;
+      cursor: not-allowed;
+    }
+    
+    .results {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .result-item {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    .result-name {
+      font-weight: 600;
+      color: #0c0d0f;
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+    
+    .result-type {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      margin-right: 8px;
+      text-transform: uppercase;
+    }
+    
+    .type-component {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    
+    .type-instance {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+    
+    .result-id {
+      color: #8c8c8c;
+      font-size: 11px;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #8c8c8c;
+      font-size: 13px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #5c5c5c;
+      font-size: 13px;
+    }
+    
+    .section-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0c0d0f;
+      margin: 20px 0 0 0;
+      padding: 12px;
+      background: #f8f8f8;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .section-header:hover {
+      background: #f0f0f0;
+    }
+    
+    .section-content {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      margin-bottom: 12px;
+    }
+    
+    .section-content.collapsed {
+      display: none;
+    }
+    
+    .chevron {
+      font-size: 12px;
+      transition: transform 0.2s;
+    }
+    
+    .chevron.expanded {
+      transform: rotate(90deg);
+    }
+    
+    .count-item {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .count-name {
+      font-weight: 500;
+      color: #0c0d0f;
+    }
+    
+    .count-badge {
+      background: #7b1fa2;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>OI Component Scanner</h2>
+  
+  <div class="stats">
+    <div class="stat-item">
+      <span class="stat-label">Components found:</span>
+      <span class="stat-value" id="componentCount">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Instances found:</span>
+      <span class="stat-value" id="instanceCount">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Total matches:</span>
+      <span class="stat-value" id="totalCount">0</span>
+    </div>
+  </div>
+  
+  <button class="scan-button" id="scanButton" onclick="scanFile()">
+    Scan File for "oi-" Components
+  </button>
+  
+  <button class="generate-button" id="generateButton" onclick="generateFrame()" disabled>
+    Generate Icon Instances Frame
+  </button>
+  
+  <div id="results" class="results"></div>
+
+  <script>
+    // ES5 Plugin Code
+    var components = [];
+    var instances = [];
+    var instanceCounts = {};
+    
+    function scanFile() {
+      var button = document.getElementById('scanButton');
+      var resultsDiv = document.getElementById('results');
+      
+      button.disabled = true;
+      button.textContent = 'Scanning...';
+      resultsDiv.innerHTML = '<div class="loading">Scanning file for components and instances...</div>';
+      
+      // Reset arrays
+      components = [];
+      instances = [];
+      instanceCounts = {};
+      
+      // Send message to plugin code
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'scan-file' 
+        } 
+      }, '*');
+    }
+    
+    function generateFrame() {
+      var button = document.getElementById('generateButton');
+      
+      button.disabled = true;
+      button.textContent = 'Generating...';
+      
+      // Send message to plugin code with unique components
+      var uniqueComponents = Object.keys(instanceCounts);
+      parent.postMessage({
+        pluginMessage: {
+          type: 'generate-frame',
+          componentNames: uniqueComponents,
+          instanceCounts: instanceCounts
+        }
+      }, '*');
+    }
+    
+    function displayResults() {
+      var resultsDiv = document.getElementById('results');
+      var componentCount = document.getElementById('componentCount');
+      var instanceCount = document.getElementById('instanceCount');
+      var totalCount = document.getElementById('totalCount');
+      
+      componentCount.textContent = components.length;
+      instanceCount.textContent = instances.length;
+      totalCount.textContent = components.length + instances.length;
+      
+      if (components.length === 0 && instances.length === 0) {
+        resultsDiv.innerHTML = '<div class="empty-state">No components or instances found with names starting with "oi-"</div>';
+        return;
+      }
+      
+      var html = '';
+      
+      // Display instance counts section (TOP PRIORITY)
+      var countKeys = Object.keys(instanceCounts);
+      if (countKeys.length > 0) {
+        html += '<div class="section-header" onclick="toggleSection(\'usage\')">';
+        html += '<span>Instance Usage by Component</span>';
+        html += '<span class="chevron expanded">▶</span>';
+        html += '</div>';
+        html += '<div class="section-content" id="usage-content">';
+        for (var k = 0; k < countKeys.length; k++) {
+          var componentName = countKeys[k];
+          var count = instanceCounts[componentName];
+          html += '<div class="count-item">';
+          html += '<span class="count-name">' + escapeHtml(componentName) + '</span>';
+          html += '<span class="count-badge">' + count + '</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      
+      // Display detailed results section (SECONDARY)
+      var hasDetailedResults = components.length > 0 || instances.length > 0;
+      if (hasDetailedResults) {
+        html += '<div class="section-header" onclick="toggleSection(\'details\')">';
+        html += '<span>Detailed Results (' + (components.length + instances.length) + ')</span>';
+        html += '<span class="chevron">▶</span>';
+        html += '</div>';
+        html += '<div class="section-content collapsed" id="details-content">';
+        
+        // Components subsection
+        if (components.length > 0) {
+          html += '<div style="font-weight: 600; margin-bottom: 8px; font-size: 12px; color: #666;">Components (' + components.length + ')</div>';
+          for (var i = 0; i < components.length; i++) {
+            var component = components[i];
+            html += '<div class="result-item">';
+            html += '<div class="result-name">' + escapeHtml(component.name) + '</div>';
+            html += '<span class="result-type type-component">Component</span>';
+            html += '<div class="result-id">ID: ' + component.id + '</div>';
+            html += '</div>';
+          }
+        }
+        
+        // Instances subsection
+        if (instances.length > 0) {
+          if (components.length > 0) html += '<div style="height: 12px;"></div>';
+          html += '<div style="font-weight: 600; margin-bottom: 8px; font-size: 12px; color: #666;">Instances (' + instances.length + ')</div>';
+          for (var j = 0; j < instances.length; j++) {
+            var instance = instances[j];
+            html += '<div class="result-item">';
+            html += '<div class="result-name">' + escapeHtml(instance.name) + '</div>';
+            html += '<span class="result-type type-instance">Instance</span>';
+            if (instance.mainComponentName) {
+              html += '<span style="font-size: 11px; color: #8c8c8c;">of ' + escapeHtml(instance.mainComponentName) + '</span>';
+            }
+            html += '<div class="result-id">ID: ' + instance.id + '</div>';
+            html += '</div>';
+          }
+        }
+        
+        html += '</div>';
+      }
+      
+      resultsDiv.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function toggleSection(sectionId) {
+      var content = document.getElementById(sectionId + '-content');
+      var chevron = document.querySelector('[onclick="toggleSection(\'' + sectionId + '\')"] .chevron');
+      
+      if (content.classList.contains('collapsed')) {
+        content.classList.remove('collapsed');
+        chevron.classList.add('expanded');
+      } else {
+        content.classList.add('collapsed');
+        chevron.classList.remove('expanded');
+      }
+    }
+    
+    // Listen for messages from plugin
+    window.onmessage = function(event) {
+      var msg = event.data.pluginMessage;
+      
+      if (msg.type === 'scan-complete') {
+        components = msg.components || [];
+        instances = msg.instances || [];
+        instanceCounts = msg.instanceCounts || {};
+        displayResults();
+        
+        var button = document.getElementById('scanButton');
+        var generateButton = document.getElementById('generateButton');
+        button.disabled = false;
+        button.textContent = 'Scan File for "oi-" Components';
+        
+        // Enable generate button if we found instances
+        generateButton.disabled = Object.keys(instanceCounts).length === 0;
+      }
+      
+      if (msg.type === 'frame-generated') {
+        var generateButton = document.getElementById('generateButton');
+        generateButton.disabled = false;
+        generateButton.textContent = 'Generate Icon Instances Frame';
+        
+        if (msg.success) {
+          generateButton.textContent = '✓ Frame Created!';
+          setTimeout(function() {
+            generateButton.textContent = 'Generate Icon Instances Frame';
+          }, 2000);
+        } else {
+          generateButton.textContent = '✗ Generation Failed';
+          setTimeout(function() {
+            generateButton.textContent = 'Generate Icon Instances Frame';
+          }, 2000);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
