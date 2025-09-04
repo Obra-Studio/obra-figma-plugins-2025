@@ -11,12 +11,15 @@ figma.showUI(__html__, { width: 450, height: 600 });
 scanForSpacingVariables();
 
 // Scan for all spacing variables and their values
-function scanForSpacingVariables() {
+async function scanForSpacingVariables() {
   console.log('Starting variable scan...');
   spacingVariables = [];
   
   try {
-    var localVariables = figma.variables.getLocalVariables();
+    // Wait for the document to be ready for dynamic pages
+    await figma.loadAllPagesAsync();
+    
+    var localVariables = await figma.variables.getLocalVariablesAsync();
     console.log('Found', localVariables.length, 'total local variables');
     
     for (var i = 0; i < localVariables.length; i++) {
@@ -32,7 +35,7 @@ function scanForSpacingVariables() {
       // Get the variable's numeric value
       var numericValue = null;
       try {
-        var collection = figma.variables.getVariableCollectionById(variable.variableCollectionId);
+        var collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
         if (collection && collection.modes && collection.modes.length > 0) {
           var defaultMode = collection.modes[0];
           var valuesByMode = variable.valuesByMode;
@@ -466,7 +469,7 @@ function startScan(ignoredNames) {
 }
 
 // Navigate to specific layer
-function navigateToLayer(layerId) {
+async function navigateToLayer(layerId) {
   console.log('Navigating to layer:', layerId);
   
   // Find the layer in our issues list
@@ -484,7 +487,7 @@ function navigateToLayer(layerId) {
     return;
   }
 
-  var node = figma.getNodeById(layerId);
+  var node = await figma.getNodeByIdAsync(layerId);
   if (node) {
     figma.viewport.scrollAndZoomIntoView([node]);
     figma.currentPage.selection = [node];
@@ -511,10 +514,10 @@ function navigateToLayer(layerId) {
 }
 
 // Apply variable to specific layer
-function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
+async function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
   console.log('Applying variable', variableId, 'to layer', layerId, 'mode:', applyMode, 'property:', propertyName);
   
-  var node = figma.getNodeById(layerId);
+  var node = await figma.getNodeByIdAsync(layerId);
   if (!node) {
     figma.ui.postMessage({
       type: 'error',
@@ -524,7 +527,7 @@ function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
   }
 
   try {
-    var variable = figma.variables.getVariableById(variableId);
+    var variable = await figma.variables.getVariableByIdAsync(variableId);
     if (!variable) {
       figma.ui.postMessage({
         type: 'error',
@@ -632,7 +635,7 @@ function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
 }
 
 // Apply variables to all fixable layers at once
-function autofixAllLayers() {
+async function autofixAllLayers() {
   console.log('Starting autofix for all layers...');
   
   // Get current layers with issues
@@ -649,7 +652,7 @@ function autofixAllLayers() {
         layer.suggestion.type === 'apply_variable') {
       
       try {
-        var node = figma.getNodeById(layer.id);
+        var node = await figma.getNodeByIdAsync(layer.id);
         if (!node) {
           failedLayers.push({
             layerName: layer.name,
@@ -658,7 +661,7 @@ function autofixAllLayers() {
           continue;
         }
         
-        var variable = figma.variables.getVariableById(layer.suggestion.variable.id);
+        var variable = await figma.variables.getVariableByIdAsync(layer.suggestion.variable.id);
         if (!variable) {
           failedLayers.push({
             layerName: layer.name,
@@ -714,8 +717,8 @@ function autofixAllLayers() {
   });
   
   // Rescan to update the UI
-  setTimeout(function() {
-    scanForSpacingVariables();
+  setTimeout(async function() {
+    await scanForSpacingVariables();
   }, 100);
 }
 
@@ -760,7 +763,7 @@ async function saveIgnoredNames(names) {
 loadIgnoredNames();
 
 // Handle messages from UI
-figma.ui.onmessage = function(msg) {
+figma.ui.onmessage = async function(msg) {
   console.log('Received message:', msg.type);
   
   switch (msg.type) {
@@ -769,27 +772,27 @@ figma.ui.onmessage = function(msg) {
       break;
     
     case 'navigate-to-layer':
-      navigateToLayer(msg.layerId);
+      await navigateToLayer(msg.layerId);
       break;
     
     case 'apply-variable':
-      applyVariableToLayer(msg.layerId, msg.variableId, msg.applyMode, msg.propertyName);
+      await applyVariableToLayer(msg.layerId, msg.variableId, msg.applyMode, msg.propertyName);
       break;
     
     case 'rescan-variables':
-      scanForSpacingVariables();
+      await scanForSpacingVariables();
       break;
     
     case 'save-ignored-names':
-      saveIgnoredNames(msg.ignoredNames);
+      await saveIgnoredNames(msg.ignoredNames);
       break;
     
     case 'load-ignored-names':
-      loadIgnoredNames();
+      await loadIgnoredNames();
       break;
     
     case 'autofix_all':
-      autofixAllLayers();
+      await autofixAllLayers();
       break;
     
     case 'close':
