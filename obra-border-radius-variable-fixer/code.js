@@ -11,12 +11,12 @@ figma.showUI(__html__, { width: 450, height: 600 });
 scanForBorderRadiusVariables();
 
 // Scan for all border radius variables and their values
-function scanForBorderRadiusVariables() {
+async function scanForBorderRadiusVariables() {
   console.log('Starting variable scan...');
   borderRadiusVariables = [];
   
   try {
-    var localVariables = figma.variables.getLocalVariables();
+    var localVariables = await figma.variables.getLocalVariablesAsync();
     console.log('Found', localVariables.length, 'total local variables');
     
     for (var i = 0; i < localVariables.length; i++) {
@@ -32,7 +32,7 @@ function scanForBorderRadiusVariables() {
       // Get the variable's numeric value
       var numericValue = null;
       try {
-        var collection = figma.variables.getVariableCollectionById(variable.variableCollectionId);
+        var collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
         if (collection && collection.modes && collection.modes.length > 0) {
           var defaultMode = collection.modes[0];
           var valuesByMode = variable.valuesByMode;
@@ -400,7 +400,7 @@ function startScan(ignoredNames) {
 }
 
 // Navigate to specific layer
-function navigateToLayer(layerId) {
+async function navigateToLayer(layerId) {
   console.log('Navigating to layer:', layerId);
   
   // Find the layer in our issues list
@@ -418,7 +418,7 @@ function navigateToLayer(layerId) {
     return;
   }
 
-  var node = figma.getNodeById(layerId);
+  var node = await figma.getNodeByIdAsync(layerId);
   if (node) {
     figma.viewport.scrollAndZoomIntoView([node]);
     figma.currentPage.selection = [node];
@@ -444,10 +444,10 @@ function navigateToLayer(layerId) {
 }
 
 // Apply variable to specific layer
-function applyVariableToLayer(layerId, variableId, applyMode) {
+async function applyVariableToLayer(layerId, variableId, applyMode) {
   console.log('Applying variable', variableId, 'to layer', layerId, 'mode:', applyMode);
   
-  var node = figma.getNodeById(layerId);
+  var node = await figma.getNodeByIdAsync(layerId);
   if (!node) {
     figma.ui.postMessage({
       type: 'error',
@@ -457,7 +457,7 @@ function applyVariableToLayer(layerId, variableId, applyMode) {
   }
 
   try {
-    var variable = figma.variables.getVariableById(variableId);
+    var variable = await figma.variables.getVariableByIdAsync(variableId);
     if (!variable) {
       figma.ui.postMessage({
         type: 'error',
@@ -570,7 +570,7 @@ async function saveIgnoredNames(names) {
 }
 
 // Autofix all layers with matching variables
-function autofixAll() {
+async function autofixAll() {
   console.log('Starting autofix for all layers...');
   
   var fixableLayers = [];
@@ -591,7 +591,7 @@ function autofixAll() {
   // Apply variables to each fixable layer
   for (var j = 0; j < fixableLayers.length; j++) {
     var layerInfo = fixableLayers[j];
-    var node = figma.getNodeById(layerInfo.id);
+    var node = await figma.getNodeByIdAsync(layerInfo.id);
     
     if (!node) {
       totalFailed++;
@@ -603,7 +603,7 @@ function autofixAll() {
     }
     
     try {
-      var variable = figma.variables.getVariableById(layerInfo.suggestion.variable.id);
+      var variable = await figma.variables.getVariableByIdAsync(layerInfo.suggestion.variable.id);
       if (!variable) {
         totalFailed++;
         failedLayers.push({
