@@ -1,11 +1,12 @@
 {
-  "name": "Obra Variable Replacer",
-  "id": "variable-color-replacer",
+  "name": "Obra Variable Find & Replace",
+  "id": "1547024766353782832",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
   "capabilities": [],
   "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
   "editorType": ["figma"],
   "networkAccess": {
     "allowedDomains": ["none"]

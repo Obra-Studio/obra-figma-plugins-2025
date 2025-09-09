@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 300, height: 200 });
+figma.showUI(__html__, { width: 320, height: 350 });
 
 figma.ui.onmessage = async function(msg) {
   if (msg.type === 'replace-variables') {
@@ -6,7 +6,7 @@ figma.ui.onmessage = async function(msg) {
     var newPrefix = msg.newPrefix;
     
     if (!oldPrefix || !newPrefix) {
-      figma.ui.postMessage({ type: 'error', message: 'Please enter both old and new prefixes' });
+      figma.ui.postMessage({ type: 'error', message: 'Please enter both text to replace and replacement text' });
       return;
     }
 
@@ -26,9 +26,9 @@ figma.ui.onmessage = async function(msg) {
       variableMap.set(variable.name, variable);
     });
 
-    for (var i = 0; i < selection.length; i++) {
-      var node = selection[i];
-      
+    
+    // Helper function to process a node and replace its variables
+    async function processNodeVariables(node) {
       // Handle fills
       if ('fills' in node && node.fills && Array.isArray(node.fills)) {
         var newFills = [];
@@ -38,29 +38,31 @@ figma.ui.onmessage = async function(msg) {
           var fill = node.fills[j];
           
           if (fill.type === 'SOLID' && fill.boundVariables && fill.boundVariables.color) {
-            var currentVariable = figma.variables.getVariableById(fill.boundVariables.color.id);
+            var currentVariable = await figma.variables.getVariableByIdAsync(fill.boundVariables.color.id);
             
-            if (currentVariable && currentVariable.name.startsWith(oldPrefix)) {
-              // Extract the suffix (e.g., "50", "100", "150")
-              var suffix = currentVariable.name.substring(oldPrefix.length);
-              var newVariableName = newPrefix + suffix;
-              
-              // Find the new variable
-              var newVariable = variableMap.get(newVariableName);
-              
-              if (newVariable) {
-                var newFill = Object.assign({}, fill, {
-                  boundVariables: Object.assign({}, fill.boundVariables, {
-                    color: { type: 'VARIABLE_ALIAS', id: newVariable.id }
-                  })
-                });
-                newFills.push(newFill);
-                hasChanges = true;
-                replacedCount++;
+            if (currentVariable) {
+              if (currentVariable.name.includes(oldPrefix)) {
+                // Replace ALL occurrences of the old text with the new one
+                var newVariableName = currentVariable.name.split(oldPrefix).join(newPrefix);
+                
+                // Find the new variable
+                var newVariable = variableMap.get(newVariableName);
+                
+                if (newVariable) {
+                  var newFill = Object.assign({}, fill, {
+                    boundVariables: Object.assign({}, fill.boundVariables, {
+                      color: { type: 'VARIABLE_ALIAS', id: newVariable.id }
+                    })
+                  });
+                  newFills.push(newFill);
+                  hasChanges = true;
+                  replacedCount++;
+                } else {
+                  // Variable not found, keep original
+                  newFills.push(fill);
+                }
               } else {
-                // Variable not found, keep original
                 newFills.push(fill);
-                console.warn('Variable "' + newVariableName + '" not found');
               }
             } else {
               newFills.push(fill);
@@ -75,7 +77,7 @@ figma.ui.onmessage = async function(msg) {
         }
       }
 
-      // Handle strokes as well
+      // Handle strokes
       if ('strokes' in node && node.strokes && Array.isArray(node.strokes)) {
         var newStrokes = [];
         var hasChanges = false;
@@ -84,25 +86,29 @@ figma.ui.onmessage = async function(msg) {
           var stroke = node.strokes[k];
           
           if (stroke.type === 'SOLID' && stroke.boundVariables && stroke.boundVariables.color) {
-            var currentVariable = figma.variables.getVariableById(stroke.boundVariables.color.id);
+            var currentVariable = await figma.variables.getVariableByIdAsync(stroke.boundVariables.color.id);
             
-            if (currentVariable && currentVariable.name.startsWith(oldPrefix)) {
-              var suffix = currentVariable.name.substring(oldPrefix.length);
-              var newVariableName = newPrefix + suffix;
-              var newVariable = variableMap.get(newVariableName);
-              
-              if (newVariable) {
-                var newStroke = Object.assign({}, stroke, {
-                  boundVariables: Object.assign({}, stroke.boundVariables, {
-                    color: { type: 'VARIABLE_ALIAS', id: newVariable.id }
-                  })
-                });
-                newStrokes.push(newStroke);
-                hasChanges = true;
-                replacedCount++;
+            if (currentVariable) {
+              if (currentVariable.name.includes(oldPrefix)) {
+                // Replace ALL occurrences of the old text with the new one
+                var newVariableName = currentVariable.name.split(oldPrefix).join(newPrefix);
+                
+                var newVariable = variableMap.get(newVariableName);
+                
+                if (newVariable) {
+                  var newStroke = Object.assign({}, stroke, {
+                    boundVariables: Object.assign({}, stroke.boundVariables, {
+                      color: { type: 'VARIABLE_ALIAS', id: newVariable.id }
+                    })
+                  });
+                  newStrokes.push(newStroke);
+                  hasChanges = true;
+                  replacedCount++;
+                } else {
+                  newStrokes.push(stroke);
+                }
               } else {
                 newStrokes.push(stroke);
-                console.warn('Variable "' + newVariableName + '" not found');
               }
             } else {
               newStrokes.push(stroke);
@@ -116,6 +122,18 @@ figma.ui.onmessage = async function(msg) {
           node.strokes = newStrokes;
         }
       }
+      
+      // Recursively process children
+      if ('children' in node && node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+          await processNodeVariables(node.children[i]);
+        }
+      }
+    }
+    
+    // Process selected nodes for variable replacement
+    for (var i = 0; i < selection.length; i++) {
+      await processNodeVariables(selection[i]);
     }
 
     if (replacedCount > 0) {
@@ -126,7 +144,7 @@ figma.ui.onmessage = async function(msg) {
     } else {
       figma.ui.postMessage({ 
         type: 'warning', 
-        message: 'No variables were replaced. Make sure selected layers have variables with the specified prefix.' 
+        message: 'No variables were replaced. Make sure selected layers have variables containing the specified text.' 
       });
     }
   }

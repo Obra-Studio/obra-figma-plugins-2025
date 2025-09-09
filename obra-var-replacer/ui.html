@@ -107,15 +107,22 @@
 <body>
   <div class="container">
     <div class="input-group">
-      <label for="oldPrefix">Current prefix to replace:</label>
-      <input type="text" id="oldPrefix" placeholder="gray" value="gray">
-      <div class="example">e.g., "gray" (for gray50, gray100, etc.)</div>
+      <label for="oldPrefix">Text to replace in variable names:</label>
+      <input type="text" id="oldPrefix" placeholder="chart/teal" value="">
+      <div class="example">e.g., "gray" or "chart/teal" or "teal"</div>
     </div>
     
     <div class="input-group">
-      <label for="newPrefix">New prefix:</label>
-      <input type="text" id="newPrefix" placeholder="indigo">
-      <div class="example">e.g., "indigo" (will become indigo50, indigo100, etc.)</div>
+      <label for="newPrefix">Replace with:</label>
+      <input type="text" id="newPrefix" placeholder="chart/amber">
+      <div class="example">e.g., "indigo" or "chart/amber"</div>
+    </div>
+    
+    <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; margin-top: 4px; font-size: 11px; color: #666;">
+      <strong>Flexible replacement:</strong> Works with any part of the variable name.
+      <br>• "teal" → "amber" changes chart/teal/fill to chart/amber/fill
+      <br>• "chart" → "data" changes chart/teal/fill to data/teal/fill  
+      <br>• "/" → "-" changes chart/teal/fill to chart-teal-fill
     </div>
     
     <div class="button-group">
