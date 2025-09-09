@@ -6,6 +6,7 @@
   "ui": "ui.html",
   "capabilities": [],
   "enableProposedApi": false,
+  "documentAccess": "dynamic-page",
   "editorType": [
     "figma"
   ],

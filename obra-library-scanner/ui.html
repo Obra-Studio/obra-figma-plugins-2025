@@ -5,55 +5,161 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
-            padding: 16px;
+            padding: 0;
             background: #ffffff;
-            font-size: 12px;
-            color: #333;
+            font-size: 11px;
+            color: #1e1e1e;
+            line-height: 1.4;
         }
         
-        h1 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #000;
-            text-align: center;
+        .plugin-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e5e5;
+            background: #ffffff;
+        }
+        
+        .plugin-title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e1e1e;
+            letter-spacing: -0.2px;
+        }
+        
+        .plugin-content {
+            padding: 16px;
         }
         
         .page-info {
-            color: #666;
-            font-size: 11px;
-            margin-bottom: 24px;
-            font-style: italic;
+            color: #8c8c8c;
+            font-size: 10px;
+            margin-bottom: 16px;
+            padding: 8px 12px;
+            background: #f7f7f7;
+            border-radius: 6px;
+            border-left: 3px solid #0066ff;
         }
         
         .scan-section {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
         }
         
         .scan-button {
+            background: #1e1e1e;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.15s ease;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scan-button:hover {
+            background: #333333;
+            transform: translateY(-1px);
+        }
+        
+        .scan-button:active {
+            background: #000000;
+            transform: translateY(0);
+        }
+        
+        .scan-button:disabled {
+            background: #b3b3b3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .fix-section {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f7f7f7;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1e1e1e;
+            margin-bottom: 4px;
+            letter-spacing: -0.1px;
+        }
+        
+        .fix-description {
+            font-size: 10px;
+            color: #8c8c8c;
+            margin-bottom: 12px;
+        }
+        
+        .fix-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .fix-button {
             background: #0066ff;
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 12px 24px;
-            font-size: 14px;
+            padding: 7px 12px;
+            font-size: 10px;
             font-weight: 500;
             cursor: pointer;
-            width: 100%;
-            transition: background 0.2s;
+            flex: 1;
+            transition: all 0.15s ease;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        .scan-button:hover {
+        .fix-button.secondary {
+            background: #ffffff;
+            color: #0066ff;
+            border: 1px solid #e5e5e5;
+        }
+        
+        .fix-button:hover {
             background: #0052cc;
+            transform: translateY(-1px);
         }
         
-        .scan-button:active {
-            background: #004099;
+        .fix-button.secondary:hover {
+            background: #f7f7f7;
+            transform: translateY(-1px);
         }
         
-        .scan-button:disabled {
-            background: #cccccc;
+        .fix-button:active {
+            background: #0041a3;
+            transform: translateY(0);
+        }
+        
+        .fix-button.secondary:active {
+            background: #efefef;
+            transform: translateY(0);
+        }
+        
+        .fix-button:disabled {
+            background: #b3b3b3;
             cursor: not-allowed;
+            transform: none;
+        }
+        
+        .fix-button.secondary:disabled {
+            background: #f5f5f5;
+            color: #b3b3b3;
+            border-color: #e5e5e5;
+            transform: none;
         }
         
         .results-section {
@@ -193,6 +299,21 @@
             text-align: center;
         }
         
+        .element-type.variable {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .element-type.component {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .element-type.style {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
         .element-info {
             flex: 1;
         }
@@ -211,25 +332,64 @@
         }
         
         .inspect-button {
+            background: #1e1e1e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 9px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.15s ease;
+            min-height: 20px;
+        }
+        
+        .inspect-button:hover {
+            background: #333333;
+            transform: translateY(-1px);
+        }
+        
+        .inspect-button:active {
+            background: #000000;
+            transform: translateY(0);
+        }
+        
+        .fix-individual-button {
             background: #0066ff;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 4px 8px;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 500;
             cursor: pointer;
-            margin-left: 8px;
-            transition: background 0.2s;
+            margin-left: 4px;
+            transition: all 0.15s ease;
+            min-height: 20px;
         }
         
-        .inspect-button:hover {
+        .fix-individual-button:hover {
             background: #0052cc;
+            transform: translateY(-1px);
         }
         
-        .inspect-button:active {
-            background: #004099;
+        .fix-individual-button:active {
+            background: #0041a3;
+            transform: translateY(0);
         }
+        
+        .fix-individual-button:disabled {
+            background: #b3b3b3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .element-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
         
         .message {
             padding: 12px;
@@ -287,6 +447,28 @@
             background: #e0e0e0;
         }
         
+        .cancel-button {
+            background: #ff5252;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 12px;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        
+        .cancel-button:hover {
+            background: #e53935;
+        }
+        
+        .cancel-button:active {
+            background: #c62828;
+        }
+        
         .stats {
             display: flex;
             justify-content: space-between;
@@ -321,13 +503,36 @@
     </style>
 </head>
 <body>
-    <h1>Obra Remote Library Scanner</h1>
-    <div id="pageInfo" class="page-info">Ready to scan current page</div>
+    <div class="plugin-header">
+        <h1 class="plugin-title">Library Scanner</h1>
+    </div>
+    
+    <div class="plugin-content">
+        <div id="pageInfo" class="page-info" style="display: none;"></div>
     
     <div class="scan-section">
-        <button id="scanButton" class="scan-button" onclick="scanElements()">
-            Scan Elements
+        <button id="scanCurrentButton" class="scan-button" onclick="scanCurrentPage()">
+            Current Page
         </button>
+        <button id="scanAllButton" class="scan-button" onclick="scanAllPages()">
+            All Pages
+        </button>
+        <button id="scanSelectionButton" class="scan-button" onclick="scanSelection()">
+            Selection
+        </button>
+    </div>
+    
+    <div class="fix-section" id="fixSection" style="display: none;">
+        <div class="section-title">Auto-Fix Remote Styles</div>
+        <div class="fix-description">Replace remote styles with matching local styles</div>
+        <div class="fix-buttons" id="fixButtons">
+            <button id="fixCurrentButton" class="fix-button" onclick="fixCurrentPage()">
+                Fix Current Page
+            </button>
+            <button id="fixAllButton" class="fix-button secondary" onclick="fixAllPages()">
+                Fix All Pages
+            </button>
+        </div>
     </div>
     
     <div id="message"></div>
@@ -344,19 +549,103 @@
         </div>
     </div>
     
-    <button class="close-button" onclick="closePlugin()">Close Plugin</button>
 
     <script>
         let scanResults = [];
         let expandedLibraries = new Set(); // Track which libraries are expanded
+        let currentScanType = null; // Track the current scan type
         
-        function scanElements() {
+        function scanCurrentPage() {
             document.getElementById('results').style.display = 'none';
-            document.getElementById('message').innerHTML = '<div class="message">Scanning current page...</div>';
-            document.getElementById('scanButton').disabled = true;
-            document.getElementById('scanButton').textContent = 'Scanning...';
+            document.getElementById('message').innerHTML = '<div class="message">Scanning current page... <button class="cancel-button" onclick="cancelScan()">Cancel</button></div>';
+            disableAllButtons();
+            document.getElementById('scanCurrentButton').textContent = 'Scanning...';
+            currentScanType = 'current';
             
-            parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
+            parent.postMessage({ pluginMessage: { type: 'scan-current' } }, '*');
+        }
+        
+        function scanAllPages() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('message').innerHTML = '<div class="message">Scanning all pages... <button class="cancel-button" onclick="cancelScan()">Cancel</button></div>';
+            disableAllButtons();
+            document.getElementById('scanAllButton').textContent = 'Scanning...';
+            currentScanType = 'all';
+            
+            parent.postMessage({ pluginMessage: { type: 'scan-all' } }, '*');
+        }
+        
+        function scanSelection() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('message').innerHTML = '<div class="message">Scanning selection... <button class="cancel-button" onclick="cancelScan()">Cancel</button></div>';
+            disableAllButtons();
+            document.getElementById('scanSelectionButton').textContent = 'Scanning...';
+            currentScanType = 'selection';
+            
+            parent.postMessage({ pluginMessage: { type: 'scan-selection' } }, '*');
+        }
+        
+        function fixCurrentPage() {
+            document.getElementById('message').innerHTML = '<div class="message">Fixing current page...</div>';
+            disableAllButtons();
+            document.getElementById('fixCurrentButton').textContent = 'Fixing...';
+            
+            parent.postMessage({ pluginMessage: { type: 'fix-current' } }, '*');
+        }
+        
+        function fixSelection() {
+            document.getElementById('message').innerHTML = '<div class="message">Fixing selection...</div>';
+            disableAllButtons();
+            document.getElementById('fixSelectionButton').textContent = 'Fixing...';
+            
+            parent.postMessage({ pluginMessage: { type: 'fix-selection' } }, '*');
+        }
+        
+        function fixAllPages() {
+            document.getElementById('message').innerHTML = '<div class="message">Fixing all pages...</div>';
+            disableAllButtons();
+            document.getElementById('fixAllButton').textContent = 'Fixing...';
+            
+            parent.postMessage({ pluginMessage: { type: 'fix-all' } }, '*');
+        }
+        
+        function disableAllButtons() {
+            document.getElementById('scanCurrentButton').disabled = true;
+            document.getElementById('scanAllButton').disabled = true;
+            document.getElementById('scanSelectionButton').disabled = true;
+            
+            // Disable fix buttons that exist
+            const fixCurrentButton = document.getElementById('fixCurrentButton');
+            const fixAllButton = document.getElementById('fixAllButton');
+            const fixSelectionButton = document.getElementById('fixSelectionButton');
+            
+            if (fixCurrentButton) fixCurrentButton.disabled = true;
+            if (fixAllButton) fixAllButton.disabled = true;
+            if (fixSelectionButton) fixSelectionButton.disabled = true;
+        }
+        
+        function enableAllButtons() {
+            document.getElementById('scanCurrentButton').disabled = false;
+            document.getElementById('scanAllButton').disabled = false;
+            document.getElementById('scanSelectionButton').disabled = false;
+            
+            // Enable fix buttons that exist
+            const fixCurrentButton = document.getElementById('fixCurrentButton');
+            const fixAllButton = document.getElementById('fixAllButton');
+            const fixSelectionButton = document.getElementById('fixSelectionButton');
+            
+            if (fixCurrentButton) fixCurrentButton.disabled = false;
+            if (fixAllButton) fixAllButton.disabled = false;
+            if (fixSelectionButton) fixSelectionButton.disabled = false;
+            
+            // Reset button text
+            document.getElementById('scanCurrentButton').textContent = 'Current Page';
+            document.getElementById('scanAllButton').textContent = 'All Pages';
+            document.getElementById('scanSelectionButton').textContent = 'Selection';
+            
+            if (fixCurrentButton) fixCurrentButton.textContent = 'Fix Current Page';
+            if (fixAllButton) fixAllButton.textContent = 'Fix All Pages';
+            if (fixSelectionButton) fixSelectionButton.textContent = 'Fix Selection';
         }
         
         function toggleLibrary(libraryName) {
@@ -422,8 +711,55 @@
             }, '*');
         }
         
+        function fixIndividualElement(elementId, libraryName) {
+            // Disable the button
+            const button = document.querySelector(`[data-element-id="${elementId}"] .fix-individual-button`);
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Fixing...';
+            }
+            
+            parent.postMessage({ 
+                pluginMessage: { 
+                    type: 'fix-individual-element', 
+                    elementId: elementId,
+                    libraryName: libraryName
+                } 
+            }, '*');
+        }
+        
         function closePlugin() {
             parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
+        }
+        
+        function cancelScan() {
+            parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
+            enableAllButtons();
+            document.getElementById('message').innerHTML = '<div class="message info">Scan cancelled</div>';
+        }
+        
+        function updateFixButtons(scanType) {
+            const fixButtonsDiv = document.getElementById('fixButtons');
+            
+            if (scanType === 'selection') {
+                fixButtonsDiv.innerHTML = `
+                    <button id="fixSelectionButton" class="fix-button" onclick="fixSelection()">
+                        Fix Selection
+                    </button>
+                    <button id="fixCurrentButton" class="fix-button secondary" onclick="fixCurrentPage()">
+                        Fix Current Page
+                    </button>
+                `;
+            } else {
+                fixButtonsDiv.innerHTML = `
+                    <button id="fixCurrentButton" class="fix-button" onclick="fixCurrentPage()">
+                        Fix Current Page
+                    </button>
+                    <button id="fixAllButton" class="fix-button secondary" onclick="fixAllPages()">
+                        Fix All Pages
+                    </button>
+                `;
+            }
         }
         
         function showMessage(text, type = 'success') {
@@ -437,7 +773,12 @@
             
             switch (msg.type) {
                 case 'scan-started':
+                    document.getElementById('pageInfo').style.display = 'block';
                     document.getElementById('pageInfo').textContent = `Scanning: ${msg.pageName}`;
+                    break;
+                    
+                case 'scan-progress':
+                    document.getElementById('pageInfo').textContent = `Scanning: ${msg.currentPage} (${msg.progress}/${msg.total})`;
                     break;
                     
                 case 'scan-complete':
@@ -447,21 +788,81 @@
                     if (msg.message) {
                         showMessage(msg.message, msg.messageType || 'info');
                     }
-                    // Reset button
-                    document.getElementById('scanButton').disabled = false;
-                    document.getElementById('scanButton').textContent = 'Scan Elements';
+                    
+                    // Show fix section if remote libraries found and update buttons based on scan type
+                    const hasRemoteLibraries = msg.libraries.some(lib => lib.type === 'remote');
+                    if (hasRemoteLibraries) {
+                        document.getElementById('fixSection').style.display = 'block';
+                        updateFixButtons(msg.scanType || currentScanType);
+                    } else {
+                        document.getElementById('fixSection').style.display = 'none';
+                    }
+                    
+                    enableAllButtons();
                     break;
                     
                 case 'element-selected':
                     showMessage(`Selected: ${msg.nodeName}`, 'success');
                     break;
                     
+                case 'fix-started':
+                    showMessage('Auto-fixing remote styles...', 'info');
+                    break;
+                    
+                case 'fix-complete':
+                    if (msg.fixCount > 0) {
+                        showMessage(`Fixed ${msg.fixCount} remote style${msg.fixCount !== 1 ? 's' : ''}`, 'success');
+                        // Re-scan to update results
+                        setTimeout(() => {
+                            if (msg.scanType === 'all') {
+                                scanAllPages();
+                            } else {
+                                scanCurrentPage();
+                            }
+                        }, 1000);
+                    } else {
+                        showMessage('No matching local styles found to replace remote ones', 'info');
+                        enableAllButtons();
+                    }
+                    break;
+                    
                 case 'scan-error':
                     document.getElementById('results').innerHTML = '<div class="empty-state">Scan failed</div>';
                     showMessage(msg.message, 'error');
-                    // Reset button
-                    document.getElementById('scanButton').disabled = false;
-                    document.getElementById('scanButton').textContent = 'Scan Elements';
+                    enableAllButtons();
+                    break;
+                    
+                case 'scan-cancelled':
+                    showMessage(msg.message, 'info');
+                    enableAllButtons();
+                    break;
+                    
+                case 'scan-warning':
+                    showMessage(msg.message, 'info');
+                    break;
+                    
+                case 'scan-node-progress':
+                    document.getElementById('pageInfo').textContent = `Processing nodes: ${msg.processed}/${msg.total}`;
+                    break;
+                    
+                case 'individual-fix-complete':
+                    const elementContainer = document.querySelector(`[data-element-id="${msg.elementId}"]`);
+                    if (elementContainer) {
+                        const button = elementContainer.querySelector('.fix-individual-button');
+                        if (button) {
+                            if (msg.success) {
+                                button.textContent = 'Fixed';
+                                button.disabled = true;
+                                button.style.background = '#4caf50';
+                                showMessage(`Fixed: ${msg.elementName}`, 'success');
+                            } else {
+                                button.textContent = 'Fix Failed';
+                                button.disabled = true;
+                                button.style.background = '#f44336';
+                                showMessage(`Failed to fix: ${msg.elementName} - ${msg.error}`, 'error');
+                            }
+                        }
+                    }
                     break;
             }
         };
@@ -520,24 +921,36 @@
                         </div>
                     </div>
                     <div class="library-elements ${isExpanded ? '' : 'collapsed'}">
-                        ${library.elements.map(element => `
-                            <div class="element-item">
+                        ${library.elements.map(element => {
+                            const typeClass = element.type === 'variable' ? 'variable' : 
+                                            element.type === 'component' ? 'component' : 'style';
+                            const isRemote = library.type === 'remote';
+                            return `
+                            <div class="element-item" data-element-id="${element.elementId}">
                                 <div class="element-content">
-                                    <div class="element-type">${element.type}</div>
+                                    <div class="element-type ${typeClass}">${element.type}</div>
                                     <div class="element-info">
                                         <div class="element-name">${element.name}</div>
                                         <div class="node-name">${element.nodeName}</div>
                                     </div>
                                 </div>
-                                <button class="inspect-button" onclick="inspectElement('${element.elementId}')">
-                                    Inspect
-                                </button>
+                                <div class="element-actions">
+                                    <button class="inspect-button" onclick="inspectElement('${element.elementId}')">
+                                        Inspect
+                                    </button>
+                                    ${isRemote ? `
+                                    <button class="fix-individual-button" onclick="fixIndividualElement('${element.elementId}', '${library.name.replace(/'/g, "\\'")}')">
+                                        Fix
+                                    </button>
+                                    ` : ''}
+                                </div>
                             </div>
-                        `).join('')}
+                        `;}).join('')}
                     </div>
                 </div>
             `}).join('');
         }
     </script>
+    </div>
 </body>
 </html>
