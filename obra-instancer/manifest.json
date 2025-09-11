@@ -3,6 +3,17 @@
   "id": "obra-instancer",
   "api": "1.0.0",
   "main": "code.js",
+  "ui": "ui.html",
+  "menu": [
+    {
+      "name": "Create Documentation Table",
+      "command": "create-table"
+    },
+    {
+      "name": "Step-by-Step Builder",
+      "command": "step-builder"
+    }
+  ],
   "capabilities": [],
   "enableProposedApi": false,
   "editorType": ["figma"],

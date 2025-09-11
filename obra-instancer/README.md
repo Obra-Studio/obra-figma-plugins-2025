@@ -1,1 +1,3 @@
-Obra Instancer is a plugin akin to Propstar that generates property tables.
+# What is Obra Instancer?
+
+Obra Instancer is a plugin that generates property tables.

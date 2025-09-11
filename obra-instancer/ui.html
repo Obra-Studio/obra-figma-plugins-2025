@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Obra Instancer - Step-by-Step Builder</title>
+  <style>
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f8f9fa;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    
+    .header {
+      background: #9647FF;
+      color: white;
+      padding: 12px 16px;
+      margin: -16px -16px 20px -16px;
+      border-radius: 0 0 8px 8px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      margin: 4px 0 0 0;
+      opacity: 0.9;
+      font-size: 11px;
+    }
+    
+    .step-container {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+    
+    .step-header {
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e1e5e9;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .step-header:hover {
+      background: #f1f3f4;
+    }
+    
+    .step-number {
+      width: 24px;
+      height: 24px;
+      background: #9647FF;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    
+    .step-number.completed {
+      background: #00d084;
+    }
+    
+    .step-number.active {
+      background: #ff6b35;
+    }
+    
+    .step-title {
+      font-weight: 500;
+      font-size: 12px;
+    }
+    
+    .step-status {
+      margin-left: auto;
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .step-content {
+      padding: 12px;
+      display: none;
+    }
+    
+    .tab {
+      padding: 8px 16px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 11px;
+      color: #666;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab.active {
+      color: #9647FF;
+      border-bottom-color: #9647FF;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .info-item {
+      margin: 8px 0;
+      padding: 6px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-size: 10px;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 2px;
+    }
+    
+    .info-value {
+      font-family: 'SF Mono', Monaco, monospace;
+      color: #666;
+      font-size: 9px;
+    }
+    
+    .copy-btn {
+      float: right;
+      padding: 2px 6px;
+      font-size: 8px;
+      background: #e1e5e9;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    
+    .step-content.active {
+      display: block;
+    }
+    
+    .step-description {
+      color: #666;
+      margin-bottom: 12px;
+      font-size: 11px;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .btn {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+    
+    .btn:hover {
+      background: #f8f9fa;
+    }
+    
+    .btn.primary {
+      background: #9647FF;
+      color: white;
+      border-color: #9647FF;
+    }
+    
+    .btn.primary:hover {
+      background: #8534e6;
+    }
+    
+    .btn.success {
+      background: #00d084;
+      color: white;
+      border-color: #00d084;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .output {
+      background: #f8f9fa;
+      border: 1px solid #e1e5e9;
+      border-radius: 4px;
+      padding: 6px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 9px;
+      color: #333;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+    
+    .progress-bar {
+      height: 4px;
+      background: #e1e5e9;
+      border-radius: 2px;
+      margin: 16px -16px -12px -16px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: #9647FF;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .info-box {
+      background: #e8f4fd;
+      border: 1px solid #bee5f8;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 8px 0;
+      font-size: 10px;
+      color: #2c5282;
+    }
+    
+    .warning-box {
+      background: #fef5e7;
+      border: 1px solid #fbd38d;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 8px 0;
+      font-size: 10px;
+      color: #744210;
+    }
+    
+    .settings {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .settings h3 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    
+    .setting-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .setting-label {
+      font-size: 10px;
+      color: #666;
+      min-width: 80px;
+    }
+    
+    input[type="checkbox"] {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Obra Instancer Debug</h1>
+    <div style="display: flex; gap: 12px; margin-top: 8px; font-size: 10px;">
+      <label><input type="checkbox" id="debug-mode" checked> Debug</label>
+      <label><input type="checkbox" id="auto-progress"> Auto</label>
+      <button class="btn" style="margin-left: auto; padding: 2px 6px; font-size: 10px;" onclick="runAllSteps()">Run All</button>
+    </div>
+    
+    <!-- Debug Line Creation Section -->
+    <div style="background: #f8f9fa; padding: 8px; margin: 8px 0; border-radius: 4px; border-left: 3px solid #ff6b6b;">
+      <div style="font-size: 11px; font-weight: 600; color: #333; margin-bottom: 6px;">🔧 Line Creation Debug</div>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn" style="padding: 4px 8px; font-size: 10px;" onclick="createTestLines()">Create Test Lines</button>
+        <button class="btn" style="padding: 4px 8px; font-size: 10px;" onclick="clearTestLines()">Clear Test Lines</button>
+      </div>
+      <div id="test-lines-output" style="font-size: 10px; margin-top: 4px; color: #666;">Click "Create Test Lines" to test line creation logic</div>
+    </div>
+  </div>
+  
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress"></div>
+  </div>
+  
+  <div class="tabs" style="display: flex; border-bottom: 1px solid #e1e5e9; margin-bottom: 12px;">
+    <button class="tab active" onclick="showTab('steps')" id="tab-steps">Steps</button>
+    <button class="tab" onclick="showTab('info')" id="tab-info">Selection Info</button>
+  </div>
+  
+  <div id="tab-content-steps">
+    <div style="text-align: center; padding: 8px 0; font-size: 10px; color: #666;">
+      Click step numbers to expand • Click "Run All" in header for full sequence
+    </div>
+  
+  <!-- Step 1: Selection Validation -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(1)">
+      <div class="step-number" id="step-1-number">1</div>
+      <div class="step-title">Selection Validation</div>
+      <div class="step-status" id="step-1-status">pending</div>
+    </div>
+    <div class="step-content" id="step-1-content">
+      <div class="step-description">
+        Validates component set selection and extracts basic metadata.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(1)">Run</button>
+        <button class="btn" onclick="simulateError(1)">Error</button>
+      </div>
+      <div class="output" id="step-1-output">Click "Run" to validate selection...</div>
+    </div>
+  </div>
+  
+  <!-- Step 2: Variant Extraction -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(2)">
+      <div class="step-number" id="step-2-number">2</div>
+      <div class="step-title">Variant Extraction</div>
+      <div class="step-status" id="step-2-status">pending</div>
+    </div>
+    <div class="step-content" id="step-2-content">
+      <div class="step-description">
+        Extracts variant components, properties, sizes, and positions.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(2)" disabled id="step-2-btn">Run</button>
+        <button class="btn" onclick="showVariantDetails()">Details</button>
+      </div>
+      <div class="output" id="step-2-output">Complete Step 1 first...</div>
+    </div>
+  </div>
+  
+  <!-- Step 3: Property Analysis -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(3)">
+      <div class="step-number" id="step-3-number">3</div>
+      <div class="step-title">Property Analysis</div>
+      <div class="step-status" id="step-3-status">pending</div>
+    </div>
+    <div class="step-content" id="step-3-content">
+      <div class="step-description">
+        Analyzes properties to determine grid layout strategy (boolean vs multi-value).
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(3)" disabled id="step-3-btn">Run</button>
+        <button class="btn" onclick="showPropertyMatrix()">Matrix</button>
+      </div>
+      <div class="output" id="step-3-output">Complete Step 2 first...</div>
+    </div>
+  </div>
+  
+  <!-- Step 4: Grid Layout Calculation -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(4)">
+      <div class="step-number" id="step-4-number">4</div>
+      <div class="step-title">Grid Layout Calculation</div>
+      <div class="step-status" id="step-4-status">pending</div>
+    </div>
+    <div class="step-content" id="step-4-content">
+      <div class="step-description">
+        Calculates grid dimensions and adaptive cell sizes for optimal layout.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(4)" disabled id="step-4-btn">Run</button>
+        <button class="btn" onclick="showGridPreview()">Preview</button>
+      </div>
+      <div class="output" id="step-4-output">Complete Step 3 first...</div>
+    </div>
+  </div>
+  
+  <!-- Step 5: Frame Setup -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(5)">
+      <div class="step-number" id="step-5-number">5</div>
+      <div class="step-title">Frame Setup & Resizing</div>
+      <div class="step-status" id="step-5-status">pending</div>
+    </div>
+    <div class="step-content" id="step-5-content">
+      <div class="step-description">
+        Resizes component set and creates styled wrapper frame.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(5)" disabled id="step-5-btn">Run</button>
+        <button class="btn" onclick="previewStyling()">Preview</button>
+      </div>
+      <div class="output" id="step-5-output">Complete Step 4 first...</div>
+    </div>
+  </div>
+  
+  <!-- Step 6: Grid Lines -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(6)">
+      <div class="step-number" id="step-6-number">6</div>
+      <div class="step-title">Grid Lines Creation</div>
+      <div class="step-status" id="step-6-status">pending</div>
+    </div>
+    <div class="step-content" id="step-6-content">
+      <div class="step-description">
+        Creates dashed grid lines at cell boundaries with proper positioning.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(6)" disabled id="step-6-btn">Run</button>
+        <button class="btn" onclick="toggleGridLines()">Toggle</button>
+      </div>
+      <div class="output" id="step-6-output">Complete Step 5 first...</div>
+    </div>
+  </div>
+  
+  <!-- Step 7: Variant Positioning -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(7)">
+      <div class="step-number" id="step-7-number">7</div>
+      <div class="step-title">Variant Positioning</div>
+      <div class="step-status" id="step-7-status">pending</div>
+    </div>
+    <div class="step-content" id="step-7-content">
+      <div class="step-description">
+        Centers variant components within calculated grid cells.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(7)" disabled id="step-7-btn">Run</button>
+        <button class="btn" onclick="highlightPositions()">Highlight</button>
+      </div>
+      <div class="output" id="step-7-output">Complete Step 6 first...</div>
+    </div>
+  </div>
+  
+  <!-- Step 8: Labels & Property Names -->
+  <div class="step-container">
+    <div class="step-header" onclick="toggleStep(8)">
+      <div class="step-number" id="step-8-number">8</div>
+      <div class="step-title">Labels & Property Names</div>
+      <div class="step-status" id="step-8-status">pending</div>
+    </div>
+    <div class="step-content" id="step-8-content">
+      <div class="step-description">
+        Adds aligned property labels and headers around the grid.
+      </div>
+      <div class="controls">
+        <button class="btn primary" onclick="runStep(8)" disabled id="step-8-btn">Run</button>
+        <button class="btn" onclick="previewLabels()">Preview</button>
+      </div>
+      <div class="output" id="step-8-output">Complete Step 7 first...</div>
+    </div>
+  </div>
+  
+  <!-- Final Actions -->
+  <div class="step-container">
+    <div class="step-header">
+      <div class="step-number" style="background: #00d084;">✓</div>
+      <div class="step-title">Documentation Complete</div>
+      <div class="step-status">final</div>
+    </div>
+    <div class="step-content active">
+      <div class="controls">
+        <button class="btn" onclick="resetSimulation()">Reset</button>
+        <button class="btn" onclick="exportDebugInfo()">Export</button>
+      </div>
+    </div>
+  </div>
+  
+  </div>
+  
+  <div id="tab-content-info" class="tab-content">
+    <div style="padding: 12px;">
+      <button class="btn primary" onclick="refreshSelectionInfo()" style="width: 100%; margin-bottom: 12px;">Refresh Selection Info</button>
+      
+      <div class="info-item">
+        <div class="info-label">Selection Type <button class="copy-btn" onclick="copyToClipboard('selection-type')">Copy</button></div>
+        <div class="info-value" id="selection-type">No selection detected</div>
+      </div>
+      
+      <div class="info-item">
+        <div class="info-label">Node Name <button class="copy-btn" onclick="copyToClipboard('selection-name')">Copy</button></div>
+        <div class="info-value" id="selection-name">-</div>
+      </div>
+      
+      <div class="info-item">
+        <div class="info-label">Dimensions <button class="copy-btn" onclick="copyToClipboard('selection-size')">Copy</button></div>
+        <div class="info-value" id="selection-size">-</div>
+      </div>
+      
+      <div class="info-item">
+        <div class="info-label">Children Count <button class="copy-btn" onclick="copyToClipboard('children-count')">Copy</button></div>
+        <div class="info-value" id="children-count">-</div>
+      </div>
+      
+      <div class="info-item">
+        <div class="info-label">Component Children <button class="copy-btn" onclick="copyToClipboard('component-children')">Copy</button></div>
+        <div class="info-value" id="component-children">-</div>
+      </div>
+      
+      <div class="info-item">
+        <div class="info-label">Variant Properties <button class="copy-btn" onclick="copyToClipboard('variant-props')">Copy</button></div>
+        <div class="info-value" id="variant-props">-</div>
+      </div>
+      
+      <div class="info-item">
+        <div class="info-label">Copy-Paste Summary <button class="copy-btn" onclick="copyToClipboard('full-summary')">Copy</button></div>
+        <div class="info-value" id="full-summary">Click refresh to generate summary</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 0;
+    let stepData = {};
+    let debugMode = true;
+    let autoProgress = false;
+    
+    // Initialize UI
+    document.getElementById('debug-mode').addEventListener('change', (e) => {
+      debugMode = e.target.checked;
+    });
+    
+    document.getElementById('auto-progress').addEventListener('change', (e) => {
+      autoProgress = e.target.checked;
+    });
+    
+    function toggleStep(stepNumber) {
+      const content = document.getElementById(`step-${stepNumber}-content`);
+      const isActive = content.classList.contains('active');
+      
+      // Close all steps
+      document.querySelectorAll('.step-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Toggle current step
+      if (!isActive) {
+        content.classList.add('active');
+      }
+    }
+    
+    function updateProgress() {
+      const totalSteps = 8;
+      const completedSteps = currentStep;
+      const percentage = (completedSteps / totalSteps) * 100;
+      document.getElementById('progress').style.width = percentage + '%';
+    }
+    
+    function setStepStatus(stepNumber, status) {
+      const numberEl = document.getElementById(`step-${stepNumber}-number`);
+      const statusEl = document.getElementById(`step-${stepNumber}-status`);
+      const btnEl = document.getElementById(`step-${stepNumber}-btn`);
+      
+      numberEl.className = `step-number ${status}`;
+      statusEl.textContent = status;
+      
+      if (status === 'completed') {
+        numberEl.textContent = '✓';
+        // Keep Step 5 always enabled for re-running after undo
+        if (btnEl && stepNumber !== 5) btnEl.disabled = true;
+        
+        // Enable next step
+        const nextBtn = document.getElementById(`step-${stepNumber + 1}-btn`);
+        if (nextBtn) nextBtn.disabled = false;
+      } else if (status === 'active') {
+        numberEl.textContent = stepNumber;
+        if (btnEl) btnEl.disabled = false;
+      } else if (status === 'error') {
+        numberEl.textContent = '!';
+        numberEl.style.background = '#e53e3e';
+      }
+      
+      updateProgress();
+    }
+    
+    function logOutput(stepNumber, message, isError = false) {
+      const output = document.getElementById(`step-${stepNumber}-output`);
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = isError ? '[ERROR]' : '[INFO]';
+      const newLine = `${timestamp} ${prefix} ${message}\\n`;
+      
+      if (output.textContent.includes('Complete Step') || output.textContent.includes('Click')) {
+        output.textContent = newLine;
+      } else {
+        output.textContent += newLine;
+      }
+      
+      output.scrollTop = output.scrollHeight;
+      
+      if (debugMode) {
+        console.log(`Step ${stepNumber}: ${message}`);
+      }
+    }
+    
+    function runStep(stepNumber) {
+      setStepStatus(stepNumber, 'active');
+      logOutput(stepNumber, `Starting Step ${stepNumber}...`);
+      
+      // Send message to plugin
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'run-step', 
+          step: stepNumber,
+          debugMode: debugMode,
+          data: stepData
+        } 
+      }, '*');
+    }
+    
+    function runAllSteps() {
+      if (currentStep === 0) {
+        logOutput(1, 'Running all steps sequentially...');
+        autoProgress = true;
+        runStep(1);
+      } else {
+        // Reset and run all
+        resetSimulation();
+        setTimeout(() => runAllSteps(), 100);
+      }
+    }
+    
+    function resetSimulation() {
+      currentStep = 0;
+      stepData = {};
+      
+      for (let i = 1; i <= 8; i++) {
+        setStepStatus(i, 'pending');
+        document.getElementById(`step-${i}-number`).textContent = i;
+        document.getElementById(`step-${i}-output`).textContent = 
+          i === 1 ? 'Click "Validate Selection" to check current selection...' : `Complete Step ${i-1} first...`;
+        
+        const btn = document.getElementById(`step-${i}-btn`);
+        if (btn) btn.disabled = i !== 1;
+      }
+      
+      updateProgress();
+      logOutput(1, 'Simulation reset. Ready to start.');
+    }
+    
+    function simulateError(stepNumber) {
+      setStepStatus(stepNumber, 'error');
+      logOutput(stepNumber, 'Simulated error: No component set selected', true);
+    }
+    
+    function showVariantDetails() {
+      if (stepData.variants) {
+        let details = `Found ${stepData.variants.length} variants:\\n`;
+        stepData.variants.forEach((v, i) => {
+          details += `${i+1}. ${v.name} (${v.width}×${v.height}px)\\n`;
+        });
+        logOutput(2, details);
+      } else {
+        logOutput(2, 'No variant data available. Run Step 2 first.', true);
+      }
+    }
+    
+    function showPropertyMatrix() {
+      if (stepData.properties) {
+        let matrix = 'Property Analysis:\\n';
+        stepData.properties.forEach(prop => {
+          matrix += `${prop.name}: [${prop.values.join(', ')}] (${prop.isBoolean ? 'Boolean' : 'Multi-value'})\\n`;
+        });
+        logOutput(3, matrix);
+      }
+    }
+    
+    function showGridPreview() {
+      if (stepData.grid) {
+        logOutput(4, 'Grid Layout: ' + stepData.grid.cols + '×' + stepData.grid.rows + ' = ' + (stepData.grid.cols * stepData.grid.rows) + ' cells');
+      }
+    }
+    
+    function showTab(tabName) {
+      // Hide all tab content
+      document.querySelectorAll('.tab-content, #tab-content-steps').forEach(el => {
+        el.style.display = 'none';
+      });
+      
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Show selected tab content
+      if (tabName === 'steps') {
+        document.getElementById('tab-content-steps').style.display = 'block';
+      } else {
+        document.getElementById('tab-content-' + tabName).style.display = 'block';
+      }
+      
+      // Add active class to clicked tab
+      document.getElementById('tab-' + tabName).classList.add('active');
+    }
+    
+    function refreshSelectionInfo() {
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'get-selection-info'
+        } 
+      }, '*');
+    }
+    
+    function copyToClipboard(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        // Visual feedback
+        const copyBtn = element.parentNode.querySelector('.copy-btn');
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+        }, 1000);
+      }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      });
+    }
+    
+    function previewStyling() {
+      logOutput(5, 'Preview: Purple dashed border (#9647FF), 5px radius, 6px dash pattern');
+    }
+    
+    function toggleGridLines() {
+      // Send message to toggle grid line visibility
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'toggle-grid-lines'
+        } 
+      }, '*');
+    }
+    
+    function highlightPositions() {
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'highlight-positions'
+        } 
+      }, '*');
+    }
+    
+    function previewLabels() {
+      if (stepData.grid) {
+        logOutput(8, `Labels: ${stepData.grid.primaryProp || 'None'} (columns), ${stepData.grid.secondaryProp || 'None'} (rows)`);
+      }
+    }
+    
+    function exportDebugInfo() {
+      const debugInfo = {
+        timestamp: new Date().toISOString(),
+        currentStep: currentStep,
+        stepData: stepData,
+        settings: {
+          debugMode: debugMode,
+          autoProgress: autoProgress
+        }
+      };
+      
+      console.log('Debug Export:', debugInfo);
+      
+      // Create download link
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(debugInfo, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "obra-instancer-debug.json");
+      downloadAnchor.click();
+    }
+    
+    // Handle messages from plugin
+    window.addEventListener('message', (event) => {
+      const { type, step, success, data, message, info } = event.data.pluginMessage || {};
+      
+      if (type === 'selection-info') {
+        updateSelectionInfo(info);
+      } else if (type === 'debug-test-lines-result') {
+        document.getElementById('test-lines-output').textContent = message;
+        document.getElementById('test-lines-output').style.color = success ? '#28a745' : '#dc3545';
+      } else if (type === 'step-complete') {
+        if (success) {
+          setStepStatus(step, 'completed');
+          logOutput(step, `Step ${step} completed successfully`);
+          
+          if (data) {
+            stepData = { ...stepData, ...data };
+          }
+          
+          currentStep = Math.max(currentStep, step);
+          
+          if (autoProgress && step < 8) {
+            setTimeout(() => runStep(step + 1), 1000);
+          }
+        } else {
+          setStepStatus(step, 'error');
+          logOutput(step, message || 'Step failed', true);
+        }
+      } else if (type === 'step-progress') {
+        logOutput(step, message);
+      }
+    });
+    
+    function updateSelectionInfo(info) {
+      document.getElementById('selection-type').textContent = info.selectionType;
+      document.getElementById('selection-name').textContent = info.name;
+      document.getElementById('selection-size').textContent = info.size;
+      document.getElementById('children-count').textContent = info.childrenCount;
+      document.getElementById('component-children').textContent = info.componentChildren;
+      document.getElementById('variant-props').textContent = info.variantProperties;
+      document.getElementById('full-summary').textContent = info.fullSummary;
+    }
+    
+    // Initialize
+    updateProgress();
+    // Start with all steps collapsed for minimal UI
+    
+    // Debug line creation functions
+    function createTestLines() {
+      document.getElementById('test-lines-output').textContent = 'Creating test lines...';
+      parent.postMessage({
+        pluginMessage: {
+          type: 'debug-create-test-lines'
+        }
+      }, '*');
+    }
+    
+    function clearTestLines() {
+      document.getElementById('test-lines-output').textContent = 'Clearing test lines...';
+      parent.postMessage({
+        pluginMessage: {
+          type: 'debug-clear-test-lines'
+        }
+      }, '*');
+    }
+    
+    // Auto-refresh selection info when UI opens
+    setTimeout(refreshSelectionInfo, 500);
+  </script>
+</body>
+</html>
