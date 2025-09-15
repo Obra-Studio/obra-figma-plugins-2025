@@ -60,6 +60,34 @@
       font-size: 11px;
     }
     
+    .whitelist-section {
+      margin-bottom: 16px;
+    }
+
+    .whitelist-section label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .whitelist-section textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .whitelist-section textarea:focus {
+      outline: none;
+      border-color: #18a0fb;
+    }
+
     .controls {
       margin-bottom: 16px;
     }
@@ -206,8 +234,8 @@
   <div class="stats" id="stats" style="display: none;">
     <div class="stats-grid">
       <div class="stat-item">
-        <div class="stat-number valid" id="validCount">0</div>
-        <div class="stat-label">Valid Names</div>
+        <div class="stat-number" id="totalScanned">0</div>
+        <div class="stat-label">Components Scanned</div>
       </div>
       <div class="stat-item">
         <div class="stat-number invalid" id="invalidCount">0</div>
@@ -216,27 +244,75 @@
     </div>
   </div>
   
+  <div class="whitelist-section">
+    <label for="whitelist">Whitelist (comma-separated names to ignore):</label>
+    <textarea id="whitelist" placeholder="e.g. Icon, Badge, Button" rows="2"></textarea>
+  </div>
+
   <div class="controls">
-    <button onclick="checkComponents()">Refresh Check</button>
+    <button onclick="checkComponents()">Scan Components</button>
     <button class="secondary" onclick="selectInvalid()">Select Invalid</button>
   </div>
   
-  <div id="loading" class="loading">
-    Checking components...
+  <div id="loading" class="loading" style="display: none;">
+    <div>🔍 Scanning components...</div>
+    <div id="progress-text" style="font-size: 11px; margin-top: 8px; color: #666;">Counting components...</div>
+    <div style="background: #f0f0f0; border-radius: 4px; height: 6px; margin: 8px 0; overflow: hidden;">
+      <div id="progress-bar" style="background: #18a0fb; height: 100%; width: 0%; transition: width 0.2s ease;"></div>
+    </div>
   </div>
-  
+
+  <div id="initial-state" class="empty-state">
+    Click "Scan Components" to check component names on this page
+  </div>
+
   <div id="results" class="results" style="display: none;"></div>
 
   <script>
     var currentResults = [];
-    
+
+    // Load whitelist from storage when plugin starts
+    function loadWhitelist() {
+      parent.postMessage({
+        pluginMessage: { type: 'load-whitelist' }
+      }, '*');
+    }
+
+    // Save whitelist to storage
+    function saveWhitelist(whitelist) {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'save-whitelist',
+          whitelist: whitelist
+        }
+      }, '*');
+    }
+
     function checkComponents() {
       document.getElementById('loading').style.display = 'block';
       document.getElementById('results').style.display = 'none';
       document.getElementById('stats').style.display = 'none';
-      
+      document.getElementById('initial-state').style.display = 'none';
+
+      var whitelistText = document.getElementById('whitelist').value.trim();
+      var whitelist = [];
+
+      if (whitelistText) {
+        whitelist = whitelistText.split(',').map(function(name) {
+          return name.trim();
+        }).filter(function(name) {
+          return name.length > 0;
+        });
+      }
+
+      // Save whitelist to storage
+      saveWhitelist(whitelist);
+
       parent.postMessage({
-        pluginMessage: { type: 'check-components' }
+        pluginMessage: {
+          type: 'check-components',
+          whitelist: whitelist
+        }
       }, '*');
     }
     
@@ -288,27 +364,25 @@
       return filtered;
     }
     
-    function displayResults(results) {
+    function displayResults(results, totalScanned) {
       currentResults = results;
-      
+
       document.getElementById('loading').style.display = 'none';
+      document.getElementById('initial-state').style.display = 'none';
       document.getElementById('results').style.display = 'block';
       document.getElementById('stats').style.display = 'block';
-      
-      // Update stats
-      var validResults = filterResults(results, true);
-      var invalidResults = filterResults(results, false);
-      var validCount = validResults.length;
-      var invalidCount = invalidResults.length;
-      
-      document.getElementById('validCount').textContent = validCount;
+
+      // Update stats - results now only contain invalid components
+      var invalidCount = results.length;
+
+      document.getElementById('totalScanned').textContent = totalScanned || 0;
       document.getElementById('invalidCount').textContent = invalidCount;
-      
+
       // Display results
       var resultsContainer = document.getElementById('results');
-      
-      if (results.length === 0) {
-        resultsContainer.innerHTML = '<div class="empty-state">No components found on this page</div>';
+
+      if (invalidCount === 0) {
+        resultsContainer.innerHTML = '<div class="empty-state">🎉 All component names are valid!</div>';
         return;
       }
       
@@ -343,20 +417,53 @@
       resultsContainer.innerHTML = html;
     }
     
+    function updateProgress(scanned, total) {
+      var progressText = document.getElementById('progress-text');
+      var progressBar = document.getElementById('progress-bar');
+
+      if (total === 0) {
+        progressText.textContent = 'No components found';
+        progressBar.style.width = '100%';
+        return;
+      }
+
+      var percentage = Math.round((scanned / total) * 100);
+      progressText.textContent = 'Scanned ' + scanned + ' of ' + total + ' components (' + percentage + '%)';
+      progressBar.style.width = percentage + '%';
+    }
+
     // Listen for messages from plugin
     window.onmessage = function(event) {
       var message = event.data.pluginMessage;
       var type = message.type;
-      
+
       if (type === 'check-results') {
-        displayResults(message.results);
+        displayResults(message.results, message.totalScanned);
+      } else if (type === 'scan-progress') {
+        updateProgress(message.scanned, message.total);
       } else if (type === 'rename-result') {
         if (message.success) {
           // Refresh the results after successful rename
           checkComponents();
         }
+      } else if (type === 'whitelist-loaded') {
+        // Load whitelist into textarea
+        var whitelistText = message.whitelist.join(', ');
+        document.getElementById('whitelist').value = whitelistText;
       }
     };
+
+    // Initialize plugin
+    function init() {
+      loadWhitelist();
+    }
+
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 </body>
 </html>
