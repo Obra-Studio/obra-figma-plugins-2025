@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    /* Reset and base styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --bg-tertiary: #ebebeb;
+      --bg-code: #1e1e1e;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --text-tertiary: #999999;
+      --text-code: #d4d4d4;
+      --border-color: #e0e0e0;
+      --accent: #0d99ff;
+      --accent-hover: #0b85e0;
+      --success: #14ae5c;
+      --success-hover: #12994f;
+    }
+    
+    /* Figma dark mode support */
+    .figma-dark {
+      --bg-primary: #2c2c2c;
+      --bg-secondary: #383838;
+      --bg-tertiary: #444444;
+      --bg-code: #1a1a1a;
+      --text-primary: #ffffff;
+      --text-secondary: #b3b3b3;
+      --text-tertiary: #808080;
+      --text-code: #d4d4d4;
+      --border-color: #444444;
+      --accent: #0d99ff;
+      --accent-hover: #3dacff;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      padding: 16px;
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    .header {
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+    
+    .header p {
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+    
+    /* Form elements */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    
+    .select-wrapper {
+      position: relative;
+    }
+    
+    .select-wrapper::after {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--text-secondary);
+      pointer-events: none;
+    }
+    
+    select {
+      width: 100%;
+      height: 36px;
+      padding: 0 32px 0 12px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      appearance: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    select:hover {
+      border-color: var(--accent);
+    }
+    
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.15);
+    }
+    
+    select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Checkbox */
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+    
+    .checkbox-label {
+      font-size: 12px;
+      color: var(--text-primary);
+      user-select: none;
+    }
+    
+    .checkbox-hint {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-left: 24px;
+      margin-top: 4px;
+    }
+    
+    /* Button group */
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .btn {
+      flex: 1;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 16px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-tertiary);
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+      background: var(--success-hover);
+    }
+    
+    /* Icons */
+    .icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+    
+    /* Code preview */
+    .code-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--bg-code);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .code-filename {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-code);
+      opacity: 0.7;
+    }
+    
+    .code-actions {
+      display: flex;
+      gap: 6px;
+    }
+    
+    .code-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 26px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--text-code);
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    
+    .code-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .code-btn.copied {
+      background: var(--success);
+      color: white;
+    }
+    
+    .code-preview {
+      flex: 1;
+      overflow: auto;
+      padding: 14px;
+    }
+    
+    .code-preview pre {
+      margin: 0;
+      font-family: 'SF Mono', 'Fira Code', 'Monaco', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text-code);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    /* Syntax highlighting */
+    .code-preview .selector {
+      color: #569cd6;
+    }
+    
+    .code-preview .property {
+      color: #9cdcfe;
+    }
+    
+    .code-preview .value {
+      color: #ce9178;
+    }
+    
+    .code-preview .comment {
+      color: #6a9955;
+    }
+    
+    /* Empty state */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-tertiary);
+    }
+    
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+    
+    .empty-state p {
+      font-size: 12px;
+      max-width: 240px;
+    }
+    
+    /* Layout */
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 32px);
+    }
+    
+    .controls {
+      flex-shrink: 0;
+    }
+    
+    /* Notification */
+    .notification {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      padding: 12px 16px;
+      background: var(--success);
+      color: white;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 6px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="controls">
+      <div class="header">
+        <h1>Variables → Tailwind/shadcn CSS</h1>
+        <p>Export your Figma variables as a ready-to-use stylesheet</p>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Variable Collection</label>
+        <div class="select-wrapper">
+          <select id="collection-select" disabled>
+            <option value="">Loading collections...</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Mode / Theme</label>
+        <div class="select-wrapper">
+          <select id="mode-select" disabled>
+            <option value="">Select a collection first</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="checkbox-wrapper">
+          <input type="checkbox" id="dark-mode-checkbox">
+          <span class="checkbox-label">Generate as dark mode (.dark selector)</span>
+        </label>
+        <p class="checkbox-hint">Use this for dark theme variants</p>
+      </div>
+      
+      <div class="button-group">
+        <button class="btn btn-primary" id="generate-btn" disabled>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          Generate Stylesheet
+        </button>
+      </div>
+    </div>
+    
+    <div class="code-container" id="code-container" style="display: none;">
+      <div class="code-header">
+        <span class="code-filename" id="code-filename">theme.css</span>
+        <div class="code-actions">
+          <button class="code-btn" id="copy-btn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy
+          </button>
+          <button class="code-btn" id="download-btn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+          </button>
+        </div>
+      </div>
+      <div class="code-preview">
+        <pre id="code-content"></pre>
+      </div>
+    </div>
+    
+    <div class="empty-state" id="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <p>Select a collection and mode, then click Generate to create your stylesheet</p>
+    </div>
+  </div>
+  
+  <div class="notification" id="notification"></div>
+  
+  <script>
+    // State
+    let collections = [];
+    let currentStylesheet = '';
+    let currentModeName = '';
+    
+    // DOM elements
+    const collectionSelect = document.getElementById('collection-select');
+    const modeSelect = document.getElementById('mode-select');
+    const darkModeCheckbox = document.getElementById('dark-mode-checkbox');
+    const generateBtn = document.getElementById('generate-btn');
+    const codeContainer = document.getElementById('code-container');
+    const emptyState = document.getElementById('empty-state');
+    const codeContent = document.getElementById('code-content');
+    const codeFilename = document.getElementById('code-filename');
+    const copyBtn = document.getElementById('copy-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const notification = document.getElementById('notification');
+    
+    // Detect Figma dark mode
+    if (document.body.dataset.theme === 'dark' || 
+        window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('figma-dark');
+    }
+    
+    // Event listeners
+    collectionSelect.addEventListener('change', onCollectionChange);
+    modeSelect.addEventListener('change', onModeChange);
+    generateBtn.addEventListener('click', onGenerate);
+    copyBtn.addEventListener('click', onCopy);
+    downloadBtn.addEventListener('click', onDownload);
+    
+    function onCollectionChange() {
+      const selectedCollection = collections.find(c => c.id === collectionSelect.value);
+      
+      modeSelect.innerHTML = '';
+      
+      if (selectedCollection && selectedCollection.modes.length > 0) {
+        selectedCollection.modes.forEach(mode => {
+          const option = document.createElement('option');
+          option.value = mode.modeId;
+          option.textContent = mode.name;
+          modeSelect.appendChild(option);
+        });
+        modeSelect.disabled = false;
+        
+        // Auto-detect dark mode from name
+        const firstName = selectedCollection.modes[0].name.toLowerCase();
+        darkModeCheckbox.checked = firstName.includes('dark');
+      } else {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No modes available';
+        modeSelect.appendChild(option);
+        modeSelect.disabled = true;
+      }
+      
+      updateGenerateButton();
+    }
+    
+    function onModeChange() {
+      const selectedCollection = collections.find(c => c.id === collectionSelect.value);
+      if (selectedCollection) {
+        const selectedMode = selectedCollection.modes.find(m => m.modeId === modeSelect.value);
+        if (selectedMode) {
+          const modeName = selectedMode.name.toLowerCase();
+          darkModeCheckbox.checked = modeName.includes('dark');
+        }
+      }
+      updateGenerateButton();
+    }
+    
+    function updateGenerateButton() {
+      generateBtn.disabled = !collectionSelect.value || !modeSelect.value;
+    }
+    
+    function onGenerate() {
+      const selectedCollection = collections.find(c => c.id === collectionSelect.value);
+      const selectedMode = selectedCollection?.modes.find(m => m.modeId === modeSelect.value);
+      
+      if (selectedCollection && selectedMode) {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'generate-stylesheet',
+            collectionId: collectionSelect.value,
+            modeId: modeSelect.value,
+            modeName: selectedMode.name,
+            isDarkMode: darkModeCheckbox.checked
+          }
+        }, '*');
+      }
+    }
+    
+    function onCopy() {
+      navigator.clipboard.writeText(currentStylesheet).then(() => {
+        copyBtn.classList.add('copied');
+        copyBtn.innerHTML = `
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Copied!
+        `;
+        
+        setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          copyBtn.innerHTML = `
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy
+          `;
+        }, 2000);
+      });
+    }
+    
+    function onDownload() {
+      const filename = `${currentModeName.toLowerCase().replace(/\s+/g, '-')}-theme.css`;
+      const blob = new Blob([currentStylesheet], { type: 'text/css' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      showNotification(`Downloaded ${filename}`);
+    }
+    
+    function showNotification(message) {
+      notification.textContent = message;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+    
+    function highlightCSS(css) {
+      return css
+        .replace(/(:root|\.dark)/g, '<span class="selector">$1</span>')
+        .replace(/(@theme inline)/g, '<span class="selector">$1</span>')
+        .replace(/(--[\w-]+):/g, '<span class="property">$1</span>:')
+        .replace(/: ([^;]+);/g, ': <span class="value">$1</span>;')
+        .replace(/(\/\*.*?\*\/)/g, '<span class="comment">$1</span>');
+    }
+    
+    // Handle messages from plugin
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      
+      if (msg.type === 'collections-loaded') {
+        collections = msg.collections;
+        
+        collectionSelect.innerHTML = '';
+        
+        if (collections.length === 0) {
+          const option = document.createElement('option');
+          option.value = '';
+          option.textContent = 'No variable collections found';
+          collectionSelect.appendChild(option);
+          collectionSelect.disabled = true;
+        } else {
+          const defaultOption = document.createElement('option');
+          defaultOption.value = '';
+          defaultOption.textContent = 'Select a collection...';
+          collectionSelect.appendChild(defaultOption);
+          
+          collections.forEach(collection => {
+            const option = document.createElement('option');
+            option.value = collection.id;
+            option.textContent = `${collection.name} (${collection.modes.length} modes)`;
+            collectionSelect.appendChild(option);
+          });
+          
+          collectionSelect.disabled = false;
+        }
+      }
+      
+      if (msg.type === 'stylesheet-generated') {
+        currentStylesheet = msg.stylesheet;
+        currentModeName = msg.modeName;
+        
+        codeFilename.textContent = `${currentModeName.toLowerCase().replace(/\s+/g, '-')}-theme.css`;
+        codeContent.innerHTML = highlightCSS(currentStylesheet);
+        
+        emptyState.style.display = 'none';
+        codeContainer.style.display = 'flex';
+      }
+    };
+  </script>
+</body>
+</html>
