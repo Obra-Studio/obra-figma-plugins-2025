@@ -1,0 +1,6 @@
+{
+	"name": "Normalize line height to Auto",
+	"api": "1.0.0",
+	"main": "code.js",
+	"editorType": ["figma","figjam"]
+}

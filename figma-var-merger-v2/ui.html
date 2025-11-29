@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variable Collection Merger</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #2d2d2d;
+      --bg-tertiary: #3d3d3d;
+      --bg-hover: #4d4d4d;
+      --text-primary: #ffffff;
+      --text-secondary: #b3b3b3;
+      --text-muted: #808080;
+      --accent: #0d99ff;
+      --accent-hover: #0b85e0;
+      --accent-subtle: rgba(13, 153, 255, 0.15);
+      --success: #14ae5c;
+      --success-subtle: rgba(20, 174, 92, 0.15);
+      --warning: #f2994a;
+      --warning-subtle: rgba(242, 153, 74, 0.15);
+      --error: #f24822;
+      --error-subtle: rgba(242, 72, 34, 0.15);
+      --border: #404040;
+      --border-light: #505050;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+    }
+
+    /* Figma light theme overrides */
+    .figma-light {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --bg-tertiary: #e8e8e8;
+      --bg-hover: #d9d9d9;
+      --text-primary: #1e1e1e;
+      --text-secondary: #5c5c5c;
+      --text-muted: #8c8c8c;
+      --border: #e0e0e0;
+      --border-light: #c7c7c7;
+      --accent-subtle: rgba(13, 153, 255, 0.1);
+      --success-subtle: rgba(20, 174, 92, 0.1);
+      --warning-subtle: rgba(242, 153, 74, 0.1);
+      --error-subtle: rgba(242, 72, 34, 0.1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .header {
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header h1 svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 11px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: var(--radius-md);
+    }
+
+    .tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab:hover {
+      color: var(--text-secondary);
+      background: var(--bg-tertiary);
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .tab svg {
+      flex-shrink: 0;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title .badge {
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .section-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .collection-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .collection-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .collection-item:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-light);
+    }
+
+    .collection-item.selected {
+      background: var(--accent-subtle);
+      border-color: var(--accent);
+    }
+
+    .collection-item.target {
+      background: var(--success-subtle);
+      border-color: var(--success);
+    }
+
+    .collection-item.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .collection-radio,
+    .collection-checkbox {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .collection-checkbox {
+      border-radius: var(--radius-sm);
+    }
+
+    .collection-item.target .collection-radio {
+      border-color: var(--success);
+      background: var(--success);
+    }
+
+    .collection-item.target .collection-radio::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .collection-item.selected .collection-checkbox {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .collection-item.selected .collection-checkbox::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-size: contain;
+    }
+
+    .collection-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .collection-name {
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .collection-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .collection-count {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .option-row:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .option-row input[type="checkbox"] {
+      display: none;
+    }
+
+    .custom-checkbox {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .option-row input[type="checkbox"]:checked + .custom-checkbox {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .option-row input[type="checkbox"]:checked + .custom-checkbox::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-size: contain;
+    }
+
+    .option-label {
+      flex: 1;
+    }
+
+    .option-label strong {
+      display: block;
+      font-weight: 500;
+    }
+
+    .option-label span {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:disabled {
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .status-message {
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      font-size: 11px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .status-message svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .status-message.success {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .status-message.error {
+      background: var(--error-subtle);
+      color: var(--error);
+    }
+
+    .status-message.warning {
+      background: var(--warning-subtle);
+      color: var(--warning);
+    }
+
+    .status-message.info {
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--bg-tertiary);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .preview-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-top: 16px;
+    }
+
+    .preview-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .preview-title svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .preview-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 8px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-sm);
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .step.active {
+      color: var(--accent);
+    }
+
+    .step.completed {
+      color: var(--success);
+    }
+
+    .step-number {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    .step.active .step-number {
+      background: var(--accent);
+      color: white;
+    }
+
+    .step.completed .step-number {
+      background: var(--success);
+      color: white;
+    }
+
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background: var(--bg-tertiary);
+    }
+
+    .step-connector.completed {
+      background: var(--success);
+    }
+
+    .mode-warning {
+      background: var(--warning-subtle);
+      border: 1px solid var(--warning);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .mode-warning-icon {
+      flex-shrink: 0;
+      color: var(--warning);
+    }
+
+    .mode-warning-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .mode-warning-content {
+      flex: 1;
+    }
+
+    .mode-warning-content strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--warning);
+      margin-bottom: 4px;
+    }
+
+    .mode-warning-content p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .mode-warning-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(242, 153, 74, 0.3);
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-primary);
+    }
+
+    .mode-warning-option input[type="checkbox"] {
+      display: none;
+    }
+
+    .mode-warning-option .custom-checkbox.small {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--warning);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .mode-warning-option input[type="checkbox"]:checked + .custom-checkbox.small {
+      background: var(--warning);
+    }
+
+    .mode-warning-option input[type="checkbox"]:checked + .custom-checkbox.small::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-size: contain;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      background: var(--bg-tertiary);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 500;
+      font-size: 10px;
+      margin: 0 2px;
+    }
+
+    .mode-badge.warning {
+      background: var(--warning-subtle);
+      color: var(--warning);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .text-input:hover {
+      border-color: var(--border-light);
+    }
+
+    .text-input:focus {
+      border-color: var(--accent);
+      background: var(--bg-tertiary);
+    }
+
+    .text-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .inline-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .inline-checkbox input[type="checkbox"] {
+      display: none;
+    }
+
+    .inline-checkbox .custom-checkbox.small {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-light);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .inline-checkbox input[type="checkbox"]:checked + .custom-checkbox.small {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .inline-checkbox input[type="checkbox"]:checked + .custom-checkbox.small::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-size: contain;
+    }
+
+    .no-groups-message {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .no-groups-message svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .single-collection-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      background: var(--warning-subtle);
+      border: 1px solid var(--warning);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+    }
+
+    .single-collection-warning svg {
+      width: 20px;
+      height: 20px;
+      color: var(--warning);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .single-collection-warning strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--warning);
+      margin-bottom: 4px;
+    }
+
+    .single-collection-warning p {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 3h5v5"></path>
+        <path d="M8 3H3v5"></path>
+        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+        <path d="m15 9 6-6"></path>
+        <path d="M16 21h5v-5"></path>
+        <path d="M8 21H3v-5"></path>
+        <path d="m12 3 9 9"></path>
+      </svg>
+      Variable Collection Manager
+    </h1>
+    <p>Merge or split variable collections</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-merge" onclick="switchTab('merge')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 6l4-4 4 4"></path>
+        <path d="M12 2v10.3a4 4 0 0 1-1.172 2.872L4 22"></path>
+        <path d="m20 22-5-5"></path>
+      </svg>
+      Merge
+    </button>
+    <button class="tab" id="tab-split" onclick="switchTab('split')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 3h5v5"></path>
+        <path d="M8 3H3v5"></path>
+        <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+        <path d="m15 9 6-6"></path>
+      </svg>
+      Split
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <span>Loading collections...</span>
+  </div>
+
+  <!-- Main Content -->
+  <div id="content" class="hidden">
+    <!-- Status Messages -->
+    <div id="status-container"></div>
+
+    <!-- MERGE TAB -->
+    <div id="merge-content" class="tab-content active">
+
+    <!-- Single Collection Warning (shown when only 1 collection exists) -->
+    <div id="single-collection-state" class="single-collection-warning hidden">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div>
+        <strong>Only one collection found</strong>
+        <p>You need at least two variable collections to merge. Try the Split tab to extract groups from your collection.</p>
+      </div>
+    </div>
+
+    <!-- Rename Target Collection -->
+    <div class="section">
+      <div class="section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+        </svg>
+        Rename Target Collection
+        <span class="badge">Optional</span>
+      </div>
+      <div class="input-group">
+        <input type="text" id="target-name" class="text-input" placeholder="Enter new name..." value="Theme">
+        <label class="inline-checkbox">
+          <input type="checkbox" id="group-target-variables" checked>
+          <div class="custom-checkbox small"></div>
+          <span>Move existing target variables to a group</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step" id="step1">
+        <div class="step-number">1</div>
+        <span>Target</span>
+      </div>
+      <div class="step-connector" id="connector1"></div>
+      <div class="step" id="step2">
+        <div class="step-number">2</div>
+        <span>Sources</span>
+      </div>
+      <div class="step-connector" id="connector2"></div>
+      <div class="step" id="step3">
+        <div class="step-number">3</div>
+        <span>Merge</span>
+      </div>
+    </div>
+
+    <!-- Target Collection Selection -->
+    <div class="section">
+      <div class="section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+        Target Collection
+        <span class="badge">Required</span>
+      </div>
+      <p class="section-hint">Choose your most extensive collection with the most modes. Generally this would be the color collection.</p>
+      <div id="target-list" class="collection-list"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Source Collections Selection -->
+    <div class="section">
+      <div class="section-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        Source Collections
+        <span class="badge" id="source-count">0 selected</span>
+      </div>
+      <div id="source-list" class="collection-list"></div>
+    </div>
+
+    <!-- Options -->
+    <div class="section">
+      <label class="option-row">
+        <input type="checkbox" id="group-by-collection" checked>
+        <div class="custom-checkbox"></div>
+        <div class="option-label">
+          <strong>Group variables by source collection</strong>
+          <span>Creates a group folder named after each source collection</span>
+        </div>
+      </label>
+    </div>
+
+    <div class="section">
+      <label class="option-row">
+        <input type="checkbox" id="delete-sources" checked>
+        <div class="custom-checkbox"></div>
+        <div class="option-label">
+          <strong>Delete empty source collections</strong>
+          <span>Remove source collections after moving all variables</span>
+        </div>
+      </label>
+    </div>
+
+    <!-- Mode Mismatch Warning -->
+    <div id="mode-warning" class="mode-warning hidden">
+      <div class="mode-warning-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="mode-warning-content">
+        <strong>Mode count mismatch detected</strong>
+        <p id="mode-warning-details"></p>
+        <label class="mode-warning-option">
+          <input type="checkbox" id="fill-missing-modes" checked>
+          <div class="custom-checkbox small"></div>
+          <span>Fill missing modes with values from the first mode</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div id="preview" class="preview-section hidden">
+      <div class="preview-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+        Merge Preview
+      </div>
+      <div class="preview-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="preview-vars">0</div>
+          <div class="stat-label">Variables</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="preview-sources">0</div>
+          <div class="stat-label">Sources</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="preview-target">0</div>
+          <div class="stat-label">Target Total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn btn-secondary" id="btn-cancel">
+        Cancel
+      </button>
+      <button class="btn btn-primary" id="btn-merge" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 3h5v5"></path>
+          <path d="M8 3H3v5"></path>
+          <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+          <path d="m15 9 6-6"></path>
+        </svg>
+        Merge Collections
+      </button>
+    </div>
+    </div>
+    <!-- END MERGE TAB -->
+
+    <!-- SPLIT TAB -->
+    <div id="split-content" class="tab-content">
+      <!-- Select Collection -->
+      <div class="section">
+        <div class="section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Source Collection
+          <span class="badge">Required</span>
+        </div>
+        <p class="section-hint">Select the collection containing the group you want to extract.</p>
+        <div id="split-collection-list" class="collection-list"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Select Group -->
+      <div class="section">
+        <div class="section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3h6l6 18h6"></path>
+            <path d="M14 3h7"></path>
+          </svg>
+          Group to Extract
+          <span class="badge">Required</span>
+        </div>
+        <p class="section-hint">Select the groups you want to extract into a new collection.</p>
+        <div id="split-group-list" class="collection-list"></div>
+        <div id="split-no-groups" class="no-groups-message hidden">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>No groups found in this collection. Groups are created by using "/" in variable names.</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- New Collection Name -->
+      <div class="section">
+        <div class="section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+          </svg>
+          New Collection Name
+          <span class="badge">Required</span>
+        </div>
+        <input type="text" id="split-new-name" class="text-input" placeholder="Enter collection name...">
+      </div>
+
+      <!-- Split Preview -->
+      <div id="split-preview" class="preview-section hidden">
+        <div class="preview-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Split Preview
+        </div>
+        <div class="preview-stats">
+          <div class="stat-item">
+            <div class="stat-value" id="split-preview-groups">0</div>
+            <div class="stat-label">Groups</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="split-preview-vars">0</div>
+            <div class="stat-label">Variables</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="split-preview-modes">0</div>
+            <div class="stat-label">Modes</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split Actions -->
+      <div class="actions">
+        <button class="btn btn-secondary" id="btn-split-cancel">
+          Cancel
+        </button>
+        <button class="btn btn-primary" id="btn-split" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 3h5v5"></path>
+            <path d="M8 3H3v5"></path>
+            <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+            <path d="m15 9 6-6"></path>
+          </svg>
+          Split Collection
+        </button>
+      </div>
+    </div>
+    <!-- END SPLIT TAB -->
+  </div>
+
+  <!-- Empty State -->
+  <div id="empty-state" class="empty-state hidden">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+    </svg>
+    <h3>No Variable Collections Found</h3>
+    <p>Create some variable collections in your Figma file to get started.</p>
+  </div>
+
+  <script>
+    // State
+    let collections = [];
+    let targetCollectionId = null;
+    let sourceCollectionIds = new Set();
+
+    // DOM Elements
+    const loadingEl = document.getElementById('loading');
+    const contentEl = document.getElementById('content');
+    const emptyStateEl = document.getElementById('empty-state');
+    const singleCollectionEl = document.getElementById('single-collection-state');
+    const targetListEl = document.getElementById('target-list');
+    const sourceListEl = document.getElementById('source-list');
+    const sourceCountEl = document.getElementById('source-count');
+    const previewEl = document.getElementById('preview');
+    const previewVarsEl = document.getElementById('preview-vars');
+    const previewSourcesEl = document.getElementById('preview-sources');
+    const previewTargetEl = document.getElementById('preview-target');
+    const btnMerge = document.getElementById('btn-merge');
+    const btnCancel = document.getElementById('btn-cancel');
+    const deleteSourcesCheckbox = document.getElementById('delete-sources');
+    const groupByCollectionCheckbox = document.getElementById('group-by-collection');
+    const statusContainer = document.getElementById('status-container');
+    const step1El = document.getElementById('step1');
+    const step2El = document.getElementById('step2');
+    const step3El = document.getElementById('step3');
+    const connector1El = document.getElementById('connector1');
+    const connector2El = document.getElementById('connector2');
+    const modeWarningEl = document.getElementById('mode-warning');
+    const modeWarningDetailsEl = document.getElementById('mode-warning-details');
+    const fillMissingModesCheckbox = document.getElementById('fill-missing-modes');
+    const targetNameInput = document.getElementById('target-name');
+    const groupTargetVariablesCheckbox = document.getElementById('group-target-variables');
+
+    // Split tab elements
+    const mergeContentEl = document.getElementById('merge-content');
+    const splitContentEl = document.getElementById('split-content');
+    const tabMergeEl = document.getElementById('tab-merge');
+    const tabSplitEl = document.getElementById('tab-split');
+    const splitCollectionListEl = document.getElementById('split-collection-list');
+    const splitGroupListEl = document.getElementById('split-group-list');
+    const splitNoGroupsEl = document.getElementById('split-no-groups');
+    const splitNewNameInput = document.getElementById('split-new-name');
+    const splitPreviewEl = document.getElementById('split-preview');
+    const splitPreviewVarsEl = document.getElementById('split-preview-vars');
+    const splitPreviewModesEl = document.getElementById('split-preview-modes');
+    const splitPreviewGroupsEl = document.getElementById('split-preview-groups');
+    const btnSplit = document.getElementById('btn-split');
+    const btnSplitCancel = document.getElementById('btn-split-cancel');
+
+    // Split tab state
+    let splitCollectionId = null;
+    let selectedGroups = new Set();
+    let availableGroups = [];
+
+    // Show status message
+    function showStatus(message, type = 'info') {
+      const icons = {
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+        error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+        warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+      };
+      
+      statusContainer.innerHTML = `
+        <div class="status-message ${type}">
+          ${icons[type]}
+          <span>${message}</span>
+        </div>
+      `;
+
+      // Auto-hide success messages
+      if (type === 'success') {
+        setTimeout(() => {
+          statusContainer.innerHTML = '';
+        }, 5000);
+      }
+    }
+
+    // Update step indicators
+    function updateSteps() {
+      // Reset all
+      [step1El, step2El, step3El].forEach(el => {
+        el.classList.remove('active', 'completed');
+      });
+      [connector1El, connector2El].forEach(el => {
+        el.classList.remove('completed');
+      });
+
+      if (targetCollectionId && sourceCollectionIds.size > 0) {
+        step1El.classList.add('completed');
+        step2El.classList.add('completed');
+        step3El.classList.add('active');
+        connector1El.classList.add('completed');
+        connector2El.classList.add('completed');
+      } else if (targetCollectionId) {
+        step1El.classList.add('completed');
+        step2El.classList.add('active');
+        connector1El.classList.add('completed');
+      } else {
+        step1El.classList.add('active');
+      }
+    }
+
+    // Render target collection list
+    function renderTargetList() {
+      targetListEl.innerHTML = collections.map(collection => `
+        <div class="collection-item ${targetCollectionId === collection.id ? 'target' : ''}" 
+             data-id="${collection.id}" 
+             onclick="selectTarget('${collection.id}')">
+          <div class="collection-radio"></div>
+          <div class="collection-info">
+            <div class="collection-name">${escapeHtml(collection.name)}</div>
+            <div class="collection-meta">${collection.modes.length} mode${collection.modes.length > 1 ? 's' : ''}</div>
+          </div>
+          <div class="collection-count">${collection.variableCount} var${collection.variableCount !== 1 ? 's' : ''}</div>
+        </div>
+      `).join('');
+    }
+
+    // Render source collection list
+    function renderSourceList() {
+      const availableCollections = collections.filter(c => c.id !== targetCollectionId);
+      
+      sourceListEl.innerHTML = availableCollections.map(collection => `
+        <div class="collection-item ${sourceCollectionIds.has(collection.id) ? 'selected' : ''} ${!targetCollectionId ? 'disabled' : ''}" 
+             data-id="${collection.id}" 
+             onclick="toggleSource('${collection.id}')">
+          <div class="collection-checkbox"></div>
+          <div class="collection-info">
+            <div class="collection-name">${escapeHtml(collection.name)}</div>
+            <div class="collection-meta">${collection.modes.length} mode${collection.modes.length > 1 ? 's' : ''}</div>
+          </div>
+          <div class="collection-count">${collection.variableCount} var${collection.variableCount !== 1 ? 's' : ''}</div>
+        </div>
+      `).join('');
+
+      sourceCountEl.textContent = `${sourceCollectionIds.size} selected`;
+    }
+
+    // Select target collection
+    function selectTarget(id) {
+      targetCollectionId = id;
+      // Remove target from sources if it was selected
+      sourceCollectionIds.delete(id);
+      renderTargetList();
+      renderSourceList();
+      updatePreview();
+      updateMergeButton();
+      updateSteps();
+    }
+
+    // Toggle source collection
+    function toggleSource(id) {
+      if (!targetCollectionId) return;
+      
+      if (sourceCollectionIds.has(id)) {
+        sourceCollectionIds.delete(id);
+      } else {
+        sourceCollectionIds.add(id);
+      }
+      renderSourceList();
+      updatePreview();
+      updateMergeButton();
+      updateSteps();
+    }
+
+    // Update preview section
+    function updatePreview() {
+      if (sourceCollectionIds.size === 0) {
+        previewEl.classList.add('hidden');
+        modeWarningEl.classList.add('hidden');
+        return;
+      }
+
+      previewEl.classList.remove('hidden');
+
+      const targetCollection = collections.find(c => c.id === targetCollectionId);
+      const sourceVarsCount = [...sourceCollectionIds].reduce((sum, id) => {
+        const collection = collections.find(c => c.id === id);
+        return sum + (collection ? collection.variableCount : 0);
+      }, 0);
+
+      previewVarsEl.textContent = sourceVarsCount;
+      previewSourcesEl.textContent = sourceCollectionIds.size;
+      previewTargetEl.textContent = targetCollection ? targetCollection.variableCount + sourceVarsCount : 0;
+
+      // Check for mode mismatches
+      checkModeMismatch();
+    }
+
+    // Check if source collections have different mode counts than target
+    function checkModeMismatch() {
+      if (!targetCollectionId || sourceCollectionIds.size === 0) {
+        modeWarningEl.classList.add('hidden');
+        return;
+      }
+
+      const targetCollection = collections.find(c => c.id === targetCollectionId);
+      if (!targetCollection) {
+        modeWarningEl.classList.add('hidden');
+        return;
+      }
+
+      const targetModeCount = targetCollection.modes.length;
+      const mismatches = [];
+
+      for (const sourceId of sourceCollectionIds) {
+        const sourceCollection = collections.find(c => c.id === sourceId);
+        if (sourceCollection && sourceCollection.modes.length !== targetModeCount) {
+          mismatches.push({
+            name: sourceCollection.name,
+            modeCount: sourceCollection.modes.length
+          });
+        }
+      }
+
+      if (mismatches.length > 0) {
+        const targetInfo = `<span class="mode-badge">${escapeHtml(targetCollection.name)}</span> has <span class="mode-badge">${targetModeCount} mode${targetModeCount !== 1 ? 's' : ''}</span>`;
+        
+        const mismatchInfo = mismatches.map(m => 
+          `<span class="mode-badge warning">${escapeHtml(m.name)}</span> has <span class="mode-badge warning">${m.modeCount} mode${m.modeCount !== 1 ? 's' : ''}</span>`
+        ).join(', ');
+
+        modeWarningDetailsEl.innerHTML = `${targetInfo}, but ${mismatchInfo}.`;
+        modeWarningEl.classList.remove('hidden');
+      } else {
+        modeWarningEl.classList.add('hidden');
+      }
+    }
+
+    // Update merge button state
+    function updateMergeButton() {
+      btnMerge.disabled = !targetCollectionId || sourceCollectionIds.size === 0;
+    }
+
+    // Handle messages from plugin
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      
+      switch (msg.type) {
+        case 'collections-loaded':
+          collections = msg.collections;
+          loadingEl.classList.add('hidden');
+          
+          if (collections.length === 0) {
+            emptyStateEl.classList.remove('hidden');
+          } else {
+            contentEl.classList.remove('hidden');
+            renderTargetList();
+            renderSourceList();
+            updateSteps();
+            
+            // Show single collection message in merge tab if only one collection
+            if (collections.length === 1) {
+              singleCollectionEl.classList.remove('hidden');
+            } else {
+              singleCollectionEl.classList.add('hidden');
+            }
+          }
+          break;
+
+        case 'merge-complete':
+          btnMerge.disabled = false;
+          btnMerge.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M8 3H3v5"></path>
+              <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+              <path d="m15 9 6-6"></path>
+            </svg>
+            Merge Collections
+          `;
+          
+          if (msg.errors && msg.errors.length > 0) {
+            showStatus(`Moved ${msg.movedCount} variables with ${msg.errors.length} warning(s)`, 'warning');
+          } else {
+            showStatus(`Successfully moved ${msg.movedCount} variable${msg.movedCount !== 1 ? 's' : ''}!`, 'success');
+          }
+          
+          // Reset selection
+          targetCollectionId = null;
+          sourceCollectionIds.clear();
+          updateSteps();
+          
+          // Scroll to top so user sees the success message
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          break;
+
+        case 'error':
+          btnMerge.disabled = false;
+          btnMerge.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M8 3H3v5"></path>
+              <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+              <path d="m15 9 6-6"></path>
+            </svg>
+            Merge Collections
+          `;
+          showStatus(msg.message, 'error');
+          break;
+
+        case 'split-complete':
+          btnSplit.disabled = false;
+          btnSplit.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"></path>
+              <path d="M8 3H3v5"></path>
+              <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"></path>
+              <path d="m15 9 6-6"></path>
+            </svg>
+            Split Collection
+          `;
+          
+          if (msg.errors && msg.errors.length > 0) {
+            showStatus(`Moved ${msg.movedCount} variables with ${msg.errors.length} warning(s)`, 'warning');
+          } else {
+            showStatus(`Successfully created "${msg.collectionName}" with ${msg.movedCount} variable${msg.movedCount !== 1 ? 's' : ''}!`, 'success');
+          }
+          
+          // Reset selection
+          splitCollectionId = null;
+          selectedGroups.clear();
+          splitNewNameInput.value = '';
+          renderSplitCollectionList();
+          renderSplitGroupList();
+          updateSplitPreview();
+          updateSplitButton();
+          
+          // Scroll to top
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          break;
+      }
+    };
+
+    // Merge button click
+    btnMerge.addEventListener('click', () => {
+      if (!targetCollectionId || sourceCollectionIds.size === 0) return;
+      
+      btnMerge.disabled = true;
+      btnMerge.innerHTML = `
+        <div class="spinner" style="width: 14px; height: 14px; margin: 0; border-width: 2px;"></div>
+        Merging...
+      `;
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'merge-collections',
+          targetCollectionId: targetCollectionId,
+          sourceCollectionIds: [...sourceCollectionIds],
+          deleteSourceCollections: deleteSourcesCheckbox.checked,
+          groupByCollection: groupByCollectionCheckbox.checked,
+          fillMissingModes: fillMissingModesCheckbox.checked,
+          newTargetName: targetNameInput.value.trim(),
+          groupTargetVariables: groupTargetVariablesCheckbox.checked
+        }
+      }, '*');
+    });
+
+    // Cancel button click
+    btnCancel.addEventListener('click', () => {
+      parent.postMessage({
+        pluginMessage: { type: 'cancel' }
+      }, '*');
+    });
+
+    // Utility: Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // =====================
+    // SPLIT TAB FUNCTIONS
+    // =====================
+
+    // Switch between tabs
+    function switchTab(tab) {
+      if (tab === 'merge') {
+        tabMergeEl.classList.add('active');
+        tabSplitEl.classList.remove('active');
+        mergeContentEl.classList.add('active');
+        splitContentEl.classList.remove('active');
+      } else {
+        tabMergeEl.classList.remove('active');
+        tabSplitEl.classList.add('active');
+        mergeContentEl.classList.remove('active');
+        splitContentEl.classList.add('active');
+        renderSplitCollectionList();
+      }
+    }
+
+    // Render collection list for split tab
+    function renderSplitCollectionList() {
+      splitCollectionListEl.innerHTML = collections.map(collection => `
+        <div class="collection-item ${splitCollectionId === collection.id ? 'target' : ''}" 
+             data-id="${collection.id}" 
+             onclick="selectSplitCollection('${collection.id}')">
+          <div class="collection-radio"></div>
+          <div class="collection-info">
+            <div class="collection-name">${escapeHtml(collection.name)}</div>
+            <div class="collection-meta">${collection.modes.length} mode${collection.modes.length > 1 ? 's' : ''}</div>
+          </div>
+          <div class="collection-count">${collection.variableCount} var${collection.variableCount !== 1 ? 's' : ''}</div>
+        </div>
+      `).join('');
+    }
+
+    // Select collection for splitting
+    function selectSplitCollection(id) {
+      splitCollectionId = id;
+      selectedGroups.clear();
+      renderSplitCollectionList();
+      updateAvailableGroups();
+      renderSplitGroupList();
+      updateSplitPreview();
+      updateSplitButton();
+    }
+
+    // Extract groups from collection's variables
+    function updateAvailableGroups() {
+      availableGroups = [];
+      
+      if (!splitCollectionId) return;
+      
+      const collection = collections.find(c => c.id === splitCollectionId);
+      if (!collection || !collection.variables) return;
+      
+      const groupSet = new Set();
+      
+      for (const variable of collection.variables) {
+        const slashIndex = variable.name.indexOf('/');
+        if (slashIndex > 0) {
+          const groupName = variable.name.substring(0, slashIndex);
+          groupSet.add(groupName);
+        }
+      }
+      
+      // Convert to array with variable counts
+      for (const groupName of groupSet) {
+        const varCount = collection.variables.filter(v => v.name.startsWith(groupName + '/')).length;
+        availableGroups.push({
+          name: groupName,
+          variableCount: varCount
+        });
+      }
+      
+      // Sort alphabetically
+      availableGroups.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Render group list for split tab
+    function renderSplitGroupList() {
+      if (!splitCollectionId) {
+        splitGroupListEl.innerHTML = '';
+        splitNoGroupsEl.classList.add('hidden');
+        return;
+      }
+      
+      if (availableGroups.length === 0) {
+        splitGroupListEl.innerHTML = '';
+        splitNoGroupsEl.classList.remove('hidden');
+        return;
+      }
+      
+      splitNoGroupsEl.classList.add('hidden');
+      splitGroupListEl.innerHTML = availableGroups.map((group, index) => `
+        <div class="collection-item ${selectedGroups.has(group.name) ? 'selected' : ''}" 
+             data-group-index="${index}">
+          <div class="collection-checkbox"></div>
+          <div class="collection-info">
+            <div class="collection-name">${escapeHtml(group.name)}</div>
+          </div>
+          <div class="collection-count">${group.variableCount} var${group.variableCount !== 1 ? 's' : ''}</div>
+        </div>
+      `).join('');
+      
+      // Add click handlers
+      splitGroupListEl.querySelectorAll('.collection-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const index = parseInt(item.dataset.groupIndex);
+          const groupName = availableGroups[index].name;
+          toggleGroup(groupName);
+        });
+      });
+    }
+
+    // Toggle a group selection
+    function toggleGroup(groupName) {
+      if (selectedGroups.has(groupName)) {
+        selectedGroups.delete(groupName);
+      } else {
+        selectedGroups.add(groupName);
+      }
+      renderSplitGroupList();
+      updateSplitPreview();
+      updateSplitButton();
+    }
+
+    // Update split preview
+    function updateSplitPreview() {
+      if (selectedGroups.size === 0) {
+        splitPreviewEl.classList.add('hidden');
+        return;
+      }
+      
+      splitPreviewEl.classList.remove('hidden');
+      
+      const collection = collections.find(c => c.id === splitCollectionId);
+      
+      // Sum up variables from all selected groups
+      let totalVars = 0;
+      for (const groupName of selectedGroups) {
+        const group = availableGroups.find(g => g.name === groupName);
+        if (group) {
+          totalVars += group.variableCount;
+        }
+      }
+      
+      splitPreviewVarsEl.textContent = totalVars;
+      splitPreviewModesEl.textContent = collection ? collection.modes.length : 0;
+      splitPreviewGroupsEl.textContent = selectedGroups.size;
+    }
+
+    // Update split button state
+    function updateSplitButton() {
+      btnSplit.disabled = !splitCollectionId || selectedGroups.size === 0 || !splitNewNameInput.value.trim();
+    }
+
+    // Split button click
+    btnSplit.addEventListener('click', () => {
+      if (!splitCollectionId || selectedGroups.size === 0 || !splitNewNameInput.value.trim()) return;
+      
+      btnSplit.disabled = true;
+      btnSplit.innerHTML = `
+        <div class="spinner" style="width: 14px; height: 14px; margin: 0; border-width: 2px;"></div>
+        Splitting...
+      `;
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'split-collection',
+          sourceCollectionId: splitCollectionId,
+          groupNames: [...selectedGroups],
+          newCollectionName: splitNewNameInput.value.trim()
+        }
+      }, '*');
+    });
+
+    // Update button state when collection name changes
+    splitNewNameInput.addEventListener('input', updateSplitButton);
+
+    // Split cancel button click
+    btnSplitCancel.addEventListener('click', () => {
+      parent.postMessage({
+        pluginMessage: { type: 'cancel' }
+      }, '*');
+    });
+
+    // Request initial data
+    parent.postMessage({
+      pluginMessage: { type: 'load-collections' }
+    }, '*');
+  </script>
+</body>
+</html>
