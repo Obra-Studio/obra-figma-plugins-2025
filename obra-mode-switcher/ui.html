@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      color: #333;
+      padding: 12px;
+      background: #fff;
+    }
+    
+    .header {
+      margin-bottom: 16px;
+    }
+    
+    h1 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #1a1a1a;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    
+    .selection-info {
+      background: #f5f5f5;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    .selection-info strong {
+      color: #333;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e5e5e5;
+      margin: 16px -12px;
+    }
+
+    .modes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .mode-card {
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .mode-card:last-child {
+      border-bottom: none;
+    }
+
+    .mode-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mode-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .mode-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: #1a1a1a;
+    }
+
+    .mode-count {
+      background: #e8e8e8;
+      color: #555;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .collections-list {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mode-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+      min-width: 120px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background: #18a0fb;
+      color: white;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #0d8de5;
+    }
+    
+    .btn-secondary {
+      background: #e8e8e8;
+      color: #333;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: #ddd;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: #666;
+    }
+    
+    .empty-state-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    
+    .empty-state h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .empty-state p {
+      font-size: 11px;
+      line-height: 1.5;
+      max-width: 240px;
+      margin: 0 auto;
+    }
+    
+    .clear-section {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e5e5;
+    }
+
+    .clear-label {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .clear-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .clear-btn {
+      flex: 1;
+      padding: 6px 10px;
+      background: #fef5f4;
+      border: 1px solid #f5d3cf;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #e74c3c;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .clear-btn:hover:not(:disabled) {
+      background: #fde8e5;
+      border-color: #e74c3c;
+    }
+
+    .clear-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      color: #999;
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #e5e5e5;
+    }
+
+    .refresh-btn {
+      width: 100%;
+      padding: 8px;
+      background: #f5f5f5;
+      border: 1px solid #e5e5e5;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .refresh-btn:hover {
+      background: #eee;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 32px;
+      color: #666;
+    }
+    
+    .success-flash {
+      animation: flash 0.3s ease-out;
+    }
+
+    @keyframes flash {
+      0% { background-color: #d4edda; }
+      100% { background-color: transparent; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <p class="subtitle">Apply same-named modes across all collections at once</p>
+  </div>
+  
+  <div class="selection-info" id="selection-info">
+    <span id="selection-text">Scanning...</span>
+  </div>
+  
+  <div id="content">
+    <div class="loading">Scanning variable collections...</div>
+  </div>
+
+  <div class="clear-section">
+    <div class="clear-label">Clear all mode overrides</div>
+    <div class="clear-actions">
+      <button class="clear-btn" id="clear-selection-btn">Clear Selection</button>
+      <button class="clear-btn" id="clear-page-btn">Clear Page</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="refresh-btn" id="refresh-btn">↻ Rescan Collections</button>
+  </div>
+
+  <script>
+    let sharedModes = [];
+    let selectionInfo = { totalSelected: 0, validNodes: 0, pageFrameCount: 0 };
+    
+    // Update selection info display
+    function updateSelectionInfo() {
+      const el = document.getElementById('selection-text');
+
+      if (selectionInfo.validNodes > 0) {
+        el.innerHTML = `<strong>${selectionInfo.validNodes}</strong> frame${selectionInfo.validNodes !== 1 ? 's' : ''} selected`;
+      } else {
+        el.innerHTML = `No frames selected`;
+      }
+
+      // Update clear button states
+      const clearSelectionBtn = document.getElementById('clear-selection-btn');
+      if (clearSelectionBtn) {
+        clearSelectionBtn.disabled = selectionInfo.validNodes === 0;
+      }
+    }
+    
+    // Render the modes list
+    function render() {
+      const content = document.getElementById('content');
+      
+      if (sharedModes.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <h2>No shared modes found</h2>
+            <p>Create modes with the same name in multiple variable collections to use this plugin.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      const modesHTML = sharedModes.map((mode, index) => {
+        const collections = mode.modes.map(m => m.collectionName).join(', ');
+        const hasSelection = selectionInfo.validNodes > 0;
+
+        return `
+          <div class="mode-card" id="mode-card-${index}">
+            <div class="mode-info">
+              <div class="mode-header">
+                <span class="mode-name">${escapeHtml(mode.name)}</span>
+                <span class="mode-count">${mode.count} collections</span>
+              </div>
+              <div class="collections-list">${escapeHtml(collections)}</div>
+            </div>
+            <div class="mode-actions">
+              <button class="btn btn-secondary"
+                      onclick="applyMode(${index}, 'selection')"
+                      ${!hasSelection ? 'disabled' : ''}>
+                Selection
+              </button>
+              <button class="btn btn-secondary"
+                      onclick="applyMode(${index}, 'page')">
+                Page
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      content.innerHTML = `<div class="modes-list">${modesHTML}</div>`;
+    }
+    
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Apply a mode
+    function applyMode(index, applyTo) {
+      const mode = sharedModes[index];
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'apply-mode',
+          sharedMode: mode,
+          applyTo: applyTo
+        }
+      }, '*');
+      
+      // Visual feedback
+      const card = document.getElementById(`mode-card-${index}`);
+      if (card) {
+        card.classList.remove('success-flash');
+        void card.offsetWidth; // Trigger reflow
+        card.classList.add('success-flash');
+      }
+    }
+    
+    // Clear modes
+    function clearModes(clearFrom) {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'clear-modes',
+          clearFrom: clearFrom
+        }
+      }, '*');
+    }
+
+    // Clear button handlers
+    document.getElementById('clear-selection-btn').addEventListener('click', () => {
+      clearModes('selection');
+    });
+
+    document.getElementById('clear-page-btn').addEventListener('click', () => {
+      clearModes('page');
+    });
+
+    // Refresh button handler
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      document.getElementById('content').innerHTML = '<div class="loading">Scanning variable collections...</div>';
+      parent.postMessage({ pluginMessage: { type: 'scan' } }, '*');
+    });
+    
+    // Handle messages from plugin
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      
+      if (msg.type === 'scan-result') {
+        // Filter out modes named "Mode 1"
+        sharedModes = msg.sharedModes.filter(mode => mode.name !== 'Mode 1');
+        selectionInfo = msg.selectionInfo;
+        updateSelectionInfo();
+        render();
+      }
+
+      if (msg.type === 'selection-info') {
+        selectionInfo = msg.selectionInfo;
+        updateSelectionInfo();
+        render(); // Re-render to update button states
+      }
+
+      if (msg.type === 'apply-result') {
+        // Could show additional feedback here if needed
+      }
+
+      if (msg.type === 'clear-result') {
+        // Notification is already shown from plugin code
+      }
+    };
+  </script>
+</body>
+</html>
