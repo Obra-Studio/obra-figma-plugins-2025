@@ -532,6 +532,209 @@ async function splitCollection(sourceCollectionId, groupNames, newCollectionName
   }
 }
 
+// Move a group from one collection to another (existing or new)
+async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionName, groupPath) {
+  try {
+    const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
+
+    if (!sourceCollection) {
+      throw new Error('Source collection not found');
+    }
+
+    let targetCollection;
+
+    // Create new collection if requested, otherwise get existing one
+    if (newCollectionName) {
+      targetCollection = figma.variables.createVariableCollection(newCollectionName);
+
+      // Copy modes from source collection to new collection
+      const sourceModes = sourceCollection.modes;
+      targetCollection.renameMode(targetCollection.modes[0].modeId, sourceModes[0].name);
+
+      // Add additional modes
+      for (let i = 1; i < sourceModes.length; i++) {
+        try {
+          targetCollection.addMode(sourceModes[i].name);
+        } catch (modeError) {
+          // Mode already exists or error adding, continue
+        }
+      }
+    } else {
+      targetCollection = await figma.variables.getVariableCollectionByIdAsync(targetCollectionId);
+
+      if (!targetCollection) {
+        throw new Error('Target collection not found');
+      }
+    }
+
+    let movedCount = 0;
+    const errors = [];
+
+    const sourceModes = sourceCollection.modes;
+    const targetModes = targetCollection.modes;
+
+    // Map to track old variable ID -> new variable for alias resolution
+    const variableIdMap = new Map();
+    const variablesWithAliases = [];
+
+    // Get all variable IDs from source collection
+    const variableIds = [...sourceCollection.variableIds];
+
+    // Prefix to match (groupPath + '/')
+    const groupPrefix = groupPath + '/';
+
+    // PHASE 1: Create all variables in the target collection
+    for (const variableId of variableIds) {
+      const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
+
+      if (!sourceVariable) continue;
+
+      // Check if this variable belongs to the selected group
+      if (!sourceVariable.name.startsWith(groupPrefix)) continue;
+
+      try {
+        // Create the variable in the target collection with the same name
+        const newVariable = figma.variables.createVariable(
+          sourceVariable.name,
+          targetCollection,
+          sourceVariable.resolvedType
+        );
+
+        // Store mapping for alias resolution
+        variableIdMap.set(sourceVariable.id, newVariable);
+
+        // Track alias info
+        const aliasInfo = {
+          newVariable: newVariable,
+          sourceVariable: sourceVariable,
+          targetModesToFill: []
+        };
+
+        // Copy values for each mode
+        // Handle mode count mismatch by using first source mode as fallback
+        const firstModeValue = sourceVariable.valuesByMode[sourceModes[0].modeId];
+
+        for (let i = 0; i < targetModes.length; i++) {
+          const targetMode = targetModes[i];
+          const sourceMode = sourceModes[i]; // May be undefined if source has fewer modes
+
+          let sourceValue;
+
+          if (sourceMode) {
+            // Source has this mode, use its value
+            sourceValue = sourceVariable.valuesByMode[sourceMode.modeId];
+          } else if (firstModeValue !== undefined) {
+            // Source doesn't have this mode, fill from first mode
+            sourceValue = firstModeValue;
+          } else {
+            // No value available
+            continue;
+          }
+
+          if (sourceValue === undefined) continue;
+
+          if (isVariableAlias(sourceValue)) {
+            aliasInfo.targetModesToFill.push({
+              targetModeId: targetMode.modeId,
+              sourceValue: sourceValue
+            });
+          } else {
+            newVariable.setValueForMode(targetMode.modeId, sourceValue);
+          }
+        }
+
+        if (aliasInfo.targetModesToFill.length > 0) {
+          variablesWithAliases.push(aliasInfo);
+        }
+
+        // Copy other properties
+        if (sourceVariable.description) {
+          newVariable.description = sourceVariable.description;
+        }
+
+        if (sourceVariable.hiddenFromPublishing !== undefined) {
+          newVariable.hiddenFromPublishing = sourceVariable.hiddenFromPublishing;
+        }
+
+        if (sourceVariable.scopes && sourceVariable.scopes.length > 0) {
+          newVariable.scopes = sourceVariable.scopes;
+        }
+
+        if (sourceVariable.codeSyntax) {
+          for (const [platform, syntax] of Object.entries(sourceVariable.codeSyntax)) {
+            if (syntax) {
+              newVariable.setVariableCodeSyntax(platform, syntax);
+            }
+          }
+        }
+
+        movedCount++;
+
+      } catch (varError) {
+        errors.push(`Failed to create variable "${sourceVariable.name}": ${varError.message}`);
+      }
+    }
+
+    // PHASE 2: Resolve aliases
+    for (const aliasInfo of variablesWithAliases) {
+      const { newVariable, sourceVariable, targetModesToFill } = aliasInfo;
+
+      for (const { targetModeId, sourceValue } of targetModesToFill) {
+        if (isVariableAlias(sourceValue)) {
+          try {
+            const referencedVariableId = sourceValue.id;
+            const newReferencedVariable = variableIdMap.get(referencedVariableId);
+
+            if (newReferencedVariable) {
+              // The referenced variable was also moved to the target collection
+              const newAlias = figma.variables.createVariableAlias(newReferencedVariable);
+              newVariable.setValueForMode(targetModeId, newAlias);
+            } else {
+              // The referenced variable stays in another collection, keep the reference
+              newVariable.setValueForMode(targetModeId, sourceValue);
+            }
+          } catch (aliasError) {
+            errors.push(`Failed to resolve alias in "${sourceVariable.name}": ${aliasError.message}`);
+          }
+        }
+      }
+    }
+
+    // PHASE 3: Remove the original variables from the source collection
+    for (const variableId of variableIds) {
+      const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
+
+      if (!sourceVariable) continue;
+
+      // Check if this variable belongs to the selected group
+      if (!sourceVariable.name.startsWith(groupPrefix)) continue;
+
+      try {
+        sourceVariable.remove();
+      } catch (removeError) {
+        errors.push(`Failed to remove original variable: ${removeError.message}`);
+      }
+    }
+
+    // Send success message
+    figma.ui.postMessage({
+      type: 'move-complete',
+      movedCount: movedCount,
+      newCollectionName: newCollectionName,
+      errors: errors
+    });
+
+    // Reload collections
+    await loadCollections();
+
+  } catch (error) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'Move failed: ' + error.message
+    });
+  }
+}
+
 // Handle messages from the UI
 figma.ui.onmessage = async (msg) => {
   switch (msg.type) {
@@ -556,6 +759,15 @@ figma.ui.onmessage = async (msg) => {
         msg.sourceCollectionId,
         msg.groupNames,
         msg.newCollectionName
+      );
+      break;
+
+    case 'move-group':
+      await moveGroup(
+        msg.sourceCollectionId,
+        msg.targetCollectionId,
+        msg.newCollectionName,
+        msg.groupPath
       );
       break;
 
