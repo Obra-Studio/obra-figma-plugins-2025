@@ -50,6 +50,7 @@ function formatOklch(oklch) {
 
 // Convert pixels to rem (base 16px)
 function pxToRem(px) {
+  if (px === 0) return '0';
   return (px / 16) + 'rem';
 }
 
@@ -129,51 +130,57 @@ function getCssVariableName(figmaName) {
   
   // Semantic colors
   if (normalized.includes('semantic colors') || normalized.includes('semantic-colors')) {
-    // Background (not foreground)
-    if ((lastPart === 'background' || normalized.endsWith('/background')) && !normalized.includes('foreground')) {
-      if (parts.some(p => p === 'general')) return 'background';
-      if (parts.some(p => p === 'card')) return 'card';
-      if (parts.some(p => p === 'popover')) return 'popover';
-      if (parts.some(p => p === 'primary')) return 'primary';
-      if (parts.some(p => p === 'secondary')) return 'secondary';
-      if (parts.some(p => p === 'muted')) return 'muted';
-      if (parts.some(p => p === 'accent')) return 'accent';
-      if (parts.some(p => p === 'destructive')) return 'destructive';
+    // General colors - check for exact matches at the end
+    if (parts.some(p => p === 'general')) {
+      if (lastPart === 'background') return 'background';
+      if (lastPart === 'foreground') return 'foreground';
+      if (lastPart === 'primary') return 'primary';
+      if (lastPart === 'primary foreground') return 'primary-foreground';
+      if (lastPart === 'secondary') return 'secondary';
+      if (lastPart === 'secondary foreground') return 'secondary-foreground';
+      if (lastPart === 'muted') return 'muted';
+      if (lastPart === 'muted foreground') return 'muted-foreground';
+      if (lastPart === 'accent') return 'accent';
+      if (lastPart === 'accent foreground') return 'accent-foreground';
+      if (lastPart === 'destructive') return 'destructive';
+      if (lastPart === 'destructive foreground') return 'destructive-foreground';
+      if (lastPart === 'border') return 'border';
+      if (lastPart === 'input') return 'input';
+      if (lastPart === 'ring') return 'ring';
     }
     
-    // Foreground
-    if (lastPart === 'foreground' || normalized.endsWith('/foreground') || lastPart.includes('foreground')) {
-      if (parts.some(p => p === 'general')) return 'foreground';
-      if (parts.some(p => p === 'card')) return 'card-foreground';
-      if (parts.some(p => p === 'popover')) return 'popover-foreground';
-      if (parts.some(p => p === 'primary')) return 'primary-foreground';
-      if (parts.some(p => p === 'secondary')) return 'secondary-foreground';
-      if (parts.some(p => p === 'muted')) return 'muted-foreground';
-      if (parts.some(p => p === 'accent')) return 'accent-foreground';
-      if (parts.some(p => p === 'destructive')) return 'destructive-foreground';
+    // Card
+    if (parts.some(p => p === 'card')) {
+      if (lastPart === 'card') return 'card';
+      if (lastPart === 'card foreground') return 'card-foreground';
     }
     
-    if (lastPart === 'border') return 'border';
-    if (lastPart === 'input') return 'input';
-    if (lastPart === 'ring') return 'ring';
+    // Popover
+    if (parts.some(p => p === 'popover')) {
+      if (lastPart === 'popover') return 'popover';
+      if (lastPart === 'popover foreground') return 'popover-foreground';
+    }
+    
+    // Sidebar
+    if (parts.some(p => p === 'sidebar')) {
+      if (lastPart === 'sidebar') return 'sidebar';
+      if (lastPart === 'sidebar foreground') return 'sidebar-foreground';
+      if (lastPart === 'sidebar border') return 'sidebar-border';
+      if (lastPart === 'sidebar ring') return 'sidebar-ring';
+      if (lastPart === 'sidebar primary') return 'sidebar-primary';
+      if (lastPart === 'sidebar primary foreground') return 'sidebar-primary-foreground';
+      if (lastPart === 'sidebar accent') return 'sidebar-accent';
+      if (lastPart === 'sidebar accent foreground') return 'sidebar-accent-foreground';
+    }
   }
   
-  // Chart colors
-  if (parts.some(p => p === 'chart') || normalized.includes('chart')) {
-    const match = lastPart.match(/(\d+)/);
-    if (match) return `chart-${match[1]}`;
-  }
-  
-  // Sidebar
-  if (parts.some(p => p === 'sidebar')) {
-    if (lastPart === 'background') return 'sidebar';
-    if (lastPart === 'foreground') return 'sidebar-foreground';
-    if (lastPart === 'border') return 'sidebar-border';
-    if (lastPart === 'ring') return 'sidebar-ring';
-    if (normalized.includes('primary') && normalized.includes('foreground')) return 'sidebar-primary-foreground';
-    if (normalized.includes('primary')) return 'sidebar-primary';
-    if (normalized.includes('accent') && normalized.includes('foreground')) return 'sidebar-accent-foreground';
-    if (normalized.includes('accent')) return 'sidebar-accent';
+  // Chart colors - look in chart/legacy path
+  if (normalized.includes('chart')) {
+    // Match "chart 1", "chart 2", etc. or just "1", "2", etc.
+    const chartMatch = lastPart.match(/chart\s*(\d+)/);
+    if (chartMatch) return `chart-${chartMatch[1]}`;
+    // Also match standalone numbers like "1", "2", etc.
+    if (/^\d+$/.test(lastPart)) return `chart-${lastPart}`;
   }
   
   return null;
@@ -343,7 +350,7 @@ function formatRgba(color) {
 // CSS Generation
 // ============================================
 
-async function generateStylesheet(collection, modeId, modeName, isDarkMode) {
+async function generateStylesheet(collection, modeId, modeName) {
   const cssVariables = new Map();
   const radiusVariables = new Map();
   const spacingVariables = new Map();
@@ -398,8 +405,7 @@ async function generateStylesheet(collection, modeId, modeName, isDarkMode) {
   const shadowVariables = buildShadowVariables(shadowParts);
   
   // Build CSS output
-  const selector = isDarkMode ? '.dark' : ':root';
-  let css = selector + ' {\n';
+  let css = ':root {\n';
   
   // Legacy --radius for shadcn compatibility (uses radius-lg value)
   if (radiusVariables.has('radius-lg')) {
@@ -616,14 +622,14 @@ collectVariableData().then(collections => {
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'generate-stylesheet') {
-    const { collectionId, modeId, modeName, isDarkMode } = msg;
+    const { collectionId, modeId, modeName } = msg;
     
     const collections = await collectVariableData();
     const collection = collections.find(c => c.id === collectionId);
     
     if (collection) {
       try {
-        const stylesheet = await generateStylesheet(collection, modeId, modeName, isDarkMode);
+        const stylesheet = await generateStylesheet(collection, modeId, modeName);
         figma.ui.postMessage({
           type: 'stylesheet-generated',
           stylesheet: stylesheet,
