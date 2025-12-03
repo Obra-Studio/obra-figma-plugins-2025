@@ -276,6 +276,9 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
       }
     }
 
+    // PHASE 2.5: Update backreferences in other collections
+    await updateBackreferences(variableIdMap, errors);
+
     // PHASE 3: Remove source variables and optionally delete collections
     for (const sourceCollectionId of sourceCollectionIds) {
       const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
@@ -329,6 +332,37 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
 // Helper function to check if a value is a variable alias
 function isVariableAlias(value) {
   return value && typeof value === 'object' && value.type === 'VARIABLE_ALIAS' && value.id;
+}
+
+// Update backreferences across all collections when variables are moved
+async function updateBackreferences(variableIdMap, errors) {
+  if (variableIdMap.size === 0) return 0;
+
+  let updatedCount = 0;
+  const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+
+  for (const collection of allCollections) {
+    for (const variableId of collection.variableIds) {
+      const variable = await figma.variables.getVariableByIdAsync(variableId);
+      if (!variable) continue;
+
+      for (const [modeId, value] of Object.entries(variable.valuesByMode)) {
+        if (isVariableAlias(value)) {
+          const newVariable = variableIdMap.get(value.id);
+          if (newVariable) {
+            try {
+              const newAlias = figma.variables.createVariableAlias(newVariable);
+              variable.setValueForMode(modeId, newAlias);
+              updatedCount++;
+            } catch (aliasError) {
+              errors.push(`Failed to update backreference in "${variable.name}": ${aliasError.message}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  return updatedCount;
 }
 
 // Split groups from a collection into a single new collection
@@ -488,13 +522,16 @@ async function splitCollection(sourceCollectionId, groupNames, newCollectionName
         }
       }
     }
-    
+
+    // PHASE 2.5: Update backreferences in other collections
+    await updateBackreferences(variableIdMap, errors);
+
     // PHASE 3: Remove the original variables from the source collection
     for (const variableId of variableIds) {
       const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
-      
+
       if (!sourceVariable) continue;
-      
+
       // Check if this variable belongs to any of the selected groups
       let belongsToSelectedGroup = false;
       for (const groupName of groupNames) {
@@ -699,6 +736,9 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
         }
       }
     }
+
+    // PHASE 2.5: Update backreferences in other collections
+    await updateBackreferences(variableIdMap, errors);
 
     // PHASE 3: Remove the original variables from the source collection
     for (const variableId of variableIds) {

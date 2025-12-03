@@ -1513,6 +1513,13 @@
 
         <!-- New collection name input -->
         <div id="move-new-collection-input" class="input-group hidden" style="margin-top: 10px;">
+          <div class="section-title" style="margin-bottom: 8px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+            </svg>
+            Collection Name
+          </div>
           <input type="text" id="move-new-collection-name" class="text-input" placeholder="Enter new collection name...">
         </div>
       </div>
@@ -2395,6 +2402,14 @@
       } else {
         moveSelectedGroupPath = groupPath;
         moveSourceCollectionId = collectionId;
+
+        // Auto-populate new collection name if "Create new collection" is active
+        if (moveIsNewCollection && !moveNewCollectionNameInput.value.trim()) {
+          const sourceCollection = collections.find(c => c.id === collectionId);
+          const collectionName = sourceCollection ? sourceCollection.name : '';
+          const fullName = collectionName + ' ' + groupPath;
+          moveNewCollectionNameInput.value = fullName.replace(/\//g, ' ').trim();
+        }
       }
 
       renderMoveUnifiedList();
@@ -2458,6 +2473,15 @@
 
       moveTargetCollectionId = null;
       moveIsNewCollection = true;
+
+      // Auto-populate with collection name + group path (replace / with space)
+      if (moveSelectedGroupPath && moveSourceCollectionId && !moveNewCollectionNameInput.value.trim()) {
+        const sourceCollection = collections.find(c => c.id === moveSourceCollectionId);
+        const collectionName = sourceCollection ? sourceCollection.name : '';
+        const fullName = collectionName + ' ' + moveSelectedGroupPath;
+        moveNewCollectionNameInput.value = fullName.replace(/\//g, ' ').trim();
+      }
+
       renderMoveTargetList();
       updateMovePreview();
       updateMoveButton();
