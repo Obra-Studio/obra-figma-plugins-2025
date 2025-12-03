@@ -1,3 +1,3 @@
-This Figma plugin that scans the entire file for components or instances that whose names start with “oi-”.
+# Obra Remote Library Scanner
 
-This functionality is meant to detect which Obra icons are in use. 
+This Figma plugin scans a selection page or file for remote references. It has an auto-fix functionality and a manual fix functionality to reference local variables.

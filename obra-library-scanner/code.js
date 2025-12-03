@@ -10,6 +10,16 @@ let currentScanType = null;
 const BATCH_SIZE = 50; // Process nodes in batches
 const BATCH_DELAY = 10; // ms delay between batches
 
+// Cache for local resources (reset on each scan)
+let cachedLocalVariables = null;
+let cachedLocalStyles = null;
+
+// Clear cache before new operations
+function clearLocalCache() {
+  cachedLocalVariables = null;
+  cachedLocalStyles = null;
+}
+
 
 // Get all pages in the document
 function getAllPages() {
@@ -17,30 +27,42 @@ function getAllPages() {
 }
 
 
-// Get all local styles by type
+// Get all local styles by type (with caching)
 async function getLocalStyles() {
-  return {
+  if (cachedLocalStyles) {
+    return cachedLocalStyles;
+  }
+
+  cachedLocalStyles = {
     fillStyles: await figma.getLocalPaintStylesAsync(),
     textStyles: await figma.getLocalTextStylesAsync(),
     effectStyles: await figma.getLocalEffectStylesAsync()
   };
+
+  return cachedLocalStyles;
 }
 
-// Get all local variables
+// Get all local variables (with caching)
 async function getLocalVariables() {
+  if (cachedLocalVariables) {
+    return cachedLocalVariables;
+  }
+
   console.log('Getting local variable collections...');
   const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
   console.log(`Found ${localCollections.length} local collections`);
-  
+
   const localVariables = [];
-  
+
   for (const collection of localCollections) {
     console.log(`Processing collection: ${collection.name} with ${collection.variableIds.length} variables`);
-    
+
     for (const variableId of collection.variableIds) {
       try {
         const variable = await figma.variables.getVariableByIdAsync(variableId);
         if (variable) {
+          // Store collection name with variable for better matching
+          variable._collectionName = collection.name;
           localVariables.push(variable);
           console.log(`Added variable: ${variable.name} (remote: ${variable.remote || false})`);
         }
@@ -49,47 +71,227 @@ async function getLocalVariables() {
       }
     }
   }
-  
+
   console.log(`Total local variables collected: ${localVariables.length}`);
+  cachedLocalVariables = localVariables;
   return localVariables;
 }
 
-// Find local style by name and type
-async function findLocalStyleByName(styleName, styleType) {
+// Find local style by name and type (with fuzzy matching)
+async function findLocalStyleByName(styleName, styleType, enableFuzzyMatch = true) {
   const localStyles = await getLocalStyles();
-  
+
+  let styleList;
   switch (styleType) {
     case 'fill style':
-      return localStyles.fillStyles.find(style => style.name === styleName);
+      styleList = localStyles.fillStyles;
+      break;
     case 'text style':
-      return localStyles.textStyles.find(style => style.name === styleName);
+      styleList = localStyles.textStyles;
+      break;
     case 'effect style':
-      return localStyles.effectStyles.find(style => style.name === styleName);
+      styleList = localStyles.effectStyles;
+      break;
     default:
       return null;
   }
+
+  // 1. Try exact match first
+  let match = styleList.find(style => style.name === styleName);
+  if (match) {
+    console.log(`Found exact style match: ${match.name}`);
+    return match;
+  }
+
+  // 2. Try normalized match
+  const normalizedTarget = normalizeVariableName(styleName);
+  match = styleList.find(style =>
+    normalizeVariableName(style.name) === normalizedTarget
+  );
+  if (match) {
+    console.log(`Found normalized style match: ${match.name}`);
+    return match;
+  }
+
+  // 3. Try segment match (last part of path)
+  const targetSegment = getVariableSegment(styleName);
+  match = styleList.find(style => {
+    const styleSegment = getVariableSegment(style.name);
+    return styleSegment === targetSegment ||
+           normalizeVariableName(styleSegment) === normalizeVariableName(targetSegment);
+  });
+  if (match) {
+    console.log(`Found segment style match: ${match.name}`);
+    return match;
+  }
+
+  // 4. Fuzzy matching
+  if (enableFuzzyMatch) {
+    const SIMILARITY_THRESHOLD = 0.6;
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const style of styleList) {
+      const score = calculateSimilarity(styleName, style.name);
+      if (score > bestScore && score >= SIMILARITY_THRESHOLD) {
+        bestScore = score;
+        bestMatch = style;
+      }
+    }
+
+    if (bestMatch) {
+      console.log(`Found fuzzy style match: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`);
+      return bestMatch;
+    }
+  }
+
+  console.log(`No local style found matching: ${styleName} (type: ${styleType})`);
+  return null;
 }
 
-// Find local variable by name
-async function findLocalVariableByName(variableName) {
+// Normalize variable name for comparison (lowercase, remove extra spaces, normalize slashes)
+function normalizeVariableName(name) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')           // Normalize whitespace
+    .replace(/\s*\/\s*/g, '/')      // Normalize slashes
+    .replace(/-/g, ' ')             // Treat hyphens as spaces
+    .replace(/_/g, ' ');            // Treat underscores as spaces
+}
+
+// Get the final segment of a variable path (e.g., "xs" from "semantic/xs")
+function getVariableSegment(name, position = 'last') {
+  const segments = name.split('/').filter(s => s.trim());
+  if (position === 'last') {
+    return segments[segments.length - 1] || name;
+  }
+  return segments[0] || name;
+}
+
+// Calculate similarity score between two strings (0-1)
+function calculateSimilarity(str1, str2) {
+  const s1 = normalizeVariableName(str1);
+  const s2 = normalizeVariableName(str2);
+
+  // Exact match after normalization
+  if (s1 === s2) return 1.0;
+
+  // Check if one contains the other
+  if (s1.includes(s2) || s2.includes(s1)) return 0.8;
+
+  // Check final segment match
+  const seg1 = getVariableSegment(s1);
+  const seg2 = getVariableSegment(s2);
+  if (seg1 === seg2) return 0.7;
+
+  // Levenshtein-based similarity for close matches
+  const maxLen = Math.max(s1.length, s2.length);
+  if (maxLen === 0) return 1.0;
+
+  const distance = levenshteinDistance(s1, s2);
+  const similarity = 1 - (distance / maxLen);
+
+  return similarity;
+}
+
+// Simple Levenshtein distance implementation
+function levenshteinDistance(str1, str2) {
+  const m = str1.length;
+  const n = str2.length;
+  const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (str1[i - 1] === str2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+  }
+
+  return dp[m][n];
+}
+
+// Find local variable by name with fuzzy matching support
+async function findLocalVariableByName(variableName, enableFuzzyMatch = true) {
   console.log(`Searching for local variable with name: ${variableName}`);
   const localVariables = await getLocalVariables();
   console.log(`Found ${localVariables.length} local variables`);
-  
-  const matchingVariable = localVariables.find(variable => {
-    const matches = variable.name === variableName;
-    if (matches) {
-      console.log(`Found matching variable: ${variable.name}`);
-    }
-    return matches;
-  });
-  
-  if (!matchingVariable) {
-    console.log(`No local variable found with exact name: ${variableName}`);
-    console.log('Available local variable names:', localVariables.map(v => v.name));
+
+  // 1. Try exact match first
+  let matchingVariable = localVariables.find(variable => variable.name === variableName);
+
+  if (matchingVariable) {
+    console.log(`Found exact match: ${matchingVariable.name}`);
+    return matchingVariable;
   }
-  
-  return matchingVariable;
+
+  // 2. Try normalized exact match
+  const normalizedTarget = normalizeVariableName(variableName);
+  matchingVariable = localVariables.find(variable =>
+    normalizeVariableName(variable.name) === normalizedTarget
+  );
+
+  if (matchingVariable) {
+    console.log(`Found normalized match: ${matchingVariable.name}`);
+    return matchingVariable;
+  }
+
+  // 3. Try matching final segment (e.g., "xs" from "semantic/xs")
+  const targetSegment = getVariableSegment(variableName);
+  matchingVariable = localVariables.find(variable => {
+    const varSegment = getVariableSegment(variable.name);
+    return varSegment === targetSegment ||
+           normalizeVariableName(varSegment) === normalizeVariableName(targetSegment);
+  });
+
+  if (matchingVariable) {
+    console.log(`Found segment match: ${matchingVariable.name} (matched on "${targetSegment}")`);
+    return matchingVariable;
+  }
+
+  // 4. Fuzzy matching with similarity scoring
+  if (enableFuzzyMatch) {
+    const SIMILARITY_THRESHOLD = 0.6; // Minimum similarity to consider a match
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const variable of localVariables) {
+      const score = calculateSimilarity(variableName, variable.name);
+      if (score > bestScore && score >= SIMILARITY_THRESHOLD) {
+        bestScore = score;
+        bestMatch = variable;
+      }
+    }
+
+    if (bestMatch) {
+      console.log(`Found fuzzy match: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`);
+      return bestMatch;
+    }
+  }
+
+  // 5. No match found - log available options for debugging
+  console.log(`No local variable found matching: ${variableName}`);
+  console.log('Available local variable names:', localVariables.map(v => v.name).slice(0, 20));
+
+  // Return suggestions for UI feedback
+  const suggestions = localVariables
+    .map(v => ({ name: v.name, score: calculateSimilarity(variableName, v.name) }))
+    .filter(s => s.score > 0.3)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+
+  if (suggestions.length > 0) {
+    console.log('Possible matches:', suggestions.map(s => `${s.name} (${(s.score * 100).toFixed(0)}%)`));
+  }
+
+  return null;
 }
 
 // Find local component by name (searches current page first, then loads all if needed)
@@ -306,6 +508,7 @@ async function scanCurrentPage() {
   librariesFound = [];
   foundElements = [];
   scanCancelled = false;
+  clearLocalCache(); // Clear cache for fresh data
   currentScanId = Date.now().toString();
   currentScanType = 'current';
   const currentPage = figma.currentPage;
@@ -378,6 +581,7 @@ async function scanAllPages() {
   librariesFound = [];
   foundElements = [];
   scanCancelled = false;
+  clearLocalCache(); // Clear cache for fresh data
   currentScanId = Date.now().toString();
   currentScanType = 'all';
   
@@ -1042,6 +1246,7 @@ async function scanCurrentSelection() {
   librariesFound = [];
   foundElements = [];
   scanCancelled = false;
+  clearLocalCache(); // Clear cache for fresh data
   currentScanId = Date.now().toString();
   currentScanType = 'selection';
   const selection = figma.currentPage.selection;
