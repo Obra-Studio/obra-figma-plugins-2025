@@ -1,6 +1,6 @@
 {
-  "name": "Mode Switcher",
-  "id": "mode-switcher-plugin",
+  "name": "Obra Batch Mode Switcher",
+  "id": "1577759675602026369",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
