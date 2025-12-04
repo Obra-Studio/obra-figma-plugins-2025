@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 11px;
+      color: var(--figma-color-text);
+      background: var(--figma-color-bg);
+      padding: 16px;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .description {
+      color: var(--figma-color-text-secondary);
+      line-height: 1.4;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .label {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    button {
+      flex: 1;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #18A0FB;
+      color: #fff;
+      transition: all 0.15s;
+    }
+
+    button:hover {
+      background: #0d8de6;
+    }
+
+    button:active {
+      background: #0a7acc;
+    }
+
+    button.secondary {
+      background: #333;
+      color: #fff;
+    }
+
+    button.secondary:hover {
+      background: #444;
+    }
+
+    button.secondary:active {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p class="description">Select an element, then select or expand to rows/columns.</p>
+
+    <div class="button-group">
+      <div class="label">Rows</div>
+      <div class="button-row">
+        <button id="add-prev-row" class="secondary">+ Prev</button>
+        <button id="select-row">Select</button>
+        <button id="add-next-row" class="secondary">+ Next</button>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <div class="label">Columns</div>
+      <div class="button-row">
+        <button id="add-prev-column" class="secondary">+ Prev</button>
+        <button id="select-column">Select</button>
+        <button id="add-next-column" class="secondary">+ Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('select-row').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'select-row' } }, '*');
+    };
+
+    document.getElementById('select-column').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'select-column' } }, '*');
+    };
+
+    document.getElementById('add-next-row').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'add-next-row' } }, '*');
+    };
+
+    document.getElementById('add-next-column').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'add-next-column' } }, '*');
+    };
+
+    document.getElementById('add-prev-row').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'add-prev-row' } }, '*');
+    };
+
+    document.getElementById('add-prev-column').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'add-prev-column' } }, '*');
+    };
+  </script>
+</body>
+</html>
