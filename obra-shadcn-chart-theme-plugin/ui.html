@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 12px;
+      color: #333;
+      background: #fff;
+      padding: 16px;
+    }
+    
+    h1 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 11px;
+      margin-bottom: 16px;
+    }
+    
+    .palette-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .palette-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 2px solid #e5e5e5;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .palette-item:hover {
+      border-color: #ccc;
+      background: #fafafa;
+    }
+    
+    .palette-item.selected {
+      border-color: #18a0fb;
+      background: #f0f9ff;
+    }
+    
+    .palette-name {
+      font-weight: 500;
+      text-transform: capitalize;
+      min-width: 60px;
+    }
+    
+    .color-preview {
+      display: flex;
+      gap: 3px;
+      flex: 1;
+    }
+    
+    .preview-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .preview-row {
+      display: flex;
+      gap: 2px;
+    }
+    
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .apply-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: #18a0fb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    
+    .apply-btn:hover:not(:disabled) {
+      background: #0d8de5;
+    }
+    
+    .apply-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      text-align: center;
+      display: none;
+    }
+    
+    .status.success {
+      display: block;
+      background: #e6f9e6;
+      color: #1a7f1a;
+    }
+    
+    .status.error {
+      display: block;
+      background: #ffe6e6;
+      color: #cc0000;
+    }
+    
+    .legend {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 10px;
+      color: #999;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+  <h1>Chart Theme Switcher</h1>
+  <p class="subtitle">Apply color themes to shades/ variables</p>
+  
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: #f5f5f5;"></div>
+      <span>Light mode</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background: #333;"></div>
+      <span>Dark mode</span>
+    </div>
+  </div>
+  
+  <div class="palette-list" id="palette-list"></div>
+  
+  <button class="apply-btn" id="apply-btn" disabled>Select a theme</button>
+  <div class="status" id="status"></div>
+
+  <script>
+    var palettes = [];
+    var selectedPalette = null;
+
+    function renderPalettes() {
+      var list = document.getElementById('palette-list');
+      var html = '';
+      
+      for (var i = 0; i < palettes.length; i++) {
+        var palette = palettes[i];
+        var isSelected = selectedPalette === palette.name ? 'selected' : '';
+        
+        html += '<div class="palette-item ' + isSelected + '" data-palette="' + palette.name + '">' +
+          '<span class="palette-name">' + palette.name + '</span>' +
+          '<div class="color-preview">' +
+            '<div class="preview-group">' +
+              '<div class="preview-row">' +
+                '<div class="swatch" style="background: #' + palette.colors.fill.light + ';" title="fill light"></div>' +
+                '<div class="swatch" style="background: #' + palette.colors.stroke.light + ';" title="stroke light"></div>' +
+                '<div class="swatch" style="background: #' + palette.colors['fill 2'].light + ';" title="fill 2 light"></div>' +
+                '<div class="swatch" style="background: #' + palette.colors['stroke 2'].light + ';" title="stroke 2 light"></div>' +
+              '</div>' +
+              '<div class="preview-row">' +
+                '<div class="swatch" style="background: #' + palette.colors.fill.dark + ';" title="fill dark"></div>' +
+                '<div class="swatch" style="background: #' + palette.colors.stroke.dark + ';" title="stroke dark"></div>' +
+                '<div class="swatch" style="background: #' + palette.colors['fill 2'].dark + ';" title="fill 2 dark"></div>' +
+                '<div class="swatch" style="background: #' + palette.colors['stroke 2'].dark + ';" title="stroke 2 dark"></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      
+      list.innerHTML = html;
+
+      // Add click handlers
+      var items = document.querySelectorAll('.palette-item');
+      for (var i = 0; i < items.length; i++) {
+        items[i].addEventListener('click', function(e) {
+          var item = e.currentTarget;
+          selectedPalette = item.getAttribute('data-palette');
+          renderPalettes();
+          updateButton();
+        });
+      }
+    }
+
+    function updateButton() {
+      var btn = document.getElementById('apply-btn');
+      if (selectedPalette) {
+        btn.disabled = false;
+        btn.textContent = 'Apply ' + selectedPalette + ' theme';
+      } else {
+        btn.disabled = true;
+        btn.textContent = 'Select a theme';
+      }
+    }
+
+    function showStatus(message, isSuccess) {
+      var status = document.getElementById('status');
+      status.className = 'status ' + (isSuccess ? 'success' : 'error');
+      status.textContent = message;
+      
+      if (isSuccess) {
+        setTimeout(function() {
+          status.className = 'status';
+        }, 3000);
+      }
+    }
+
+    // Handle messages from plugin
+    window.onmessage = function(event) {
+      var msg = event.data.pluginMessage;
+      
+      if (msg.type === 'init') {
+        palettes = msg.palettes;
+        renderPalettes();
+      }
+      
+      if (msg.type === 'apply-result') {
+        showStatus(msg.message, msg.success);
+      }
+    };
+
+    // Apply button click
+    document.getElementById('apply-btn').addEventListener('click', function() {
+      if (selectedPalette) {
+        parent.postMessage({ 
+          pluginMessage: { type: 'apply-palette', paletteName: selectedPalette } 
+        }, '*');
+      }
+    });
+  </script>
+</body>
+</html>
