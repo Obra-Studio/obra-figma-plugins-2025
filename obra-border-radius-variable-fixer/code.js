@@ -1,83 +1,194 @@
 // code.js
 var layersWithIssues = [];
 var borderRadiusVariables = [];
+var allBorderRadiusVariables = []; // All variables before filtering
+var variableCollections = []; // All collections with border radius variables
+var selectedCollectionIds = []; // Currently selected collections (empty = all)
 var currentIndex = -1;
 var isScanning = false;
 
 // Initialize the plugin
 figma.showUI(__html__, { width: 450, height: 600 });
 
-// Scan for border radius variables on startup
-scanForBorderRadiusVariables();
+// Load selected collections and scan for variables on startup
+loadSelectedCollections().then(function() {
+  scanForBorderRadiusVariables();
+});
+
+// Resolve variable value, following aliases if needed
+async function resolveVariableValue(variable, modeId) {
+  var value = variable.valuesByMode[modeId];
+
+  // If value is an alias (reference to another variable), resolve it
+  var maxDepth = 10; // Prevent infinite loops
+  var depth = 0;
+
+  while (value && typeof value === 'object' && value.type === 'VARIABLE_ALIAS' && depth < maxDepth) {
+    try {
+      var referencedVar = await figma.variables.getVariableByIdAsync(value.id);
+      if (referencedVar && referencedVar.valuesByMode) {
+        // Try to use the same mode, or fall back to first mode
+        var refCollection = await figma.variables.getVariableCollectionByIdAsync(referencedVar.variableCollectionId);
+        var refModeId = refCollection && refCollection.modes && refCollection.modes.length > 0
+          ? refCollection.modes[0].modeId
+          : Object.keys(referencedVar.valuesByMode)[0];
+        value = referencedVar.valuesByMode[refModeId];
+      } else {
+        break;
+      }
+    } catch (e) {
+      console.log('Error resolving alias:', e.message);
+      break;
+    }
+    depth++;
+  }
+
+  return typeof value === 'number' ? value : null;
+}
+
+// Process a single variable and add to results if it's a border radius variable
+async function processVariable(variable, collectionsMap, isLibrary, libraryName) {
+  // Check for corner radius scope
+  if (!variable.scopes || variable.scopes.indexOf('CORNER_RADIUS') === -1) {
+    return null;
+  }
+
+  console.log('Found border radius variable:', variable.name, isLibrary ? '(from library: ' + libraryName + ')' : '(local)');
+
+  // Get the variable's numeric value and collection info
+  var numericValue = null;
+  var collectionId = variable.variableCollectionId;
+  var collectionName = 'Unknown';
+
+  try {
+    var collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+    if (collection) {
+      collectionName = collection.name;
+      if (isLibrary && libraryName) {
+        collectionName = libraryName + ' / ' + collectionName;
+      }
+
+      // Track this collection
+      if (!collectionsMap[collectionId]) {
+        collectionsMap[collectionId] = {
+          id: collectionId,
+          name: collectionName,
+          variableCount: 0,
+          isLibrary: isLibrary
+        };
+      }
+      collectionsMap[collectionId].variableCount++;
+
+      if (collection.modes && collection.modes.length > 0) {
+        var defaultMode = collection.modes[0];
+        numericValue = await resolveVariableValue(variable, defaultMode.modeId);
+      }
+    }
+  } catch (e) {
+    console.log('Error getting value for variable', variable.name, ':', e.message);
+  }
+
+  if (numericValue !== null) {
+    return {
+      id: variable.id,
+      name: variable.name,
+      value: numericValue,
+      variable: variable,
+      collectionId: collectionId,
+      collectionName: collectionName,
+      isLibrary: isLibrary
+    };
+  }
+
+  return null;
+}
 
 // Scan for all border radius variables and their values
 async function scanForBorderRadiusVariables() {
   console.log('Starting variable scan...');
-  borderRadiusVariables = [];
-  
+  allBorderRadiusVariables = [];
+  variableCollections = [];
+  var collectionsMap = {};
+
   try {
+    // 1. Scan local variables
     var localVariables = await figma.variables.getLocalVariablesAsync();
     console.log('Found', localVariables.length, 'total local variables');
-    
+
     for (var i = 0; i < localVariables.length; i++) {
-      var variable = localVariables[i];
-      
-      // Check for corner radius scope
-      if (!variable.scopes || variable.scopes.indexOf('CORNER_RADIUS') === -1) {
-        continue;
-      }
-      
-      console.log('Found border radius variable:', variable.name);
-      
-      // Get the variable's numeric value
-      var numericValue = null;
-      try {
-        var collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
-        if (collection && collection.modes && collection.modes.length > 0) {
-          var defaultMode = collection.modes[0];
-          var valuesByMode = variable.valuesByMode;
-          if (valuesByMode && valuesByMode[defaultMode.modeId] !== undefined) {
-            var value = valuesByMode[defaultMode.modeId];
-            if (typeof value === 'number') {
-              numericValue = value;
-            }
-          }
-        }
-      } catch (e) {
-        console.log('Error getting value for variable', variable.name, ':', e.message);
-      }
-      
-      if (numericValue !== null) {
-        borderRadiusVariables.push({
-          id: variable.id,
-          name: variable.name,
-          value: numericValue,
-          variable: variable
-        });
+      var result = await processVariable(localVariables[i], collectionsMap, false, null);
+      if (result) {
+        allBorderRadiusVariables.push(result);
       }
     }
-    
-    // Sort variables by their numeric value
-    borderRadiusVariables.sort(function(a, b) {
-      return a.value - b.value;
-    });
-    
-    console.log('Found', borderRadiusVariables.length, 'border radius variables with values');
-    borderRadiusVariables.forEach(function(v) {
-      console.log('Variable:', v.name, '=', v.value + 'px');
+
+    // 2. Scan library variables
+    try {
+      var libraryCollections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+      console.log('Found', libraryCollections.length, 'library variable collections');
+
+      for (var j = 0; j < libraryCollections.length; j++) {
+        var libCollection = libraryCollections[j];
+        console.log('Scanning library collection:', libCollection.name, 'from', libCollection.libraryName);
+
+        try {
+          var libraryVariables = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(libCollection.key);
+          console.log('Found', libraryVariables.length, 'variables in library collection', libCollection.name);
+
+          for (var k = 0; k < libraryVariables.length; k++) {
+            var libVar = libraryVariables[k];
+
+            // Import the variable to get full access to it
+            try {
+              var importedVariable = await figma.variables.importVariableByKeyAsync(libVar.key);
+              var result = await processVariable(importedVariable, collectionsMap, true, libCollection.libraryName);
+              if (result) {
+                allBorderRadiusVariables.push(result);
+              }
+            } catch (importError) {
+              console.log('Error importing library variable', libVar.name, ':', importError.message);
+            }
+          }
+        } catch (collectionError) {
+          console.log('Error getting variables from library collection', libCollection.name, ':', collectionError.message);
+        }
+      }
+    } catch (libraryError) {
+      console.log('Error scanning library variables:', libraryError.message);
+      // Continue without library variables
+    }
+
+    // Convert collections map to array
+    variableCollections = Object.keys(collectionsMap).map(function(key) {
+      return collectionsMap[key];
     });
 
-    figma.ui.postMessage({
-      type: 'variables-found',
-      variables: borderRadiusVariables.map(function(v) {
-        return { 
-          id: v.id, 
-          name: v.name, 
-          value: v.value
-        };
-      })
+    // Sort collections by name (local first, then libraries)
+    variableCollections.sort(function(a, b) {
+      if (a.isLibrary !== b.isLibrary) {
+        return a.isLibrary ? 1 : -1;
+      }
+      return a.name.localeCompare(b.name);
     });
-    
+
+    // Sort all variables by their numeric value
+    allBorderRadiusVariables.sort(function(a, b) {
+      return a.value - b.value;
+    });
+
+    console.log('Found', allBorderRadiusVariables.length, 'border radius variables with values');
+    console.log('Found', variableCollections.length, 'collections with border radius variables');
+
+    // Apply collection filter
+    applyCollectionFilter();
+
+    // Send collections to UI
+    figma.ui.postMessage({
+      type: 'collections-found',
+      collections: variableCollections,
+      selectedCollectionIds: selectedCollectionIds
+    });
+
   } catch (e) {
     console.log('Error scanning variables:', e.message);
     figma.ui.postMessage({
@@ -85,7 +196,41 @@ async function scanForBorderRadiusVariables() {
       variables: [],
       error: e.message
     });
+    figma.ui.postMessage({
+      type: 'collections-found',
+      collections: [],
+      selectedCollectionIds: []
+    });
   }
+}
+
+// Apply collection filter to border radius variables
+function applyCollectionFilter() {
+  if (selectedCollectionIds.length === 0) {
+    // No filter - use all variables
+    borderRadiusVariables = allBorderRadiusVariables.slice();
+  } else {
+    // Filter by selected collections
+    borderRadiusVariables = allBorderRadiusVariables.filter(function(v) {
+      return selectedCollectionIds.indexOf(v.collectionId) !== -1;
+    });
+  }
+
+  console.log('Filtered to', borderRadiusVariables.length, 'variables from', selectedCollectionIds.length, 'collections');
+
+  // Send filtered variables to UI
+  figma.ui.postMessage({
+    type: 'variables-found',
+    variables: borderRadiusVariables.map(function(v) {
+      return {
+        id: v.id,
+        name: v.name,
+        value: v.value,
+        collectionId: v.collectionId,
+        collectionName: v.collectionName
+      };
+    })
+  });
 }
 
 // Find matching variable for a given radius value
@@ -347,10 +492,10 @@ function findLayersWithRadiusIssues(node, results, ignoredNames) {
 }
 
 // Start scanning process
-function startScan(ignoredNames) {
+function startScan(ignoredNames, scanEntirePage) {
   if (isScanning) return;
-  
-  console.log('Starting scan with ignored names:', ignoredNames);
+
+  console.log('Starting scan with ignored names:', ignoredNames, 'scanEntirePage:', scanEntirePage);
   isScanning = true;
   layersWithIssues = [];
   currentIndex = -1;
@@ -359,23 +504,32 @@ function startScan(ignoredNames) {
     type: 'scan-started'
   });
 
-  // Check if we have selected layers
-  var selection = figma.currentPage.selection;
-  console.log('Current selection:', selection.length, 'layers');
-  
-  if (selection.length === 0) {
-    figma.ui.postMessage({
-      type: 'error',
-      message: 'Please select one or more layers to scan'
-    });
-    isScanning = false;
-    return;
+  var nodesToScan = [];
+
+  if (scanEntirePage) {
+    // Scan entire page
+    nodesToScan = figma.currentPage.children;
+    console.log('Scanning entire page:', nodesToScan.length, 'top-level nodes');
+  } else {
+    // Check if we have selected layers
+    var selection = figma.currentPage.selection;
+    console.log('Current selection:', selection.length, 'layers');
+
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select one or more layers to scan'
+      });
+      isScanning = false;
+      return;
+    }
+    nodesToScan = selection;
   }
 
-  // Find all layers with radius issues in selected layers
-  for (var i = 0; i < selection.length; i++) {
-    console.log('Scanning selection item:', i, selection[i].name);
-    findLayersWithRadiusIssues(selection[i], layersWithIssues, ignoredNames);
+  // Find all layers with radius issues
+  for (var i = 0; i < nodesToScan.length; i++) {
+    console.log('Scanning item:', i, nodesToScan[i].name);
+    findLayersWithRadiusIssues(nodesToScan[i], layersWithIssues, ignoredNames);
   }
 
   console.log('Scan complete. Found', layersWithIssues.length, 'layers with radius values');
@@ -569,6 +723,36 @@ async function saveIgnoredNames(names) {
   }
 }
 
+// Load selected collections from clientStorage
+async function loadSelectedCollections() {
+  try {
+    var savedCollections = await figma.clientStorage.getAsync('borderRadiusChecker_selectedCollections');
+    if (savedCollections && Array.isArray(savedCollections)) {
+      selectedCollectionIds = savedCollections;
+      console.log('Loaded selected collections from clientStorage:', selectedCollectionIds);
+    }
+  } catch (e) {
+    console.log('Error loading selected collections:', e);
+  }
+}
+
+// Save selected collections to clientStorage
+async function saveSelectedCollections(collectionIds) {
+  try {
+    await figma.clientStorage.setAsync('borderRadiusChecker_selectedCollections', collectionIds);
+    console.log('Saved selected collections to clientStorage:', collectionIds);
+  } catch (e) {
+    console.log('Error saving selected collections:', e);
+  }
+}
+
+// Change the selected collections and reapply filter
+function setSelectedCollections(collectionIds) {
+  selectedCollectionIds = collectionIds || [];
+  saveSelectedCollections(selectedCollectionIds);
+  applyCollectionFilter();
+}
+
 // Autofix all layers with matching variables
 async function autofixAll() {
   console.log('Starting autofix for all layers...');
@@ -689,7 +873,11 @@ figma.ui.onmessage = function(msg) {
   
   switch (msg.type) {
     case 'start-scan':
-      startScan(msg.ignoredNames || []);
+      startScan(msg.ignoredNames || [], false);
+      break;
+
+    case 'scan-page':
+      startScan(msg.ignoredNames || [], true);
       break;
     
     case 'navigate-to-layer':
@@ -702,6 +890,10 @@ figma.ui.onmessage = function(msg) {
     
     case 'rescan-variables':
       scanForBorderRadiusVariables();
+      break;
+
+    case 'select-collections':
+      setSelectedCollections(msg.collectionIds);
       break;
     
     case 'save-ignored-names':

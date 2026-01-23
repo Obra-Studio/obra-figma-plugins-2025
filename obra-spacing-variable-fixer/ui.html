@@ -183,14 +183,108 @@
         }
         
         .variables-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-            gap: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             font-size: 11px;
             line-height: 1.4;
-            max-width: 100%;
         }
-        
+
+        .collections-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .collection-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .collection-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .collection-item.selected {
+            background: #e0f2fe;
+            border-color: #38bdf8;
+        }
+
+        .collection-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+
+        .collection-item.selected .collection-checkbox {
+            background: #0ea5e9;
+            border-color: #0ea5e9;
+        }
+
+        .collection-checkbox-check {
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            opacity: 0;
+        }
+
+        .collection-item.selected .collection-checkbox-check {
+            opacity: 1;
+        }
+
+        .collection-name {
+            font-size: 11px;
+            font-weight: 500;
+            color: #334155;
+            flex-grow: 1;
+        }
+
+        .collection-count {
+            font-size: 10px;
+            color: #64748b;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .collection-item.selected .collection-count {
+            background: #bae6fd;
+            color: #0369a1;
+        }
+
+        .collections-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .collections-action-btn {
+            font-size: 10px;
+            color: #0ea5e9;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .collections-action-btn:hover {
+            color: #0284c7;
+        }
+
         .variable-tag {
             background: #ffffff;
             color: #1e293b;
@@ -199,9 +293,29 @@
             border-radius: 4px;
             font-size: 10px;
             white-space: nowrap;
-            text-align: center;
-            overflow: visible;
-            word-break: keep-all;
+        }
+
+        .variable-collection-group {
+            margin-bottom: 12px;
+        }
+
+        .variable-collection-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .variable-collection-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .variable-collection-vars {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
         }
         
         .ignore-section {
@@ -636,6 +750,19 @@
     <!-- Settings Tab -->
     <div id="settingsTab" class="tab-content">
         <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion('collections')">
+                <span class="accordion-toggle open" id="collectionsToggle">▶</span>
+                <span class="accordion-title">Variable Collections</span>
+            </div>
+            <div class="accordion-content open" id="collectionsContent">
+                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Select which collections to use for applying variables:</div>
+                <div id="collectionsList" class="collections-list">
+                    <div style="color: #999; font-style: italic;">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion">
             <div class="accordion-header" onclick="toggleAccordion('variables')">
                 <span class="accordion-toggle open" id="variablesToggle">▶</span>
                 <span class="accordion-title">Available Variables</span>
@@ -683,6 +810,7 @@
                 errorBanner: document.getElementById('errorBanner'),
                 errorMessage: document.getElementById('errorMessage'),
                 variablesList: document.getElementById('variablesList'),
+                collectionsList: document.getElementById('collectionsList'),
                 ignoreInput: document.getElementById('ignoreInput'),
                 addIgnoreBtn: document.getElementById('addIgnoreBtn'),
                 ignoreList: document.getElementById('ignoreList'),
@@ -702,6 +830,8 @@
             };
 
             var variables = [];
+            var collections = [];
+            var selectedCollectionIds = []; // Empty means all selected
             var layers = [];
             var problemLayers = [];
             var fixedLayers = [];
@@ -721,27 +851,185 @@
             });
 
             elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
-            
+
             elements.ignoreInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     addIgnoreItem();
                 }
             });
 
-            // Request ignored names from plugin on startup
+            // Request ignored names and selected collections from plugin on startup
             parent.postMessage({ pluginMessage: { type: 'load-ignored-names' } }, '*');
+            parent.postMessage({ pluginMessage: { type: 'load-selected-collections' } }, '*');
 
             // Save ignored names via plugin clientStorage
             function saveIgnoredNames() {
-                parent.postMessage({ 
-                    pluginMessage: { 
+                parent.postMessage({
+                    pluginMessage: {
                         type: 'save-ignored-names',
                         ignoredNames: ignoredLayerNames
-                    } 
+                    }
                 }, '*');
                 console.log('Requested save of ignored names:', ignoredLayerNames);
             }
 
+            // Update collections list display
+            function updateCollectionsList() {
+                if (!elements.collectionsList) return;
+
+                if (collections.length === 0) {
+                    elements.collectionsList.innerHTML = '<div style="color: #999; font-style: italic;">No variable collections found</div>';
+                    return;
+                }
+
+                // Count variables per collection
+                var collectionCounts = {};
+                for (var i = 0; i < variables.length; i++) {
+                    var collId = variables[i].collectionId;
+                    collectionCounts[collId] = (collectionCounts[collId] || 0) + 1;
+                }
+
+                var html = '';
+                for (var j = 0; j < collections.length; j++) {
+                    var coll = collections[j];
+                    var count = collectionCounts[coll.id] || 0;
+
+                    // Skip collections with no spacing variables
+                    if (count === 0) continue;
+
+                    var isSelected = selectedCollectionIds.length === 0 || selectedCollectionIds.indexOf(coll.id) !== -1;
+                    var selectedClass = isSelected ? ' selected' : '';
+
+                    html += '<div class="collection-item' + selectedClass + '" onclick="window.toggleCollection(\'' + coll.id + '\')">' +
+                           '<div class="collection-checkbox"><span class="collection-checkbox-check">✓</span></div>' +
+                           '<span class="collection-name">' + coll.name + '</span>' +
+                           '<span class="collection-count">' + count + ' vars</span>' +
+                           '</div>';
+                }
+
+                // Add select all / deselect all actions
+                html += '<div class="collections-actions">' +
+                       '<span class="collections-action-btn" onclick="window.selectAllCollections()">Select all</span>' +
+                       '<span class="collections-action-btn" onclick="window.deselectAllCollections()">Deselect all</span>' +
+                       '</div>';
+
+                elements.collectionsList.innerHTML = html;
+            }
+
+            // Toggle collection selection
+            function toggleCollection(collectionId) {
+                if (selectedCollectionIds.length === 0) {
+                    // Currently all are selected, so switch to explicit selection
+                    // Deselect this one, keep all others selected
+                    selectedCollectionIds = [];
+                    for (var i = 0; i < collections.length; i++) {
+                        if (collections[i].id !== collectionId) {
+                            selectedCollectionIds.push(collections[i].id);
+                        }
+                    }
+                } else {
+                    var index = selectedCollectionIds.indexOf(collectionId);
+                    if (index !== -1) {
+                        // Deselect
+                        selectedCollectionIds.splice(index, 1);
+                    } else {
+                        // Select
+                        selectedCollectionIds.push(collectionId);
+                    }
+
+                    // If all are now selected, reset to empty array (means all)
+                    if (selectedCollectionIds.length === collections.length) {
+                        selectedCollectionIds = [];
+                    }
+                }
+
+                saveSelectedCollections();
+                updateCollectionsList();
+                updateVariablesListDisplay();
+            }
+
+            // Select all collections
+            function selectAllCollections() {
+                selectedCollectionIds = [];
+                saveSelectedCollections();
+                updateCollectionsList();
+                updateVariablesListDisplay();
+            }
+
+            // Deselect all collections
+            function deselectAllCollections() {
+                selectedCollectionIds = ['__none__']; // Special marker for none selected
+                saveSelectedCollections();
+                updateCollectionsList();
+                updateVariablesListDisplay();
+            }
+
+            // Save selected collections to plugin
+            function saveSelectedCollections() {
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'update-selected-collections',
+                        collectionIds: selectedCollectionIds
+                    }
+                }, '*');
+                console.log('Saved selected collections:', selectedCollectionIds);
+            }
+
+            // Update variables list display based on selected collections
+            function updateVariablesListDisplay() {
+                if (!elements.variablesList) return;
+
+                var filteredVars = variables.filter(function(v) {
+                    if (selectedCollectionIds.length === 0) return true;
+                    if (selectedCollectionIds[0] === '__none__') return false;
+                    return selectedCollectionIds.indexOf(v.collectionId) !== -1;
+                });
+
+                if (filteredVars.length === 0) {
+                    elements.variablesList.innerHTML = '<div style="color: #999; font-style: italic;">No spacing variables in selected collections</div>';
+                    return;
+                }
+
+                // Group variables by collection
+                var varsByCollection = {};
+                for (var i = 0; i < filteredVars.length; i++) {
+                    var v = filteredVars[i];
+                    var collName = v.collectionName || 'Unknown';
+                    if (!varsByCollection[collName]) {
+                        varsByCollection[collName] = [];
+                    }
+                    varsByCollection[collName].push(v);
+                }
+
+                // Build HTML grouped by collection
+                var html = '';
+                var collectionNames = Object.keys(varsByCollection).sort();
+
+                for (var j = 0; j < collectionNames.length; j++) {
+                    var collName = collectionNames[j];
+                    var collVars = varsByCollection[collName];
+
+                    html += '<div class="variable-collection-group">';
+                    html += '<div class="variable-collection-header">' + collName + '</div>';
+                    html += '<div class="variable-collection-vars">';
+
+                    for (var k = 0; k < collVars.length; k++) {
+                        var variable = collVars[k];
+                        var displayText = variable.name + ' = ' + variable.value + 'px';
+                        html += '<div class="variable-tag" title="' + displayText + '">' + displayText + '</div>';
+                    }
+
+                    html += '</div>';
+                    html += '</div>';
+                }
+
+                elements.variablesList.innerHTML = html;
+            }
+
+            // Make collection functions available globally
+            window.toggleCollection = toggleCollection;
+            window.selectAllCollections = selectAllCollections;
+            window.deselectAllCollections = deselectAllCollections;
 
             // Show error banner
             function showError(message) {
@@ -843,59 +1131,58 @@
 
             // Update variables list
             function updateVariablesList(variableData) {
-                if (!elements.variablesList) return;
-
                 variables = variableData.variables || [];
-                
+                collections = variableData.collections || [];
+
                 if (variableData.error) {
-                    elements.variablesList.innerHTML = '<div style="color: #ff0000;">Error: ' + variableData.error + '</div>';
-                    return;
-                }
-                
-                if (variables.length === 0) {
-                    elements.variablesList.innerHTML = '<div style="color: #999; font-style: italic;">No spacing variables found</div>';
+                    if (elements.variablesList) {
+                        elements.variablesList.innerHTML = '<div style="color: #ff0000;">Error: ' + variableData.error + '</div>';
+                    }
+                    if (elements.collectionsList) {
+                        elements.collectionsList.innerHTML = '<div style="color: #ff0000;">Error loading collections</div>';
+                    }
                     return;
                 }
 
-                var html = '';
-                for (var i = 0; i < variables.length; i++) {
-                    var variable = variables[i];
-                    html += '<div class="variable-tag">' + variable.name + ' = ' + variable.value + 'px</div>';
-                }
-                
-                elements.variablesList.innerHTML = html;
+                // Update collections list
+                updateCollectionsList();
+
+                // Update variables list (filtered by selected collections)
+                updateVariablesListDisplay();
             }
 
             // Update layers list with separation
             function updateLayersList(layersData) {
                 layers = layersData;
-                
+
                 // Sort function to prioritize components over instances
                 function sortLayersByPriority(a, b) {
                     // Components first, then instances, then other types
                     var priorityA = a.type === 'COMPONENT' ? 0 : (a.type === 'INSTANCE' ? 1 : 2);
                     var priorityB = b.type === 'COMPONENT' ? 0 : (b.type === 'INSTANCE' ? 1 : 2);
-                    
+
                     if (priorityA !== priorityB) {
                         return priorityA - priorityB;
                     }
-                    
+
                     // If same priority, sort by name
                     return a.name.localeCompare(b.name);
                 }
-                
-                // Separate layers by problem type and sort each group
+
+                // Separate layers by problem type
                 problemLayers = [];
                 fixedLayers = [];
-                
+
                 for (var i = 0; i < layers.length; i++) {
-                    if (layers[i].issueType === 'has_variable') {
-                        fixedLayers.push(layers[i]);
+                    var layer = layers[i];
+
+                    if (layer.issueType === 'has_variable') {
+                        fixedLayers.push(layer);
                     } else {
-                        problemLayers.push(layers[i]);
+                        problemLayers.push(layer);
                     }
                 }
-                
+
                 // Sort both groups by priority
                 problemLayers.sort(sortLayersByPriority);
                 fixedLayers.sort(sortLayersByPriority);
@@ -1180,7 +1467,7 @@
                     case 'variables-found':
                         updateVariablesList(msg);
                         break;
-                    
+
                     case 'scan-started':
                         hideError();
                         if (elements.status) {
@@ -1197,6 +1484,7 @@
                             elements.status.textContent = 'Found ' + msg.totalLayers + ' layers with spacing properties';
                             elements.scanBtn.disabled = false;
                         }
+                        // Update layers list (variant filters are managed by selection-variants)
                         updateLayersList(msg.layers);
                         break;
                     
@@ -1291,6 +1579,13 @@
                         ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
                         console.log('Loaded ignored names from plugin:', ignoredLayerNames);
                         updateIgnoreList();
+                        break;
+
+                    case 'selected-collections-loaded':
+                        selectedCollectionIds = msg.collectionIds || [];
+                        console.log('Loaded selected collections from plugin:', selectedCollectionIds);
+                        updateCollectionsList();
+                        updateVariablesListDisplay();
                         break;
                 }
             });

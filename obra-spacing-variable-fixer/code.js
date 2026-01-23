@@ -1,93 +1,247 @@
 // code.js
 var layersWithIssues = [];
 var spacingVariables = [];
+var variableCollections = [];
+var selectedCollectionIds = []; // Empty means all collections are selected
 var currentIndex = -1;
 var isScanning = false;
 
 // Initialize the plugin
 figma.showUI(__html__, { width: 450, height: 600 });
 
+figma.notify('Plugin initialized');
+
 // Scan for spacing variables on startup
 scanForSpacingVariables();
+
+// Listen for selection changes
+figma.on('selectionchange', function() {
+  var count = figma.currentPage.selection.length;
+  figma.notify('Selection changed: ' + count + ' items');
+});
+
+// Helper function to resolve variable value (handles aliases/references)
+async function resolveVariableValue(variable, modeId) {
+  var valuesByMode = variable.valuesByMode;
+  if (!valuesByMode || valuesByMode[modeId] === undefined) {
+    return null;
+  }
+
+  var value = valuesByMode[modeId];
+
+  // If it's a direct number, return it
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  // If it's a variable alias (reference), resolve it
+  if (value && typeof value === 'object' && value.type === 'VARIABLE_ALIAS') {
+    try {
+      var referencedVar = await figma.variables.getVariableByIdAsync(value.id);
+      if (referencedVar) {
+        // Get the referenced variable's collection to find its mode
+        var refCollection = await figma.variables.getVariableCollectionByIdAsync(referencedVar.variableCollectionId);
+        if (refCollection && refCollection.modes && refCollection.modes.length > 0) {
+          var refModeId = refCollection.modes[0].modeId;
+          // Recursively resolve in case of chained references
+          return await resolveVariableValue(referencedVar, refModeId);
+        }
+      }
+    } catch (e) {
+      console.log('Error resolving variable alias:', e.message);
+    }
+  }
+
+  return null;
+}
 
 // Scan for all spacing variables and their values
 async function scanForSpacingVariables() {
   console.log('Starting variable scan...');
   spacingVariables = [];
-  
+  variableCollections = [];
+
   try {
     // Wait for the document to be ready for dynamic pages
     await figma.loadAllPagesAsync();
-    
+
+    // Get all local variable collections first
+    var allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    var collectionMap = {};
+    for (var c = 0; c < allCollections.length; c++) {
+      var coll = allCollections[c];
+      collectionMap[coll.id] = coll;
+      variableCollections.push({
+        id: coll.id,
+        name: coll.name,
+        isLibrary: false
+      });
+    }
+    console.log('Found', variableCollections.length, 'local variable collections');
+
+    // Also get library variable collections
+    try {
+      var libraryCollections = await figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync();
+      console.log('Found', libraryCollections.length, 'library variable collections');
+
+      for (var lc = 0; lc < libraryCollections.length; lc++) {
+        var libColl = libraryCollections[lc];
+        console.log('Library collection:', libColl.name, 'from', libColl.libraryName);
+
+        // Import variables from this library collection
+        try {
+          var libVars = await figma.teamLibrary.getVariablesInLibraryCollectionAsync(libColl.key);
+          console.log('Found', libVars.length, 'variables in library collection', libColl.name);
+
+          // Add to collections list
+          variableCollections.push({
+            id: libColl.key,
+            name: libColl.libraryName + ' / ' + libColl.name,
+            isLibrary: true,
+            libraryName: libColl.libraryName
+          });
+
+          // Process each library variable
+          for (var lv = 0; lv < libVars.length; lv++) {
+            var libVar = libVars[lv];
+
+            // Import the variable to get full access
+            try {
+              var importedVar = await figma.variables.importVariableByKeyAsync(libVar.key);
+
+              // Check for GAP or WIDTH_HEIGHT scope
+              if (!importedVar.scopes || (importedVar.scopes.indexOf('GAP') === -1 && importedVar.scopes.indexOf('WIDTH_HEIGHT') === -1)) {
+                continue;
+              }
+
+              console.log('Found library spacing variable:', importedVar.name);
+
+              // Get the variable's numeric value (handles aliases)
+              var numericValue = null;
+              try {
+                var varCollection = await figma.variables.getVariableCollectionByIdAsync(importedVar.variableCollectionId);
+                if (varCollection && varCollection.modes && varCollection.modes.length > 0) {
+                  var defaultMode = varCollection.modes[0];
+                  // Use resolver to handle both direct values and aliases
+                  numericValue = await resolveVariableValue(importedVar, defaultMode.modeId);
+                }
+              } catch (e) {
+                console.log('Error getting value for library variable', importedVar.name, ':', e.message);
+              }
+
+              if (numericValue !== null) {
+                spacingVariables.push({
+                  id: importedVar.id,
+                  name: importedVar.name,
+                  value: numericValue,
+                  variable: importedVar,
+                  scopes: importedVar.scopes,
+                  collectionId: libColl.key,
+                  collectionName: libColl.libraryName + ' / ' + libColl.name,
+                  isLibrary: true
+                });
+              }
+            } catch (importErr) {
+              console.log('Error importing library variable:', libVar.name, importErr.message);
+            }
+          }
+        } catch (libVarsErr) {
+          console.log('Error getting variables from library collection:', libColl.name, libVarsErr.message);
+        }
+      }
+    } catch (libErr) {
+      console.log('Error getting library collections:', libErr.message);
+    }
+
     var localVariables = await figma.variables.getLocalVariablesAsync();
     console.log('Found', localVariables.length, 'total local variables');
-    
+
     for (var i = 0; i < localVariables.length; i++) {
       var variable = localVariables[i];
-      
+
+      // Debug: log variables with spacing-related names
+      var nameLower = variable.name.toLowerCase();
+      if (nameLower.indexOf('xl') !== -1 || nameLower.indexOf('lg') !== -1 ||
+          nameLower.indexOf('md') !== -1 || nameLower.indexOf('sm') !== -1 ||
+          nameLower.indexOf('spacing') !== -1 || nameLower.indexOf('gap') !== -1) {
+        console.log('DEBUG spacing-named variable:', variable.name, 'scopes:', variable.scopes, 'resolvedType:', variable.resolvedType);
+      }
+
       // Check for GAP or WIDTH_HEIGHT scope (both can be used for spacing)
       if (!variable.scopes || (variable.scopes.indexOf('GAP') === -1 && variable.scopes.indexOf('WIDTH_HEIGHT') === -1)) {
+        // Log why this variable is being skipped
+        if (nameLower.indexOf('xl') !== -1 || nameLower.indexOf('lg') !== -1 ||
+            nameLower.indexOf('md') !== -1 || nameLower.indexOf('spacing') !== -1) {
+          console.log('SKIPPING variable (wrong scope):', variable.name, 'scopes:', variable.scopes);
+        }
         continue;
       }
-      
+
       console.log('Found spacing variable:', variable.name);
-      
-      // Get the variable's numeric value
+
+      // Get the variable's numeric value and collection info
       var numericValue = null;
+      var collectionName = '';
+      var collectionId = variable.variableCollectionId;
       try {
-        var collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
-        if (collection && collection.modes && collection.modes.length > 0) {
-          var defaultMode = collection.modes[0];
-          var valuesByMode = variable.valuesByMode;
-          if (valuesByMode && valuesByMode[defaultMode.modeId] !== undefined) {
-            var value = valuesByMode[defaultMode.modeId];
-            if (typeof value === 'number') {
-              numericValue = value;
-            }
+        var collection = collectionMap[collectionId];
+        if (collection) {
+          collectionName = collection.name;
+          if (collection.modes && collection.modes.length > 0) {
+            var defaultMode = collection.modes[0];
+            // Use resolver to handle both direct values and aliases
+            numericValue = await resolveVariableValue(variable, defaultMode.modeId);
           }
         }
       } catch (e) {
         console.log('Error getting value for variable', variable.name, ':', e.message);
       }
-      
+
       if (numericValue !== null) {
         spacingVariables.push({
           id: variable.id,
           name: variable.name,
           value: numericValue,
           variable: variable,
-          scopes: variable.scopes
+          scopes: variable.scopes,
+          collectionId: collectionId,
+          collectionName: collectionName,
+          isLibrary: false
         });
       }
     }
-    
+
     // Sort variables by their numeric value
     spacingVariables.sort(function(a, b) {
       return a.value - b.value;
     });
-    
+
     console.log('Found', spacingVariables.length, 'spacing variables with values');
     spacingVariables.forEach(function(v) {
-      console.log('Variable:', v.name, '=', v.value + 'px');
+      console.log('Variable:', v.name, '=', v.value + 'px', 'collection:', v.collectionName);
     });
 
     figma.ui.postMessage({
       type: 'variables-found',
       variables: spacingVariables.map(function(v) {
-        return { 
-          id: v.id, 
-          name: v.name, 
+        return {
+          id: v.id,
+          name: v.name,
           value: v.value,
-          scopes: v.scopes
+          scopes: v.scopes,
+          collectionId: v.collectionId,
+          collectionName: v.collectionName
         };
-      })
+      }),
+      collections: variableCollections
     });
-    
+
   } catch (e) {
     console.log('Error scanning variables:', e.message);
     figma.ui.postMessage({
       type: 'variables-found',
       variables: [],
+      collections: [],
       error: e.message
     });
   }
@@ -97,19 +251,26 @@ async function scanForSpacingVariables() {
 function findMatchingVariable(spacingValue, propertyType) {
   // propertyType can be 'gap' or 'padding' to help match correct scope
   for (var i = 0; i < spacingVariables.length; i++) {
-    if (spacingVariables[i].value === spacingValue) {
+    var variable = spacingVariables[i];
+
+    // Skip if variable is not in selected collections (when collections are selected)
+    if (selectedCollectionIds.length > 0 && selectedCollectionIds.indexOf(variable.collectionId) === -1) {
+      continue;
+    }
+
+    if (variable.value === spacingValue) {
       // Check if the variable has appropriate scope for the property
-      var hasGapScope = spacingVariables[i].scopes.indexOf('GAP') !== -1;
-      var hasWidthHeightScope = spacingVariables[i].scopes.indexOf('WIDTH_HEIGHT') !== -1;
-      
+      var hasGapScope = variable.scopes.indexOf('GAP') !== -1;
+      var hasWidthHeightScope = variable.scopes.indexOf('WIDTH_HEIGHT') !== -1;
+
       // GAP scope is for gaps, WIDTH_HEIGHT can be used for padding
       if (propertyType === 'gap' && hasGapScope) {
-        return spacingVariables[i];
+        return variable;
       } else if (propertyType === 'padding' && hasWidthHeightScope) {
-        return spacingVariables[i];
+        return variable;
       } else if (hasGapScope || hasWidthHeightScope) {
         // If no specific match, return any matching value
-        return spacingVariables[i];
+        return variable;
       }
     }
   }
@@ -417,7 +578,7 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
 // Start scanning process
 function startScan(ignoredNames) {
   if (isScanning) return;
-  
+
   console.log('Starting scan with ignored names:', ignoredNames);
   isScanning = true;
   layersWithIssues = [];
@@ -430,7 +591,7 @@ function startScan(ignoredNames) {
   // Check if we have selected layers
   var selection = figma.currentPage.selection;
   console.log('Current selection:', selection.length, 'layers');
-  
+
   if (selection.length === 0) {
     figma.ui.postMessage({
       type: 'error',
@@ -759,8 +920,9 @@ async function saveIgnoredNames(names) {
   }
 }
 
-// Load ignored names on startup
+// Load ignored names and selected collections on startup
 loadIgnoredNames();
+loadSelectedCollections();
 
 // Handle messages from UI
 figma.ui.onmessage = async function(msg) {
@@ -794,9 +956,45 @@ figma.ui.onmessage = async function(msg) {
     case 'autofix_all':
       await autofixAllLayers();
       break;
-    
+
+    case 'update-selected-collections':
+      selectedCollectionIds = msg.collectionIds || [];
+      console.log('Updated selected collections:', selectedCollectionIds);
+      // Save to client storage
+      await figma.clientStorage.setAsync('spacingChecker_selectedCollections', selectedCollectionIds);
+      break;
+
+    case 'load-selected-collections':
+      await loadSelectedCollections();
+      break;
+
     case 'close':
       figma.closePlugin();
       break;
   }
 };
+
+// Load selected collections from clientStorage
+async function loadSelectedCollections() {
+  try {
+    var savedCollections = await figma.clientStorage.getAsync('spacingChecker_selectedCollections');
+    if (savedCollections && Array.isArray(savedCollections)) {
+      selectedCollectionIds = savedCollections;
+      figma.ui.postMessage({
+        type: 'selected-collections-loaded',
+        collectionIds: selectedCollectionIds
+      });
+    } else {
+      figma.ui.postMessage({
+        type: 'selected-collections-loaded',
+        collectionIds: []
+      });
+    }
+  } catch (e) {
+    console.log('Error loading selected collections:', e);
+    figma.ui.postMessage({
+      type: 'selected-collections-loaded',
+      collectionIds: []
+    });
+  }
+}

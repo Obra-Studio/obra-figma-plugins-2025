@@ -59,7 +59,28 @@
             background: #ccc;
             cursor: not-allowed;
         }
-        
+
+        .button-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .button-secondary:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .scan-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .scan-buttons .button {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
         .button-small {
             padding: 4px 8px;
             font-size: 11px;
@@ -527,6 +548,59 @@
             height: 100%;
             min-height: 0;
         }
+
+        .collection-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .collection-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: #ffffff;
+        }
+
+        .collection-option:hover {
+            background: #f7f7f7;
+            border-color: #cbd5e1;
+        }
+
+        .collection-option.selected {
+            background: #e0f2fe;
+            border-color: #0ea5e9;
+        }
+
+        .collection-option input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .collection-option-label {
+            flex-grow: 1;
+            font-size: 11px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .collection-option-count {
+            font-size: 10px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .collection-option.selected .collection-option-count {
+            background: #0ea5e9;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -544,7 +618,10 @@
     <!-- Layers Tab -->
     <div id="layersTab" class="tab-content active">
         <div id="scanSection" class="section">
-            <button id="scanBtn" class="button">Scan Selected Layers</button>
+            <div class="scan-buttons">
+                <button id="scanBtn" class="button">Scan Selected Layers</button>
+                <button id="scanPageBtn" class="button button-secondary">Scan Page</button>
+            </div>
             <div id="status" class="status hidden">Ready to scan...</div>
         </div>
 
@@ -592,6 +669,19 @@
     <!-- Settings Tab -->
     <div id="settingsTab" class="tab-content">
         <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion('collections')">
+                <span class="accordion-toggle open" id="collectionsToggle">▶</span>
+                <span class="accordion-title">Variable Collection</span>
+            </div>
+            <div class="accordion-content open" id="collectionsContent">
+                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Select which collection to use for border radius variables:</div>
+                <div id="collectionSelector" class="collection-selector">
+                    <div style="color: #999; font-style: italic;">Loading collections...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion">
             <div class="accordion-header" onclick="toggleAccordion('variables')">
                 <span class="accordion-toggle open" id="variablesToggle">▶</span>
                 <span class="accordion-title">Available Variables</span>
@@ -635,10 +725,12 @@
         function initializePlugin() {
             var elements = {
                 scanBtn: document.getElementById('scanBtn'),
+                scanPageBtn: document.getElementById('scanPageBtn'),
                 status: document.getElementById('status'),
                 errorBanner: document.getElementById('errorBanner'),
                 errorMessage: document.getElementById('errorMessage'),
                 variablesList: document.getElementById('variablesList'),
+                collectionSelector: document.getElementById('collectionSelector'),
                 ignoreInput: document.getElementById('ignoreInput'),
                 addIgnoreBtn: document.getElementById('addIgnoreBtn'),
                 ignoreList: document.getElementById('ignoreList'),
@@ -658,6 +750,8 @@
             };
 
             var variables = [];
+            var collections = [];
+            var selectedCollectionIds = []; // Array for multiple selection
             var layers = [];
             var problemLayers = [];
             var fixedLayers = [];
@@ -665,7 +759,7 @@
             var ignoredLayerNames = [];
 
             // Check all elements exist before adding event listeners
-            if (!elements.scanBtn || !elements.addIgnoreBtn || !elements.ignoreInput) {
+            if (!elements.scanBtn || !elements.scanPageBtn || !elements.addIgnoreBtn || !elements.ignoreInput) {
                 console.error('Required DOM elements not found');
                 return;
             }
@@ -674,6 +768,11 @@
             elements.scanBtn.addEventListener('click', function() {
                 hideError();
                 parent.postMessage({ pluginMessage: { type: 'start-scan', ignoredNames: ignoredLayerNames } }, '*');
+            });
+
+            elements.scanPageBtn.addEventListener('click', function() {
+                hideError();
+                parent.postMessage({ pluginMessage: { type: 'scan-page', ignoredNames: ignoredLayerNames } }, '*');
             });
 
             elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
@@ -754,6 +853,87 @@
 
             // Make removeIgnoreItem available globally
             window.removeIgnoreItem = removeIgnoreItem;
+
+            // Update collection selector
+            function updateCollectionSelector(collectionsData, currentSelectedIds) {
+                if (!elements.collectionSelector) return;
+
+                collections = collectionsData || [];
+                selectedCollectionIds = currentSelectedIds || [];
+
+                // If no collections selected yet and we have collections, select all by default
+                if (selectedCollectionIds.length === 0 && collections.length > 0) {
+                    selectedCollectionIds = collections.map(function(c) { return c.id; });
+                    // Send the default selection to plugin
+                    parent.postMessage({
+                        pluginMessage: {
+                            type: 'select-collections',
+                            collectionIds: selectedCollectionIds
+                        }
+                    }, '*');
+                }
+
+                if (collections.length === 0) {
+                    elements.collectionSelector.innerHTML = '<div style="color: #999; font-style: italic;">No collections with border radius variables found</div>';
+                    return;
+                }
+
+                var html = '';
+
+                // Add each collection as a checkbox
+                for (var i = 0; i < collections.length; i++) {
+                    var collection = collections[i];
+                    var isSelected = selectedCollectionIds.indexOf(collection.id) !== -1;
+                    html += '<div class="collection-option' + (isSelected ? ' selected' : '') + '" data-collection-id="' + collection.id + '" onclick="window.toggleCollection(\'' + collection.id + '\')">' +
+                           '<input type="checkbox" ' + (isSelected ? 'checked' : '') + '>' +
+                           '<span class="collection-option-label">' + collection.name + '</span>' +
+                           '<span class="collection-option-count">' + collection.variableCount + ' variables</span>' +
+                           '</div>';
+                }
+
+                elements.collectionSelector.innerHTML = html;
+            }
+
+            // Toggle a collection selection
+            function toggleCollection(collectionId) {
+                var index = selectedCollectionIds.indexOf(collectionId);
+                if (index !== -1) {
+                    // Don't allow deselecting the last collection
+                    if (selectedCollectionIds.length === 1) {
+                        return;
+                    }
+                    selectedCollectionIds.splice(index, 1);
+                } else {
+                    selectedCollectionIds.push(collectionId);
+                }
+
+                // Update UI
+                var options = document.querySelectorAll('.collection-option');
+                for (var i = 0; i < options.length; i++) {
+                    var optionId = options[i].getAttribute('data-collection-id');
+                    var isSelected = selectedCollectionIds.indexOf(optionId) !== -1;
+                    var checkbox = options[i].querySelector('input[type="checkbox"]');
+
+                    if (isSelected) {
+                        options[i].classList.add('selected');
+                        if (checkbox) checkbox.checked = true;
+                    } else {
+                        options[i].classList.remove('selected');
+                        if (checkbox) checkbox.checked = false;
+                    }
+                }
+
+                // Send message to plugin
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'select-collections',
+                        collectionIds: selectedCollectionIds
+                    }
+                }, '*');
+            }
+
+            // Make toggleCollection available globally
+            window.toggleCollection = toggleCollection;
 
             // Toggle accordion sections
             function toggleAccordion(section) {
@@ -1036,6 +1216,10 @@
                 console.log('UI received message:', msg.type);
 
                 switch (msg.type) {
+                    case 'collections-found':
+                        updateCollectionSelector(msg.collections, msg.selectedCollectionIds);
+                        break;
+
                     case 'variables-found':
                         updateVariablesList(msg);
                         break;
@@ -1043,17 +1227,23 @@
                     case 'scan-started':
                         hideError();
                         if (elements.status) {
-                            elements.status.textContent = 'Scanning selected layers...';
+                            elements.status.textContent = 'Scanning...';
                             elements.status.classList.remove('hidden');
                         }
                         if (elements.scanBtn) {
                             elements.scanBtn.disabled = true;
+                        }
+                        if (elements.scanPageBtn) {
+                            elements.scanPageBtn.disabled = true;
                         }
                         break;
                     
                     case 'scan-complete':
                         if (elements.scanBtn) {
                             elements.scanBtn.disabled = false;
+                        }
+                        if (elements.scanPageBtn) {
+                            elements.scanPageBtn.disabled = false;
                         }
                         if (elements.status) {
                             elements.status.classList.add('hidden');
@@ -1145,6 +1335,9 @@
                         showError(msg.message);
                         if (elements.scanBtn) {
                             elements.scanBtn.disabled = false;
+                        }
+                        if (elements.scanPageBtn) {
+                            elements.scanPageBtn.disabled = false;
                         }
                         break;
                     
