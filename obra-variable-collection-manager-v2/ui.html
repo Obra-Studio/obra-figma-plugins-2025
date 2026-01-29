@@ -1857,7 +1857,13 @@
       
       switch (msg.type) {
         case 'collections-loaded':
-          collections = msg.collections;
+          // Deduplicate collections by ID to prevent duplicates
+          const seen = new Set();
+          collections = msg.collections.filter(c => {
+            if (seen.has(c.id)) return false;
+            seen.add(c.id);
+            return true;
+          });
           loadingEl.classList.add('hidden');
           
           if (collections.length === 0) {

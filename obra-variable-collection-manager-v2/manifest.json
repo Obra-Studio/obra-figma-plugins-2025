@@ -1,6 +1,7 @@
 {
   "name": "Obra Variable Collection Manager",
   "id": "1577745671557491526",
+  "version": "1.0.1",
   "api": "1.0.0",
   "main": "code.js",
   "capabilities": [],

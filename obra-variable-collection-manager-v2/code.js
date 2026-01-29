@@ -8,7 +8,16 @@ let collectionsData = [];
 async function loadCollections() {
   try {
     // Use the async method to get all local variable collections
-    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+
+    // Deduplicate collections by ID (in case API returns duplicates)
+    const seenIds = new Set();
+    const collections = allCollections.filter(c => {
+      if (seenIds.has(c.id)) return false;
+      seenIds.add(c.id);
+      return true;
+    });
+
     collectionsData = [];
 
     for (const collection of collections) {
