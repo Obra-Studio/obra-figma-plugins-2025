@@ -2,52 +2,104 @@
 <html>
 <head>
   <style>
+    :root {
+      --color-bg: #fff;
+      --color-text: #333;
+      --color-text-strong: #1a1a1a;
+      --color-text-muted: #666;
+      --color-text-subtle: #555;
+      --color-surface: #f5f5f5;
+      --color-border: #e5e5e5;
+      --color-badge: #e8e8e8;
+      --color-btn-secondary-bg: #e8e8e8;
+      --color-btn-secondary-bg-hover: #ddd;
+      --color-btn-secondary-text: #333;
+      --color-clear-bg: #fef5f4;
+      --color-clear-border: #f5d3cf;
+      --color-clear-text: #e74c3c;
+      --color-clear-bg-hover: #fde8e5;
+      --color-clear-border-hover: #e74c3c;
+      --color-clear-disabled: #999;
+      --color-refresh-bg: #f5f5f5;
+      --color-refresh-border: #e5e5e5;
+      --color-refresh-text: #333;
+      --color-refresh-bg-hover: #eee;
+      --color-flash: #d4edda;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #2c2c2c;
+        --color-text: #e0e0e0;
+        --color-text-strong: #f0f0f0;
+        --color-text-muted: #999;
+        --color-text-subtle: #aaa;
+        --color-surface: #383838;
+        --color-border: #444;
+        --color-badge: #444;
+        --color-btn-secondary-bg: #444;
+        --color-btn-secondary-bg-hover: #505050;
+        --color-btn-secondary-text: #e0e0e0;
+        --color-clear-bg: #3a2a2a;
+        --color-clear-border: #5a3a3a;
+        --color-clear-text: #f07068;
+        --color-clear-bg-hover: #3e2e2e;
+        --color-clear-border-hover: #f07068;
+        --color-clear-disabled: #666;
+        --color-refresh-bg: #383838;
+        --color-refresh-border: #444;
+        --color-refresh-text: #e0e0e0;
+        --color-refresh-bg-hover: #444;
+        --color-flash: #2a4a2e;
+      }
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    
+
     body {
       font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 12px;
-      color: #333;
+      color: var(--color-text);
       padding: 12px;
-      background: #fff;
+      background: var(--color-bg);
     }
-    
+
     .header {
       margin-bottom: 16px;
     }
-    
+
     h1 {
       font-size: 14px;
       font-weight: 600;
       margin-bottom: 4px;
-      color: #1a1a1a;
+      color: var(--color-text-strong);
     }
-    
+
     .subtitle {
-      color: #666;
+      color: var(--color-text-muted);
       font-size: 11px;
       line-height: 1.4;
     }
-    
+
     .selection-info {
-      background: #f5f5f5;
+      background: var(--color-surface);
       padding: 10px 12px;
       margin-bottom: 16px;
       font-size: 11px;
-      color: #555;
+      color: var(--color-text-subtle);
     }
 
     .selection-info strong {
-      color: #333;
+      color: var(--color-text);
     }
 
     .divider {
       height: 1px;
-      background: #e5e5e5;
+      background: var(--color-border);
       margin: 16px -12px;
     }
 
@@ -59,7 +111,7 @@
 
     .mode-card {
       padding: 12px 0;
-      border-bottom: 1px solid #e5e5e5;
+      border-bottom: 1px solid var(--color-border);
       display: flex;
       gap: 12px;
       align-items: center;
@@ -84,12 +136,12 @@
     .mode-name {
       font-weight: 600;
       font-size: 13px;
-      color: #1a1a1a;
+      color: var(--color-text-strong);
     }
 
     .mode-count {
-      background: #e8e8e8;
-      color: #555;
+      background: var(--color-badge);
+      color: var(--color-text-subtle);
       padding: 2px 8px;
       border-radius: 3px;
       font-size: 10px;
@@ -99,7 +151,7 @@
 
     .collections-list {
       font-size: 11px;
-      color: #666;
+      color: var(--color-text-muted);
       line-height: 1.5;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -113,7 +165,7 @@
       flex-shrink: 0;
       min-width: 120px;
     }
-    
+
     .btn {
       flex: 1;
       padding: 6px 10px;
@@ -124,65 +176,65 @@
       cursor: pointer;
       transition: background 0.15s, opacity 0.15s;
     }
-    
+
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    
+
     .btn-primary {
       background: #18a0fb;
       color: white;
     }
-    
+
     .btn-primary:hover:not(:disabled) {
       background: #0d8de5;
     }
-    
+
     .btn-secondary {
-      background: #e8e8e8;
-      color: #333;
+      background: var(--color-btn-secondary-bg);
+      color: var(--color-btn-secondary-text);
     }
-    
+
     .btn-secondary:hover:not(:disabled) {
-      background: #ddd;
+      background: var(--color-btn-secondary-bg-hover);
     }
-    
+
     .empty-state {
       text-align: center;
       padding: 32px 16px;
-      color: #666;
+      color: var(--color-text-muted);
     }
-    
+
     .empty-state-icon {
       font-size: 32px;
       margin-bottom: 12px;
       opacity: 0.5;
     }
-    
+
     .empty-state h2 {
       font-size: 13px;
       font-weight: 600;
-      color: #333;
+      color: var(--color-text);
       margin-bottom: 8px;
     }
-    
+
     .empty-state p {
       font-size: 11px;
       line-height: 1.5;
       max-width: 240px;
       margin: 0 auto;
     }
-    
+
     .clear-section {
       margin-top: 16px;
       padding-top: 12px;
-      border-top: 1px solid #e5e5e5;
+      border-top: 1px solid var(--color-border);
     }
 
     .clear-label {
       font-size: 11px;
-      color: #666;
+      color: var(--color-text-muted);
       margin-bottom: 8px;
       font-weight: 500;
     }
@@ -195,62 +247,62 @@
     .clear-btn {
       flex: 1;
       padding: 6px 10px;
-      background: #fef5f4;
-      border: 1px solid #f5d3cf;
+      background: var(--color-clear-bg);
+      border: 1px solid var(--color-clear-border);
       border-radius: 3px;
       font-size: 11px;
       font-weight: 500;
-      color: #e74c3c;
+      color: var(--color-clear-text);
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
 
     .clear-btn:hover:not(:disabled) {
-      background: #fde8e5;
-      border-color: #e74c3c;
+      background: var(--color-clear-bg-hover);
+      border-color: var(--color-clear-border-hover);
     }
 
     .clear-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      color: #999;
+      color: var(--color-clear-disabled);
     }
 
     .footer {
       margin-top: 16px;
       padding-top: 12px;
-      border-top: 1px solid #e5e5e5;
+      border-top: 1px solid var(--color-border);
     }
 
     .refresh-btn {
       width: 100%;
       padding: 8px;
-      background: #f5f5f5;
-      border: 1px solid #e5e5e5;
+      background: var(--color-refresh-bg);
+      border: 1px solid var(--color-refresh-border);
       border-radius: 3px;
       font-size: 11px;
       font-weight: 500;
-      color: #333;
+      color: var(--color-refresh-text);
       cursor: pointer;
       transition: background 0.15s;
     }
 
     .refresh-btn:hover {
-      background: #eee;
+      background: var(--color-refresh-bg-hover);
     }
-    
+
     .loading {
       text-align: center;
       padding: 32px;
-      color: #666;
+      color: var(--color-text-muted);
     }
-    
+
     .success-flash {
       animation: flash 0.3s ease-out;
     }
 
     @keyframes flash {
-      0% { background-color: #d4edda; }
+      0% { background-color: var(--color-flash); }
       100% { background-color: transparent; }
     }
   </style>
@@ -277,7 +329,7 @@
   </div>
 
   <div class="footer">
-    <button class="refresh-btn" id="refresh-btn">↻ Rescan Collections</button>
+    <button class="refresh-btn" id="refresh-btn">Rescan Collections</button>
   </div>
 
   <script>
@@ -308,7 +360,7 @@
       if (sharedModes.length === 0) {
         content.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">🔍</div>
+
             <h2>No shared modes found</h2>
             <p>Create modes with the same name in multiple variable collections to use this plugin.</p>
           </div>
@@ -426,6 +478,16 @@
         // Notification is already shown from plugin code
       }
     };
+
+    // Auto-resize plugin height to match content
+    function syncHeight() {
+      const height = document.body.scrollHeight;
+      parent.postMessage({ pluginMessage: { type: 'resize', height } }, '*');
+    }
+
+    const observer = new MutationObserver(syncHeight);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    syncHeight();
   </script>
 </body>
 </html>

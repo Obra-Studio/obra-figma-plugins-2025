@@ -2,7 +2,7 @@
 // Scans for modes with the same name across variable collections
 // and allows applying them all at once
 
-figma.showUI(__html__, { width: 416, height: 520 });
+figma.showUI(__html__, { width: 416, height: 200 });
 
 // Scan all variable collections and find modes that share names
 async function scanForSharedModes() {
@@ -257,6 +257,10 @@ figma.ui.onmessage = async (msg) => {
     });
   }
   
+  if (msg.type === 'resize') {
+    figma.ui.resize(416, msg.height);
+  }
+
   if (msg.type === 'close') {
     figma.closePlugin();
   }
