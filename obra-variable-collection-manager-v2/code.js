@@ -288,7 +288,13 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
     // PHASE 2.5: Update backreferences in other collections
     await updateBackreferences(variableIdMap, errors);
 
+    // PHASE 2.6: Rewire design-node bindings (fills/strokes/effects/etc.)
+    // so that nodes using the moved variables don't lose their binding when
+    // the source variable is removed below.
+    await updateDesignNodeBindings(variableIdMap, errors);
+
     // PHASE 3: Remove source variables and optionally delete collections
+    sendProgress('Removing old variables…');
     for (const sourceCollectionId of sourceCollectionIds) {
       const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
       
@@ -347,6 +353,8 @@ function isVariableAlias(value) {
 async function updateBackreferences(variableIdMap, errors) {
   if (variableIdMap.size === 0) return 0;
 
+  sendProgress('Updating references in other collections…');
+
   let updatedCount = 0;
   const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
 
@@ -372,6 +380,171 @@ async function updateBackreferences(variableIdMap, errors) {
     }
   }
   return updatedCount;
+}
+
+// Send a progress update to the UI (e.g. to live-update a button label)
+function sendProgress(message) {
+  figma.ui.postMessage({ type: 'progress', message: message });
+}
+
+// Walk every node in the document and rewire any variable bindings that point
+// at variables we're about to remove. Without this, removing the source
+// variable leaves design nodes showing "?" where the binding used to be.
+async function updateDesignNodeBindings(variableIdMap, errors) {
+  if (variableIdMap.size === 0) return 0;
+
+  sendProgress('Loading all pages…');
+  try {
+    await figma.loadAllPagesAsync();
+  } catch (loadError) {
+    errors.push(`Failed to load all pages: ${loadError.message}`);
+    return 0;
+  }
+
+  let updatedCount = 0;
+  const pages = figma.root.children.filter(n => n.type === 'PAGE');
+
+  for (let p = 0; p < pages.length; p++) {
+    const page = pages[p];
+    sendProgress(`Rebinding variables — page ${p + 1}/${pages.length}`);
+
+    updatedCount += rebindNodeVariables(page, variableIdMap, errors);
+    for (const node of page.findAll(() => true)) {
+      updatedCount += rebindNodeVariables(node, variableIdMap, errors);
+    }
+  }
+
+  return updatedCount;
+}
+
+function rebindNodeVariables(node, variableIdMap, errors) {
+  let count = 0;
+  const rebindPaint = (p, f, v) => figma.variables.setBoundVariableForPaint(p, f, v);
+  const rebindEffect = (e, f, v) => figma.variables.setBoundVariableForEffect(e, f, v);
+  const rebindGrid = (g, f, v) => figma.variables.setBoundVariableForLayoutGrid(g, f, v);
+
+  count += rebindStyleArray(node, 'fills', rebindPaint, variableIdMap, errors);
+  count += rebindStyleArray(node, 'strokes', rebindPaint, variableIdMap, errors);
+  count += rebindStyleArray(node, 'backgrounds', rebindPaint, variableIdMap, errors);
+  count += rebindStyleArray(node, 'effects', rebindEffect, variableIdMap, errors);
+  count += rebindStyleArray(node, 'layoutGrids', rebindGrid, variableIdMap, errors);
+  count += rebindScalarFields(node, variableIdMap, errors);
+  count += rebindTextRangeFills(node, variableIdMap, errors);
+  return count;
+}
+
+function rebindStyleArray(node, propName, rebuild, variableIdMap, errors) {
+  if (!(propName in node)) return 0;
+  const items = node[propName];
+  // figma.mixed is a Symbol, so Array.isArray filters it out naturally
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  let newItems = items;
+  let changed = false;
+  let count = 0;
+
+  for (let i = 0; i < newItems.length; i++) {
+    const item = newItems[i];
+    if (!item || !item.boundVariables) continue;
+
+    for (const [field, binding] of Object.entries(item.boundVariables)) {
+      if (!binding || !binding.id || !variableIdMap.has(binding.id)) continue;
+      const newVar = variableIdMap.get(binding.id);
+      try {
+        const rebuilt = rebuild(newItems[i], field, newVar);
+        newItems = newItems.map((it, idx) => idx === i ? rebuilt : it);
+        changed = true;
+        count++;
+      } catch (e) {
+        errors.push(`Failed to rebind ${propName}.${field} on "${node.name}": ${e.message}`);
+      }
+    }
+  }
+
+  if (changed) {
+    try {
+      node[propName] = newItems;
+    } catch (e) {
+      errors.push(`Failed to apply rebound ${propName} on "${node.name}": ${e.message}`);
+    }
+  }
+
+  return count;
+}
+
+// Fields on node.boundVariables that are arrays or non-rebindable here
+const NON_SCALAR_BOUND_FIELDS = new Set([
+  'fills', 'strokes', 'effects', 'layoutGrids', 'backgrounds',
+  'componentProperties', 'variantProperties', 'textRangeFills'
+]);
+
+function rebindScalarFields(node, variableIdMap, errors) {
+  if (!node.boundVariables) return 0;
+
+  let count = 0;
+  for (const [field, binding] of Object.entries(node.boundVariables)) {
+    if (NON_SCALAR_BOUND_FIELDS.has(field)) continue;
+    if (!binding || Array.isArray(binding) || !binding.id) continue;
+    if (!variableIdMap.has(binding.id)) continue;
+
+    const newVar = variableIdMap.get(binding.id);
+    try {
+      node.setBoundVariable(field, newVar);
+      count++;
+    } catch (e) {
+      errors.push(`Failed to rebind ${field} on "${node.name}": ${e.message}`);
+    }
+  }
+
+  return count;
+}
+
+function rebindTextRangeFills(node, variableIdMap, errors) {
+  if (node.type !== 'TEXT') return 0;
+  if (typeof node.getStyledTextSegments !== 'function') return 0;
+
+  let segments;
+  try {
+    segments = node.getStyledTextSegments(['fills']);
+  } catch (e) {
+    return 0;
+  }
+
+  let count = 0;
+  for (const segment of segments) {
+    if (!Array.isArray(segment.fills) || segment.fills.length === 0) continue;
+
+    let newFills = segment.fills;
+    let segmentChanged = false;
+
+    for (let i = 0; i < newFills.length; i++) {
+      const paint = newFills[i];
+      if (!paint || !paint.boundVariables) continue;
+
+      for (const [field, binding] of Object.entries(paint.boundVariables)) {
+        if (!binding || !binding.id || !variableIdMap.has(binding.id)) continue;
+        const newVar = variableIdMap.get(binding.id);
+        try {
+          const rebuilt = figma.variables.setBoundVariableForPaint(newFills[i], field, newVar);
+          newFills = newFills.map((p, idx) => idx === i ? rebuilt : p);
+          segmentChanged = true;
+          count++;
+        } catch (e) {
+          errors.push(`Failed to rebind text range fill on "${node.name}": ${e.message}`);
+        }
+      }
+    }
+
+    if (segmentChanged) {
+      try {
+        node.setRangeFills(segment.start, segment.end, newFills);
+      } catch (e) {
+        errors.push(`Failed to apply text range fills on "${node.name}": ${e.message}`);
+      }
+    }
+  }
+
+  return count;
 }
 
 // Split groups from a collection into a single new collection
@@ -535,7 +708,11 @@ async function splitCollection(sourceCollectionId, groupNames, newCollectionName
     // PHASE 2.5: Update backreferences in other collections
     await updateBackreferences(variableIdMap, errors);
 
+    // PHASE 2.6: Rewire design-node bindings so nodes keep their bindings
+    await updateDesignNodeBindings(variableIdMap, errors);
+
     // PHASE 3: Remove the original variables from the source collection
+    sendProgress('Removing old variables…');
     for (const variableId of variableIds) {
       const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
 
@@ -749,7 +926,11 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
     // PHASE 2.5: Update backreferences in other collections
     await updateBackreferences(variableIdMap, errors);
 
+    // PHASE 2.6: Rewire design-node bindings so nodes keep their bindings
+    await updateDesignNodeBindings(variableIdMap, errors);
+
     // PHASE 3: Remove the original variables from the source collection
+    sendProgress('Removing old variables…');
     for (const variableId of variableIds) {
       const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
 

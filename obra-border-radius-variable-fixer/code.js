@@ -216,6 +216,16 @@ function applyCollectionFilter() {
     });
   }
 
+  // Sort by value asc, then by collection rank (earlier = preferred for ties)
+  borderRadiusVariables.sort(function(a, b) {
+    if (a.value !== b.value) return a.value - b.value;
+    var rankA = selectedCollectionIds.indexOf(a.collectionId);
+    var rankB = selectedCollectionIds.indexOf(b.collectionId);
+    if (rankA === -1) rankA = Number.MAX_SAFE_INTEGER;
+    if (rankB === -1) rankB = Number.MAX_SAFE_INTEGER;
+    return rankA - rankB;
+  });
+
   console.log('Filtered to', borderRadiusVariables.length, 'variables from', selectedCollectionIds.length, 'collections');
 
   // Send filtered variables to UI
@@ -864,8 +874,133 @@ async function autofixAll() {
   });
 }
 
+// Storage key scoped to this Figma file so results don't leak across files
+function getFileScanStorageKey() {
+  var fileId = (figma.fileKey || (figma.root && figma.root.id) || 'unknown');
+  return 'borderRadiusChecker_lastFileScan_' + fileId;
+}
+
+// Scan all pages in the file and count fixable layers per page
+async function scanEntireFile(ignoredNames) {
+  ignoredNames = ignoredNames || [];
+  console.log('Starting full-file scan...');
+
+  figma.ui.postMessage({ type: 'file-scan-started' });
+
+  try {
+    await figma.loadAllPagesAsync();
+  } catch (e) {
+    console.log('Error loading all pages:', e.message);
+    figma.ui.postMessage({ type: 'error', message: 'Failed to load all pages: ' + e.message });
+    return;
+  }
+
+  var pages = figma.root.children;
+  var pageResults = [];
+
+  for (var p = 0; p < pages.length; p++) {
+    var page = pages[p];
+    var issues = [];
+    try {
+      for (var c = 0; c < page.children.length; c++) {
+        findLayersWithRadiusIssues(page.children[c], issues, ignoredNames);
+      }
+    } catch (e) {
+      console.log('Error scanning page', page.name + ':', e.message);
+    }
+
+    var fixable = 0;
+    var noMatch = 0;
+    var alreadyFixed = 0;
+    for (var i = 0; i < issues.length; i++) {
+      if (issues[i].issueType === 'missing_variable') fixable++;
+      else if (issues[i].issueType === 'no_matching_variable') noMatch++;
+      else if (issues[i].issueType === 'has_variable') alreadyFixed++;
+    }
+
+    pageResults.push({
+      id: page.id,
+      name: page.name,
+      total: issues.length,
+      fixable: fixable,
+      noMatch: noMatch,
+      alreadyFixed: alreadyFixed,
+      problems: fixable + noMatch
+    });
+
+    figma.ui.postMessage({
+      type: 'file-scan-progress',
+      current: p + 1,
+      total: pages.length,
+      pageName: page.name
+    });
+
+    // Yield to allow the UI message to flush and the progress bar to render
+    await new Promise(function(resolve) { setTimeout(resolve, 0); });
+  }
+
+  pageResults.sort(function(a, b) { return b.problems - a.problems; });
+
+  var payload = {
+    pages: pageResults,
+    scannedAt: Date.now()
+  };
+
+  try {
+    await figma.clientStorage.setAsync(getFileScanStorageKey(), payload);
+  } catch (e) {
+    console.log('Error saving file scan results:', e.message);
+  }
+
+  figma.ui.postMessage({
+    type: 'file-scan-complete',
+    pages: pageResults,
+    scannedAt: payload.scannedAt
+  });
+}
+
+// Load the last stored file-scan results and send them to the UI
+async function loadLastFileScan() {
+  try {
+    var saved = await figma.clientStorage.getAsync(getFileScanStorageKey());
+    if (saved && saved.pages) {
+      figma.ui.postMessage({
+        type: 'file-scan-restored',
+        pages: saved.pages,
+        scannedAt: saved.scannedAt
+      });
+    }
+  } catch (e) {
+    console.log('Error loading saved file scan:', e.message);
+  }
+}
+
+async function clearLastFileScan() {
+  try {
+    await figma.clientStorage.deleteAsync(getFileScanStorageKey());
+  } catch (e) {
+    console.log('Error clearing saved file scan:', e.message);
+  }
+}
+
+// Switch to a page (and optionally trigger a page scan after)
+async function goToPage(pageId) {
+  try {
+    var page = await figma.getNodeByIdAsync(pageId);
+    if (page && page.type === 'PAGE') {
+      await figma.setCurrentPageAsync(page);
+      figma.ui.postMessage({ type: 'page-changed', pageId: pageId, pageName: page.name });
+    }
+  } catch (e) {
+    figma.ui.postMessage({ type: 'error', message: 'Failed to switch page: ' + e.message });
+  }
+}
+
 // Load ignored names on startup
 loadIgnoredNames();
+
+// Restore last file-scan results from storage
+loadLastFileScan();
 
 // Handle messages from UI
 figma.ui.onmessage = function(msg) {
@@ -878,6 +1013,18 @@ figma.ui.onmessage = function(msg) {
 
     case 'scan-page':
       startScan(msg.ignoredNames || [], true);
+      break;
+
+    case 'scan-file':
+      scanEntireFile(msg.ignoredNames || []);
+      break;
+
+    case 'go-to-page':
+      goToPage(msg.pageId);
+      break;
+
+    case 'clear-file-scan':
+      clearLastFileScan();
       break;
     
     case 'navigate-to-layer':

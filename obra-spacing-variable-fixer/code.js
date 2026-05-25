@@ -2,22 +2,16 @@
 var layersWithIssues = [];
 var spacingVariables = [];
 var variableCollections = [];
-var selectedCollectionIds = []; // Empty means all collections are selected
+var selectedCollectionIds = []; // Ordered array: earlier = preferred rank. Empty = no filter (all)
 var currentIndex = -1;
 var isScanning = false;
 
 // Initialize the plugin
 figma.showUI(__html__, { width: 450, height: 600 });
 
-figma.notify('Plugin initialized');
-
-// Scan for spacing variables on startup
-scanForSpacingVariables();
-
-// Listen for selection changes
-figma.on('selectionchange', function() {
-  var count = figma.currentPage.selection.length;
-  figma.notify('Selection changed: ' + count + ' items');
+// Load selected collections first, then scan for variables
+loadSelectedCollections().then(function() {
+  scanForSpacingVariables();
 });
 
 // Helper function to resolve variable value (handles aliases/references)
@@ -109,9 +103,15 @@ async function scanForSpacingVariables() {
             try {
               var importedVar = await figma.variables.importVariableByKeyAsync(libVar.key);
 
-              // Check for GAP or WIDTH_HEIGHT scope
-              if (!importedVar.scopes || (importedVar.scopes.indexOf('GAP') === -1 && importedVar.scopes.indexOf('WIDTH_HEIGHT') === -1)) {
+              // Check for GAP, WIDTH_HEIGHT, or ALL_SCOPES (default when designer hasn't set specific scopes)
+              if (!importedVar.scopes || (importedVar.scopes.indexOf('GAP') === -1 && importedVar.scopes.indexOf('WIDTH_HEIGHT') === -1 && importedVar.scopes.indexOf('ALL_SCOPES') === -1)) {
                 continue;
+              }
+              // If ALL_SCOPES, only include FLOAT variables (numbers that could be spacing)
+              if (importedVar.scopes.indexOf('GAP') === -1 && importedVar.scopes.indexOf('WIDTH_HEIGHT') === -1 && importedVar.scopes.indexOf('ALL_SCOPES') !== -1) {
+                if (importedVar.resolvedType !== 'FLOAT') {
+                  continue;
+                }
               }
 
               console.log('Found library spacing variable:', importedVar.name);
@@ -167,14 +167,25 @@ async function scanForSpacingVariables() {
         console.log('DEBUG spacing-named variable:', variable.name, 'scopes:', variable.scopes, 'resolvedType:', variable.resolvedType);
       }
 
-      // Check for GAP or WIDTH_HEIGHT scope (both can be used for spacing)
-      if (!variable.scopes || (variable.scopes.indexOf('GAP') === -1 && variable.scopes.indexOf('WIDTH_HEIGHT') === -1)) {
+      // Check for GAP, WIDTH_HEIGHT, or ALL_SCOPES (default when designer hasn't set specific scopes)
+      var hasGap = variable.scopes && variable.scopes.indexOf('GAP') !== -1;
+      var hasWidthHeight = variable.scopes && variable.scopes.indexOf('WIDTH_HEIGHT') !== -1;
+      var hasAllScopes = variable.scopes && variable.scopes.indexOf('ALL_SCOPES') !== -1;
+
+      if (!variable.scopes || (!hasGap && !hasWidthHeight && !hasAllScopes)) {
         // Log why this variable is being skipped
         if (nameLower.indexOf('xl') !== -1 || nameLower.indexOf('lg') !== -1 ||
             nameLower.indexOf('md') !== -1 || nameLower.indexOf('spacing') !== -1) {
           console.log('SKIPPING variable (wrong scope):', variable.name, 'scopes:', variable.scopes);
         }
         continue;
+      }
+
+      // If only ALL_SCOPES (no specific spacing scopes), only include FLOAT variables
+      if (!hasGap && !hasWidthHeight && hasAllScopes) {
+        if (variable.resolvedType !== 'FLOAT') {
+          continue;
+        }
       }
 
       console.log('Found spacing variable:', variable.name);
@@ -232,49 +243,60 @@ async function scanForSpacingVariables() {
           collectionId: v.collectionId,
           collectionName: v.collectionName
         };
-      }),
-      collections: variableCollections
+      })
     });
+    sendCollectionsToUI();
 
   } catch (e) {
     console.log('Error scanning variables:', e.message);
     figma.ui.postMessage({
       type: 'variables-found',
       variables: [],
-      collections: [],
       error: e.message
+    });
+    figma.ui.postMessage({
+      type: 'collections-found',
+      collections: [],
+      selectedCollectionIds: []
     });
   }
 }
 
-// Find matching variable for a given spacing value
+// Find matching variable for a given spacing value, preferring earlier-ranked collections
 function findMatchingVariable(spacingValue, propertyType) {
-  // propertyType can be 'gap' or 'padding' to help match correct scope
+  var candidates = [];
   for (var i = 0; i < spacingVariables.length; i++) {
     var variable = spacingVariables[i];
 
-    // Skip if variable is not in selected collections (when collections are selected)
+    // Skip if collections filter is active and this variable isn't in the set
     if (selectedCollectionIds.length > 0 && selectedCollectionIds.indexOf(variable.collectionId) === -1) {
       continue;
     }
 
-    if (variable.value === spacingValue) {
-      // Check if the variable has appropriate scope for the property
-      var hasGapScope = variable.scopes.indexOf('GAP') !== -1;
-      var hasWidthHeightScope = variable.scopes.indexOf('WIDTH_HEIGHT') !== -1;
+    if (variable.value !== spacingValue) continue;
 
-      // GAP scope is for gaps, WIDTH_HEIGHT can be used for padding
-      if (propertyType === 'gap' && hasGapScope) {
-        return variable;
-      } else if (propertyType === 'padding' && hasWidthHeightScope) {
-        return variable;
-      } else if (hasGapScope || hasWidthHeightScope) {
-        // If no specific match, return any matching value
-        return variable;
-      }
-    }
+    var hasGapScope = variable.scopes.indexOf('GAP') !== -1;
+    var hasWidthHeightScope = variable.scopes.indexOf('WIDTH_HEIGHT') !== -1;
+
+    var scopeMatch = 2; // 0 = exact scope, 1 = compatible, 2 = loose
+    if (propertyType === 'gap' && hasGapScope) scopeMatch = 0;
+    else if (propertyType === 'padding' && hasWidthHeightScope) scopeMatch = 0;
+    else if (hasGapScope || hasWidthHeightScope) scopeMatch = 1;
+    else continue;
+
+    var rank = selectedCollectionIds.indexOf(variable.collectionId);
+    if (rank === -1) rank = Number.MAX_SAFE_INTEGER;
+
+    candidates.push({ variable: variable, scopeMatch: scopeMatch, rank: rank });
   }
-  return null;
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort(function(a, b) {
+    if (a.scopeMatch !== b.scopeMatch) return a.scopeMatch - b.scopeMatch;
+    return a.rank - b.rank;
+  });
+  return candidates[0].variable;
 }
 
 // Check if node has any spacing bound variables
@@ -576,10 +598,10 @@ function findLayersWithSpacingIssues(node, results, ignoredNames) {
 }
 
 // Start scanning process
-function startScan(ignoredNames) {
+function startScan(ignoredNames, scanEntirePage) {
   if (isScanning) return;
 
-  console.log('Starting scan with ignored names:', ignoredNames);
+  console.log('Starting scan, scanEntirePage:', scanEntirePage);
   isScanning = true;
   layersWithIssues = [];
   currentIndex = -1;
@@ -588,23 +610,25 @@ function startScan(ignoredNames) {
     type: 'scan-started'
   });
 
-  // Check if we have selected layers
-  var selection = figma.currentPage.selection;
-  console.log('Current selection:', selection.length, 'layers');
+  var nodesToScan = [];
 
-  if (selection.length === 0) {
-    figma.ui.postMessage({
-      type: 'error',
-      message: 'Please select one or more layers to scan'
-    });
-    isScanning = false;
-    return;
+  if (scanEntirePage) {
+    nodesToScan = figma.currentPage.children;
+  } else {
+    var selection = figma.currentPage.selection;
+    if (selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'error',
+        message: 'Please select one or more layers to scan'
+      });
+      isScanning = false;
+      return;
+    }
+    nodesToScan = selection;
   }
 
-  // Find all layers with spacing issues in selected layers
-  for (var i = 0; i < selection.length; i++) {
-    console.log('Scanning selection item:', i, selection[i].name);
-    findLayersWithSpacingIssues(selection[i], layersWithIssues, ignoredNames);
+  for (var i = 0; i < nodesToScan.length; i++) {
+    findLayersWithSpacingIssues(nodesToScan[i], layersWithIssues, ignoredNames);
   }
 
   console.log('Scan complete. Found', layersWithIssues.length, 'layers with spacing values');
@@ -920,52 +944,60 @@ async function saveIgnoredNames(names) {
   }
 }
 
-// Load ignored names and selected collections on startup
+// Load ignored names on startup
 loadIgnoredNames();
-loadSelectedCollections();
 
 // Handle messages from UI
 figma.ui.onmessage = async function(msg) {
   console.log('Received message:', msg.type);
-  
+
   switch (msg.type) {
     case 'start-scan':
-      startScan(msg.ignoredNames || []);
+      startScan(msg.ignoredNames || [], false);
       break;
-    
+
+    case 'scan-page':
+      startScan(msg.ignoredNames || [], true);
+      break;
+
+    case 'scan-file':
+      await scanEntireFile(msg.ignoredNames || []);
+      break;
+
+    case 'go-to-page':
+      await goToPage(msg.pageId);
+      break;
+
+    case 'clear-file-scan':
+      await clearLastFileScan();
+      break;
+
     case 'navigate-to-layer':
       await navigateToLayer(msg.layerId);
       break;
-    
+
     case 'apply-variable':
       await applyVariableToLayer(msg.layerId, msg.variableId, msg.applyMode, msg.propertyName);
       break;
-    
+
     case 'rescan-variables':
       await scanForSpacingVariables();
       break;
-    
+
     case 'save-ignored-names':
       await saveIgnoredNames(msg.ignoredNames);
       break;
-    
+
     case 'load-ignored-names':
       await loadIgnoredNames();
       break;
-    
+
     case 'autofix_all':
       await autofixAllLayers();
       break;
 
-    case 'update-selected-collections':
-      selectedCollectionIds = msg.collectionIds || [];
-      console.log('Updated selected collections:', selectedCollectionIds);
-      // Save to client storage
-      await figma.clientStorage.setAsync('spacingChecker_selectedCollections', selectedCollectionIds);
-      break;
-
-    case 'load-selected-collections':
-      await loadSelectedCollections();
+    case 'select-collections':
+      setSelectedCollections(msg.collectionIds);
       break;
 
     case 'close':
@@ -980,21 +1012,160 @@ async function loadSelectedCollections() {
     var savedCollections = await figma.clientStorage.getAsync('spacingChecker_selectedCollections');
     if (savedCollections && Array.isArray(savedCollections)) {
       selectedCollectionIds = savedCollections;
-      figma.ui.postMessage({
-        type: 'selected-collections-loaded',
-        collectionIds: selectedCollectionIds
-      });
-    } else {
-      figma.ui.postMessage({
-        type: 'selected-collections-loaded',
-        collectionIds: []
-      });
+      console.log('Loaded selected collections from clientStorage:', selectedCollectionIds);
     }
   } catch (e) {
     console.log('Error loading selected collections:', e);
-    figma.ui.postMessage({
-      type: 'selected-collections-loaded',
-      collectionIds: []
-    });
   }
 }
+
+async function saveSelectedCollections(collectionIds) {
+  try {
+    await figma.clientStorage.setAsync('spacingChecker_selectedCollections', collectionIds);
+  } catch (e) {
+    console.log('Error saving selected collections:', e);
+  }
+}
+
+function setSelectedCollections(collectionIds) {
+  selectedCollectionIds = collectionIds || [];
+  saveSelectedCollections(selectedCollectionIds);
+  sendCollectionsToUI();
+}
+
+function sendCollectionsToUI() {
+  // Count variables per collection
+  var counts = {};
+  for (var i = 0; i < spacingVariables.length; i++) {
+    var id = spacingVariables[i].collectionId;
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  var collectionsWithCounts = variableCollections
+    .map(function(c) {
+      return {
+        id: c.id,
+        name: c.name,
+        isLibrary: !!c.isLibrary,
+        variableCount: counts[c.id] || 0
+      };
+    })
+    .filter(function(c) { return c.variableCount > 0; });
+
+  figma.ui.postMessage({
+    type: 'collections-found',
+    collections: collectionsWithCounts,
+    selectedCollectionIds: selectedCollectionIds
+  });
+}
+
+// Storage key scoped to this Figma file
+function getFileScanStorageKey() {
+  var fileId = (figma.fileKey || (figma.root && figma.root.id) || 'unknown');
+  return 'spacingChecker_lastFileScan_' + fileId;
+}
+
+async function scanEntireFile(ignoredNames) {
+  ignoredNames = ignoredNames || [];
+  figma.ui.postMessage({ type: 'file-scan-started' });
+
+  try {
+    await figma.loadAllPagesAsync();
+  } catch (e) {
+    figma.ui.postMessage({ type: 'error', message: 'Failed to load all pages: ' + e.message });
+    return;
+  }
+
+  var pages = figma.root.children;
+  var pageResults = [];
+
+  for (var p = 0; p < pages.length; p++) {
+    var page = pages[p];
+    var issues = [];
+    try {
+      for (var c = 0; c < page.children.length; c++) {
+        findLayersWithSpacingIssues(page.children[c], issues, ignoredNames);
+      }
+    } catch (e) {
+      console.log('Error scanning page', page.name + ':', e.message);
+    }
+
+    var fixable = 0, noMatch = 0, alreadyFixed = 0;
+    for (var i = 0; i < issues.length; i++) {
+      if (issues[i].issueType === 'missing_variable') fixable++;
+      else if (issues[i].issueType === 'no_matching_variable') noMatch++;
+      else if (issues[i].issueType === 'has_variable') alreadyFixed++;
+    }
+
+    pageResults.push({
+      id: page.id,
+      name: page.name,
+      total: issues.length,
+      fixable: fixable,
+      noMatch: noMatch,
+      alreadyFixed: alreadyFixed,
+      problems: fixable + noMatch
+    });
+
+    figma.ui.postMessage({
+      type: 'file-scan-progress',
+      current: p + 1,
+      total: pages.length,
+      pageName: page.name
+    });
+
+    await new Promise(function(resolve) { setTimeout(resolve, 0); });
+  }
+
+  pageResults.sort(function(a, b) { return b.problems - a.problems; });
+
+  var payload = { pages: pageResults, scannedAt: Date.now() };
+
+  try {
+    await figma.clientStorage.setAsync(getFileScanStorageKey(), payload);
+  } catch (e) {
+    console.log('Error saving file scan results:', e.message);
+  }
+
+  figma.ui.postMessage({
+    type: 'file-scan-complete',
+    pages: pageResults,
+    scannedAt: payload.scannedAt
+  });
+}
+
+async function loadLastFileScan() {
+  try {
+    var saved = await figma.clientStorage.getAsync(getFileScanStorageKey());
+    if (saved && saved.pages) {
+      figma.ui.postMessage({
+        type: 'file-scan-restored',
+        pages: saved.pages,
+        scannedAt: saved.scannedAt
+      });
+    }
+  } catch (e) {
+    console.log('Error loading saved file scan:', e.message);
+  }
+}
+
+async function clearLastFileScan() {
+  try {
+    await figma.clientStorage.deleteAsync(getFileScanStorageKey());
+  } catch (e) {
+    console.log('Error clearing saved file scan:', e.message);
+  }
+}
+
+async function goToPage(pageId) {
+  try {
+    var page = await figma.getNodeByIdAsync(pageId);
+    if (page && page.type === 'PAGE') {
+      await figma.setCurrentPageAsync(page);
+      figma.ui.postMessage({ type: 'page-changed', pageId: pageId, pageName: page.name });
+    }
+  } catch (e) {
+    figma.ui.postMessage({ type: 'error', message: 'Failed to switch page: ' + e.message });
+  }
+}
+
+loadLastFileScan();

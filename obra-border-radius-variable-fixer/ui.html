@@ -34,7 +34,7 @@
         }
         
         .section {
-            margin-bottom: 12px;
+            margin-bottom: 24px;
             flex-shrink: 0;
         }
         
@@ -204,25 +204,23 @@
         }
         
         .variables-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
             gap: 4px;
             font-size: 11px;
             line-height: 1.4;
             max-width: 100%;
         }
-        
+
         .variable-tag {
             background: #ffffff;
             color: #1e293b;
             border: 1px solid #e2e8f0;
-            padding: 4px 6px;
+            padding: 4px 8px;
             border-radius: 4px;
             font-size: 10px;
             white-space: nowrap;
-            text-align: center;
-            overflow: visible;
-            word-break: keep-all;
+            flex: 0 0 auto;
         }
         
         .ignore-section {
@@ -442,7 +440,7 @@
         .tabs {
             display: flex;
             border-bottom: 1px solid #e1e1e1;
-            margin: -12px -12px 12px -12px;
+            margin: -12px -12px 20px -12px;
             padding: 0;
             background: #ffffff;
             flex-shrink: 0;
@@ -601,6 +599,149 @@
             background: #0ea5e9;
             color: white;
         }
+
+        .collection-rank {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-right: 4px;
+        }
+
+        .rank-btn {
+            width: 18px;
+            height: 14px;
+            font-size: 9px;
+            line-height: 1;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rank-btn:hover:not(:disabled) {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .rank-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .preferred-badge {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #0ea5e9;
+            background: #e0f2fe;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-right: 6px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body { background: #2c2c2c; color: #e0e0e0; }
+            .header { border-bottom-color: #444; }
+            .subtitle { color: #999; }
+
+            .button-secondary {
+                background: #3a3a3a;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            .button-secondary:hover { background: #454545; border-color: #666; }
+            .button:disabled { background: #555; color: #888; }
+
+            .error-banner { background: #5a2a2e; color: #f5b7b1; border-color: #7a3a3e; }
+            .status { background: #383838; color: #aaa; }
+
+            /* Tabs */
+            .tabs { background: #2c2c2c; border-bottom-color: #444; }
+            .tab { color: #999; background: transparent; }
+            .tab:hover { color: #e0e0e0; background: #383838; }
+            .tab.active { color: #e0e0e0; }
+
+            /* Accordions */
+            .accordion { background: #2c2c2c; border-color: #444; }
+            .accordion-header,
+            .accordion-header.has-problems {
+                background: transparent;
+                color: #e0e0e0;
+                border-bottom-color: #444;
+            }
+            .accordion-header:hover,
+            .accordion-header.has-problems:hover { background: #383838; }
+            .accordion-toggle { color: #aaa; }
+            .accordion-content { background: #2c2c2c; color: #e0e0e0; }
+
+            /* Layers list */
+            .layer-item { background: #2c2c2c; border-bottom-color: #3a3a3a; }
+            .layer-item:hover { background: #353535; }
+            .layer-item.selected { background: #1e3a5f; border-left-color: #18a0fb; }
+            .layer-name { color: #e0e0e0; }
+            .layer-radius { color: #7cc7ff; background: #1e3a5f; }
+            .layer-details { color: #999; }
+            .suggestion-text { color: #e0e0e0; }
+
+            /* Selected layer info card */
+            .selected-layer-info { background: #1e3a5f; color: #e0e0e0; }
+
+            /* Collection options */
+            .collection-option { background: #383838; border-color: #555; }
+            .collection-option:hover { background: #404040; border-color: #666; }
+            .collection-option.selected { background: #1e3a5f; border-color: #38bdf8; }
+            .collection-option-label { color: #e0e0e0; }
+            .collection-option-count { background: #2c2c2c; color: #aaa; }
+            .collection-option.selected .collection-option-count { background: #38bdf8; color: #1a1a1a; }
+            .rank-btn { background: #3a3a3a; color: #e0e0e0; border-color: #555; }
+            .rank-btn:hover:not(:disabled) { background: #454545; border-color: #666; }
+            .preferred-badge { background: #1e3a5f; color: #7cc7ff; }
+
+            /* Variable tags grid */
+            .variable-tag { background: #383838; color: #e0e0e0; border-color: #555; }
+
+            /* Issue badges — soften */
+            .issue-missing { background: #5a4a1a; color: #ffe082; }
+            .issue-no-match { background: #5a2a2e; color: #f5b7b1; }
+            .issue-fixed { background: #2a4a2e; color: #a5d6a7; }
+
+            /* Autofix section */
+            .autofix-section { background: #1e3a5f; border-color: #38bdf8; }
+
+            /* Ignore section */
+            .ignore-section { border-top-color: #444; }
+            .ignore-input {
+                background: #383838;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            .ignore-input::placeholder { color: #777; }
+            .ignore-add-btn {
+                background: #3a3a3a;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            .ignore-add-btn:hover { background: #454545; border-color: #666; }
+            .ignore-tag { background: #3a3a3a; color: #e0e0e0; }
+            .ignore-remove { color: #aaa; }
+            .ignore-remove:hover { color: #fff; }
+
+            /* Generic inputs */
+            input[type="text"], input[type="number"], select, textarea {
+                background: #383838;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            /* Inline-styled helper text */
+            [style*="color: #666"], [style*="color:#666"] { color: #aaa !important; }
+            [style*="color: #999"], [style*="color:#999"] { color: #888 !important; }
+            [style*="color: #333"], [style*="color:#333"] { color: #e0e0e0 !important; }
+            [style*="background:#eee"], [style*="background: #eee"] { background: #444 !important; }
+        }
     </style>
 </head>
 <body>
@@ -621,8 +762,32 @@
             <div class="scan-buttons">
                 <button id="scanBtn" class="button">Scan Selected Layers</button>
                 <button id="scanPageBtn" class="button button-secondary">Scan Page</button>
+                <button id="scanFileBtn" class="button button-secondary">Scan Entire File</button>
             </div>
             <div id="status" class="status hidden">Ready to scan...</div>
+        </div>
+
+        <div id="fileScanProgress" class="hidden" style="margin-top:8px;">
+            <div style="font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between;">
+                <span id="fileScanProgressLabel">Scanning...</span>
+                <span id="fileScanProgressCount"></span>
+            </div>
+            <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden;">
+                <div id="fileScanProgressBar" style="background:#18a0fb;height:100%;width:0%;transition:width 0.15s ease;"></div>
+            </div>
+        </div>
+
+        <div id="fileScanAccordion" class="accordion hidden">
+            <div class="accordion-header" onclick="toggleAccordion('fileScan')">
+                <span class="accordion-toggle open" id="fileScanToggle">▶</span>
+                <span class="accordion-title">
+                    <span>Most Problematic Pages</span>
+                    <span id="fileScanCount" class="problem-count hidden"></span>
+                </span>
+            </div>
+            <div class="accordion-content open" id="fileScanContent">
+                <div id="fileScanList" class="layers-list"></div>
+            </div>
         </div>
 
         <div id="layersAccordion" class="accordion hidden">
@@ -726,6 +891,14 @@
             var elements = {
                 scanBtn: document.getElementById('scanBtn'),
                 scanPageBtn: document.getElementById('scanPageBtn'),
+                scanFileBtn: document.getElementById('scanFileBtn'),
+                fileScanAccordion: document.getElementById('fileScanAccordion'),
+                fileScanProgress: document.getElementById('fileScanProgress'),
+                fileScanProgressBar: document.getElementById('fileScanProgressBar'),
+                fileScanProgressLabel: document.getElementById('fileScanProgressLabel'),
+                fileScanProgressCount: document.getElementById('fileScanProgressCount'),
+                fileScanList: document.getElementById('fileScanList'),
+                fileScanCount: document.getElementById('fileScanCount'),
                 status: document.getElementById('status'),
                 errorBanner: document.getElementById('errorBanner'),
                 errorMessage: document.getElementById('errorMessage'),
@@ -774,6 +947,70 @@
                 hideError();
                 parent.postMessage({ pluginMessage: { type: 'scan-page', ignoredNames: ignoredLayerNames } }, '*');
             });
+
+            if (elements.scanFileBtn) {
+                elements.scanFileBtn.addEventListener('click', function() {
+                    hideError();
+                    parent.postMessage({ pluginMessage: { type: 'scan-file', ignoredNames: ignoredLayerNames } }, '*');
+                });
+            }
+
+            function formatScannedAt(ts) {
+                if (!ts) return '';
+                var d = new Date(ts);
+                var now = new Date();
+                var sameDay = d.toDateString() === now.toDateString();
+                var time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return sameDay ? 'Scanned at ' + time : 'Scanned ' + d.toLocaleString();
+            }
+
+            function renderFileScanResults(pages, scannedAt) {
+                if (!elements.fileScanList || !elements.fileScanAccordion) return;
+                elements.fileScanAccordion.classList.remove('hidden');
+
+                var pagesWithProblems = pages.filter(function(p) { return p.problems > 0; });
+                if (elements.fileScanCount) {
+                    elements.fileScanCount.classList.remove('hidden');
+                    elements.fileScanCount.textContent = pagesWithProblems.length + ' / ' + pages.length;
+                }
+
+                if (pages.length === 0) {
+                    elements.fileScanList.innerHTML = '<div style="color:#999;font-style:italic;padding:8px;">No pages found</div>';
+                    return;
+                }
+
+                var html = '';
+                if (scannedAt) {
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#999;padding:4px 2px 8px;">' +
+                        '<span>' + formatScannedAt(scannedAt) + '</span>' +
+                        '<span style="cursor:pointer;text-decoration:underline;" onclick="window.clearFileScan()">Clear</span>' +
+                    '</div>';
+                }
+                for (var i = 0; i < pages.length; i++) {
+                    var p = pages[i];
+                    var safeName = String(p.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                    html += '<div class="layer-item" style="cursor:pointer;" onclick="window.goToPage(\'' + p.id.replace(/'/g, "\\'") + '\')">' +
+                        '<div class="layer-name">' + safeName + '</div>' +
+                        '<div style="font-size:11px;color:#666;">' +
+                            'To fix: <strong>' + p.fixable + '</strong>' +
+                            ' &middot; No match: ' + p.noMatch +
+                            ' &middot; Already: ' + p.alreadyFixed +
+                        '</div>' +
+                    '</div>';
+                }
+                elements.fileScanList.innerHTML = html;
+            }
+
+            window.goToPage = function(pageId) {
+                parent.postMessage({ pluginMessage: { type: 'go-to-page', pageId: pageId } }, '*');
+            };
+
+            window.clearFileScan = function() {
+                parent.postMessage({ pluginMessage: { type: 'clear-file-scan' } }, '*');
+                if (elements.fileScanAccordion) elements.fileScanAccordion.classList.add('hidden');
+                if (elements.fileScanList) elements.fileScanList.innerHTML = '';
+                if (elements.fileScanCount) elements.fileScanCount.classList.add('hidden');
+            };
 
             elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
             
@@ -878,21 +1115,77 @@
                     return;
                 }
 
+                // Build display order: selected first (in preferred order), then unselected
+                var byId = {};
+                for (var x = 0; x < collections.length; x++) byId[collections[x].id] = collections[x];
+
+                var ordered = [];
+                for (var s = 0; s < selectedCollectionIds.length; s++) {
+                    var c = byId[selectedCollectionIds[s]];
+                    if (c) ordered.push(c);
+                }
+                for (var u = 0; u < collections.length; u++) {
+                    if (selectedCollectionIds.indexOf(collections[u].id) === -1) {
+                        ordered.push(collections[u]);
+                    }
+                }
+
+                var selectedCount = selectedCollectionIds.length;
                 var html = '';
 
-                // Add each collection as a checkbox
-                for (var i = 0; i < collections.length; i++) {
-                    var collection = collections[i];
-                    var isSelected = selectedCollectionIds.indexOf(collection.id) !== -1;
+                if (selectedCount > 1) {
+                    html += '<div style="font-size:10px;color:#666;margin-bottom:8px;">Use the arrows to set which collection is preferred when multiple have a matching value.</div>';
+                }
+
+                for (var i = 0; i < ordered.length; i++) {
+                    var collection = ordered[i];
+                    var rank = selectedCollectionIds.indexOf(collection.id);
+                    var isSelected = rank !== -1;
+                    var canMoveUp = isSelected && rank > 0;
+                    var canMoveDown = isSelected && rank < selectedCount - 1;
+                    var isPreferred = isSelected && rank === 0 && selectedCount > 1;
+
+                    var rankHtml = '';
+                    if (isSelected && selectedCount > 1) {
+                        rankHtml = '<div class="collection-rank" onclick="event.stopPropagation()">' +
+                            '<button class="rank-btn" ' + (canMoveUp ? '' : 'disabled') + ' onclick="event.stopPropagation(); window.moveCollection(\'' + collection.id + '\', -1)" title="Move up">▲</button>' +
+                            '<button class="rank-btn" ' + (canMoveDown ? '' : 'disabled') + ' onclick="event.stopPropagation(); window.moveCollection(\'' + collection.id + '\', 1)" title="Move down">▼</button>' +
+                            '</div>';
+                    }
+
                     html += '<div class="collection-option' + (isSelected ? ' selected' : '') + '" data-collection-id="' + collection.id + '" onclick="window.toggleCollection(\'' + collection.id + '\')">' +
+                           rankHtml +
                            '<input type="checkbox" ' + (isSelected ? 'checked' : '') + '>' +
                            '<span class="collection-option-label">' + collection.name + '</span>' +
+                           (isPreferred ? '<span class="preferred-badge">Preferred</span>' : '') +
                            '<span class="collection-option-count">' + collection.variableCount + ' variables</span>' +
                            '</div>';
                 }
 
                 elements.collectionSelector.innerHTML = html;
             }
+
+            // Move a collection up (-1) or down (+1) in preference order
+            function moveCollection(collectionId, delta) {
+                var idx = selectedCollectionIds.indexOf(collectionId);
+                if (idx === -1) return;
+                var target = idx + delta;
+                if (target < 0 || target >= selectedCollectionIds.length) return;
+
+                var tmp = selectedCollectionIds[target];
+                selectedCollectionIds[target] = selectedCollectionIds[idx];
+                selectedCollectionIds[idx] = tmp;
+
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'select-collections',
+                        collectionIds: selectedCollectionIds
+                    }
+                }, '*');
+
+                updateCollectionSelector(collections, selectedCollectionIds);
+            }
+            window.moveCollection = moveCollection;
 
             // Toggle a collection selection
             function toggleCollection(collectionId) {
@@ -907,22 +1200,6 @@
                     selectedCollectionIds.push(collectionId);
                 }
 
-                // Update UI
-                var options = document.querySelectorAll('.collection-option');
-                for (var i = 0; i < options.length; i++) {
-                    var optionId = options[i].getAttribute('data-collection-id');
-                    var isSelected = selectedCollectionIds.indexOf(optionId) !== -1;
-                    var checkbox = options[i].querySelector('input[type="checkbox"]');
-
-                    if (isSelected) {
-                        options[i].classList.add('selected');
-                        if (checkbox) checkbox.checked = true;
-                    } else {
-                        options[i].classList.remove('selected');
-                        if (checkbox) checkbox.checked = false;
-                    }
-                }
-
                 // Send message to plugin
                 parent.postMessage({
                     pluginMessage: {
@@ -930,6 +1207,9 @@
                         collectionIds: selectedCollectionIds
                     }
                 }, '*');
+
+                // Re-render so rank arrows & Preferred badge update
+                updateCollectionSelector(collections, selectedCollectionIds);
             }
 
             // Make toggleCollection available globally
@@ -992,12 +1272,38 @@
                     return;
                 }
 
-                var html = '';
+                // Group by collection, preserving order of first appearance
+                var groups = [];
+                var groupMap = {};
                 for (var i = 0; i < variables.length; i++) {
-                    var variable = variables[i];
-                    html += '<div class="variable-tag">' + variable.name + ' = ' + variable.value + 'px</div>';
+                    var v = variables[i];
+                    var key = v.collectionId || 'unknown';
+                    if (!groupMap[key]) {
+                        groupMap[key] = { name: v.collectionName || 'Unknown collection', items: [] };
+                        groups.push(key);
+                    }
+                    groupMap[key].items.push(v);
                 }
-                
+
+                var html = '<div style="font-size:11px;color:#666;margin-bottom:10px;">' +
+                    '<strong>' + variables.length + '</strong> border radius variable' + (variables.length === 1 ? '' : 's') +
+                    ' across <strong>' + groups.length + '</strong> collection' + (groups.length === 1 ? '' : 's') +
+                    '</div>';
+
+                for (var g = 0; g < groups.length; g++) {
+                    var group = groupMap[groups[g]];
+                    var safeName = String(group.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    html += '<div style="font-size:11px;font-weight:600;margin:8px 0 6px;">' +
+                        safeName + ' <span style="font-weight:400;color:#999;">(' + group.items.length + ')</span>' +
+                        '</div>';
+                    html += '<div class="variables-list" style="margin-bottom:8px;">';
+                    for (var j = 0; j < group.items.length; j++) {
+                        var variable = group.items[j];
+                        html += '<div class="variable-tag">' + variable.name + ' = ' + variable.value + 'px</div>';
+                    }
+                    html += '</div>';
+                }
+
                 elements.variablesList.innerHTML = html;
             }
 
@@ -1339,8 +1645,61 @@
                         if (elements.scanPageBtn) {
                             elements.scanPageBtn.disabled = false;
                         }
+                        if (elements.scanFileBtn) {
+                            elements.scanFileBtn.disabled = false;
+                        }
                         break;
                     
+                    case 'file-scan-started':
+                        if (elements.scanBtn) elements.scanBtn.disabled = true;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = true;
+                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = true;
+                        if (elements.status) elements.status.classList.add('hidden');
+                        if (elements.fileScanProgress) {
+                            elements.fileScanProgress.classList.remove('hidden');
+                            elements.fileScanProgressBar.style.width = '0%';
+                            elements.fileScanProgressLabel.textContent = 'Loading pages...';
+                            elements.fileScanProgressCount.textContent = '';
+                        }
+                        break;
+
+                    case 'file-scan-progress':
+                        if (elements.fileScanProgress) {
+                            var pct = msg.total > 0 ? Math.round((msg.current / msg.total) * 100) : 0;
+                            elements.fileScanProgressBar.style.width = pct + '%';
+                            elements.fileScanProgressLabel.textContent = msg.pageName;
+                            elements.fileScanProgressCount.textContent = msg.current + ' / ' + msg.total;
+                        }
+                        break;
+
+                    case 'file-scan-complete':
+                        if (elements.scanBtn) elements.scanBtn.disabled = false;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
+                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = false;
+                        if (elements.fileScanProgress) {
+                            elements.fileScanProgressBar.style.width = '100%';
+                            setTimeout(function() {
+                                elements.fileScanProgress.classList.add('hidden');
+                            }, 400);
+                        }
+                        if (elements.status) {
+                            elements.status.textContent = 'File scan complete: ' + msg.pages.length + ' pages';
+                            elements.status.classList.remove('hidden');
+                        }
+                        renderFileScanResults(msg.pages, msg.scannedAt);
+                        break;
+
+                    case 'file-scan-restored':
+                        renderFileScanResults(msg.pages, msg.scannedAt);
+                        break;
+
+                    case 'page-changed':
+                        if (elements.status) {
+                            elements.status.textContent = 'Switched to page: ' + msg.pageName;
+                            elements.status.classList.remove('hidden');
+                        }
+                        break;
+
                     case 'ignored-names-loaded':
                         ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
                         console.log('Loaded ignored names from plugin:', ignoredLayerNames);

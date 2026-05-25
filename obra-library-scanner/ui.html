@@ -500,6 +500,28 @@
         .accordion-control:hover {
             background: #e0e0e0;
         }
+
+        .cache-section {
+            margin: 16px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .cache-status {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .cache-status.ready {
+            color: #2e7d32;
+        }
+
+        .cache-status.stale {
+            color: #b26a00;
+        }
     </style>
 </head>
 <body>
@@ -520,6 +542,15 @@
         <button id="scanSelectionButton" class="scan-button" onclick="scanSelection()">
             Selection
         </button>
+    </div>
+
+    <div class="cache-section">
+        <div class="section-title">Local Index</div>
+        <div class="fix-description">Catalog of every local component, variable and style across all pages. Used by Fix to find swap targets. Build once, then fix per-frame.</div>
+        <button id="refreshCacheButton" class="scan-button" onclick="refreshCache()">
+            Refresh Local Index
+        </button>
+        <div id="cacheStatus" class="cache-status">Not built — fix will trigger an on-demand build</div>
     </div>
     
     <div class="fix-section" id="fixSection" style="display: none;">
@@ -554,6 +585,31 @@
         let scanResults = [];
         let expandedLibraries = new Set(); // Track which libraries are expanded
         let currentScanType = null; // Track the current scan type
+
+        function refreshCache() {
+            const btn = document.getElementById('refreshCacheButton');
+            btn.disabled = true;
+            btn.textContent = 'Building index…';
+            document.getElementById('cacheStatus').textContent = 'Loading all pages and indexing…';
+            document.getElementById('cacheStatus').className = 'cache-status';
+            parent.postMessage({ pluginMessage: { type: 'refresh-local-cache' } }, '*');
+        }
+
+        function renderCacheStatus(counts, fresh) {
+            const el = document.getElementById('cacheStatus');
+            if (!counts || counts.components === null) {
+                el.textContent = 'Not built — fix will trigger an on-demand build';
+                el.className = 'cache-status';
+                return;
+            }
+            const parts = [
+                `${counts.components} components`,
+                `${counts.variables} variables`,
+                `${(counts.fillStyles || 0) + (counts.textStyles || 0) + (counts.effectStyles || 0)} styles`
+            ];
+            el.textContent = (fresh ? 'Indexed: ' : 'Cached: ') + parts.join(' · ');
+            el.className = 'cache-status ' + (fresh ? 'ready' : 'stale');
+        }
         
         function scanCurrentPage() {
             document.getElementById('results').style.display = 'none';
@@ -845,6 +901,22 @@
                     document.getElementById('pageInfo').textContent = `Processing nodes: ${msg.processed}/${msg.total}`;
                     break;
                     
+                case 'cache-refresh-started':
+                    document.getElementById('cacheStatus').textContent = 'Indexing all pages (this may take a moment)…';
+                    document.getElementById('cacheStatus').className = 'cache-status';
+                    break;
+
+                case 'cache-status':
+                    renderCacheStatus(msg.counts, msg.fresh);
+                    document.getElementById('refreshCacheButton').disabled = false;
+                    document.getElementById('refreshCacheButton').textContent = 'Refresh Local Index';
+                    if (msg.error) {
+                        showMessage('Index refresh failed: ' + msg.error, 'error');
+                    } else if (msg.fresh) {
+                        showMessage('Local index built', 'success');
+                    }
+                    break;
+
                 case 'individual-fix-complete':
                     const elementContainer = document.querySelector(`[data-element-id="${msg.elementId}"]`);
                     if (elementContainer) {
@@ -866,7 +938,10 @@
                     break;
             }
         };
-        
+
+        // Ask for initial cache status (so the indicator reflects any state from prior plugin run)
+        parent.postMessage({ pluginMessage: { type: 'cache-status' } }, '*');
+
         function renderResults() {
             const resultsDiv = document.getElementById('results');
             const statsDiv = document.getElementById('stats');

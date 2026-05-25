@@ -265,6 +265,27 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .count-item:hover {
+      background: #fff3e0;
+    }
+
+    .result-item {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .result-item:hover {
+      background: #fff3e0;
+    }
+
+    .jump-hint {
+      font-size: 10px;
+      color: #8c8c8c;
+      margin-left: 8px;
     }
 
     .count-name {
@@ -300,10 +321,10 @@
 </head>
 <body>
   <h2>Lucide Icons Usage Scanner</h2>
-  <p class="subtitle">Scans for <span id="totalIcons">1651</span> Lucide icons in your file</p>
+  <p class="subtitle">Scans for <span id="totalIcons">1696</span> icons from the Obra Lucide 1.0 set</p>
 
   <div class="info-box">
-    <strong>Detection:</strong> Finds layers matching Lucide icon names. Supports prefixes like "Icon / mail", "Icons/chevron-down", "Lucide / user", etc.
+    <strong>Detection:</strong> Matches layer names against the official Obra Lucide 1.0 icon set (1696 icons). Supports prefixes like "Icon / mail", "Icons/chevron-down", "Lucide / user", etc.
   </div>
 
   <div class="stats">
@@ -318,6 +339,36 @@
     <div class="stat-item">
       <span class="stat-label">Unique icons used:</span>
       <span class="stat-value" id="uniqueCount">0</span>
+    </div>
+  </div>
+
+  <div class="section-header" onclick="toggleSection('strict')" style="margin-bottom: 0;">
+    <span>Match Mode <span id="strictBadge" style="color: #8c8c8c; font-weight: 400;">(loose)</span></span>
+    <span class="chevron" id="strict-chevron">▶</span>
+  </div>
+  <div class="section-content collapsed" id="strict-content" style="margin-bottom: 12px;">
+    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; margin-bottom: 8px;">
+      <input type="checkbox" id="strictPrefixToggle" style="cursor: pointer;" />
+      <span>Require strict prefix</span>
+    </label>
+    <input type="text" id="strictPrefixInput" placeholder='e.g. "Icon /"' style="width: 100%; box-sizing: border-box; font-size: 12px; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px;" disabled />
+    <div style="font-size: 11px; color: #666; margin-top: 6px; line-height: 1.4;">
+      When on, only layers starting with the prefix (e.g. <code style="background:#f5f5f5; padding:1px 4px; border-radius:3px;">Icon / mail</code>) are matched. Loose mode also accepts bare names like <code style="background:#f5f5f5; padding:1px 4px; border-radius:3px;">mail</code> or <code style="background:#f5f5f5; padding:1px 4px; border-radius:3px;">lucide-mail</code>.
+    </div>
+  </div>
+
+  <div class="section-header" onclick="toggleSection('ignore')" style="margin-bottom: 0;">
+    <span>Ignored Pages <span id="ignoreCount" style="color: #8c8c8c; font-weight: 400;">(0)</span></span>
+    <span class="chevron" id="ignore-chevron">▶</span>
+  </div>
+  <div class="section-content collapsed" id="ignore-content" style="margin-bottom: 16px;">
+    <div style="font-size: 11px; color: #666; margin-bottom: 8px;">Check pages to skip when scanning the entire file.</div>
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="pageFilter" placeholder="Filter pages..." style="flex: 1; box-sizing: border-box; font-size: 12px; padding: 6px 8px; border: 1px solid #e0e0e0; border-radius: 4px;" />
+      <button class="scan-button secondary" onclick="clearIgnoredPages()" style="margin-bottom: 0; padding: 6px 10px;">Clear</button>
+    </div>
+    <div id="pagesList" style="max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px;">
+      <div style="padding: 12px; font-size: 11px; color: #8c8c8c; text-align: center;">Loading pages...</div>
     </div>
   </div>
 
@@ -340,6 +391,8 @@
     var components = [];
     var instances = [];
     var instanceCounts = {};
+    var allPages = [];
+    var ignoredPageIdsSet = {};
 
     function scanFile(scope) {
       var scanButton = document.getElementById('scanButton');
@@ -373,9 +426,198 @@
       parent.postMessage({
         pluginMessage: {
           type: 'scan-file',
-          scope: scope || 'all'
+          scope: scope || 'all',
+          ignoredPageIds: getIgnoredPageIdsList(),
+          strictPrefix: getStrictPrefix()
         }
       }, '*');
+    }
+
+    function getStrictPrefix() {
+      var enabled = document.getElementById('strictPrefixToggle').checked;
+      var val = (document.getElementById('strictPrefixInput').value || '').trim();
+      return enabled && val ? val : '';
+    }
+
+    function updateStrictBadge() {
+      var prefix = getStrictPrefix();
+      var badge = document.getElementById('strictBadge');
+      if (prefix) {
+        badge.textContent = '(strict: "' + prefix + '")';
+        badge.style.color = '#f56040';
+      } else {
+        badge.textContent = '(loose)';
+        badge.style.color = '#8c8c8c';
+      }
+    }
+
+    function saveStrictPrefix() {
+      parent.postMessage({ pluginMessage: { type: 'save-strict-prefix', strictPrefix: getStrictPrefix() } }, '*');
+      updateStrictBadge();
+    }
+
+    function onStrictToggleChange() {
+      var enabled = document.getElementById('strictPrefixToggle').checked;
+      document.getElementById('strictPrefixInput').disabled = !enabled;
+      saveStrictPrefix();
+    }
+
+    function getIgnoredPageIdsList() {
+      var ids = [];
+      for (var k in ignoredPageIdsSet) {
+        if (ignoredPageIdsSet[k]) ids.push(k);
+      }
+      return ids;
+    }
+
+    function updateIgnoreCount() {
+      document.getElementById('ignoreCount').textContent = '(' + getIgnoredPageIdsList().length + ')';
+    }
+
+    function saveIgnoredPages() {
+      parent.postMessage({ pluginMessage: { type: 'save-ignored-pages', ignoredPageIds: getIgnoredPageIdsList() } }, '*');
+    }
+
+    function togglePageId(id) {
+      if (ignoredPageIdsSet[id]) {
+        delete ignoredPageIdsSet[id];
+      } else {
+        ignoredPageIdsSet[id] = true;
+      }
+      updateIgnoreCount();
+      saveIgnoredPages();
+      renderPagesList();
+    }
+
+    function clearIgnoredPages() {
+      ignoredPageIdsSet = {};
+      updateIgnoreCount();
+      saveIgnoredPages();
+      renderPagesList();
+    }
+
+    function renderPagesList() {
+      var listEl = document.getElementById('pagesList');
+      var filter = (document.getElementById('pageFilter').value || '').toLowerCase();
+
+      if (allPages.length === 0) {
+        listEl.innerHTML = '<div style="padding: 12px; font-size: 11px; color: #8c8c8c; text-align: center;">No pages found.</div>';
+        return;
+      }
+
+      var visiblePages = allPages.filter(function(p) {
+        return !filter || p.name.toLowerCase().indexOf(filter) !== -1;
+      });
+
+      if (visiblePages.length === 0) {
+        listEl.innerHTML = '<div style="padding: 12px; font-size: 11px; color: #8c8c8c; text-align: center;">No pages match "' + escapeHtml(filter) + '".</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < visiblePages.length; i++) {
+        var p = visiblePages[i];
+        var isIgnored = !!ignoredPageIdsSet[p.id];
+        var safeId = p.id.replace(/'/g, "\\'");
+        html += '<label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;" onmouseover="this.style.background=\'#f5f5f5\'" onmouseout="this.style.background=\'transparent\'">';
+        html += '<input type="checkbox" ' + (isIgnored ? 'checked' : '') + ' onchange="togglePageId(\'' + safeId + '\')" style="cursor: pointer; flex-shrink: 0;" />';
+        html += '<span style="flex: 1; ' + (isIgnored ? 'color: #f56040; font-weight: 500;' : 'color: #0c0d0f;') + '">' + escapeHtml(p.name) + '</span>';
+        html += '</label>';
+      }
+      listEl.innerHTML = html;
+    }
+
+    function loadPagesList() {
+      parent.postMessage({ pluginMessage: { type: 'list-pages' } }, '*');
+    }
+
+    function getSortedUsage() {
+      var keys = Object.keys(instanceCounts).sort(function(a, b) {
+        var diff = instanceCounts[b] - instanceCounts[a];
+        return diff !== 0 ? diff : a.localeCompare(b);
+      });
+      return keys.map(function(k) { return { name: k, count: instanceCounts[k] }; });
+    }
+
+    function buildExport(format) {
+      var rows = getSortedUsage();
+      if (format === 'names') {
+        return rows.map(function(r) { return r.name; }).join('\n');
+      }
+      if (format === 'csv') {
+        var out = 'name,count\n';
+        for (var i = 0; i < rows.length; i++) {
+          out += rows[i].name + ',' + rows[i].count + '\n';
+        }
+        return out;
+      }
+      if (format === 'json') {
+        return JSON.stringify(rows, null, 2);
+      }
+      return '';
+    }
+
+    function flashStatus(msg) {
+      var el = document.getElementById('exportStatus');
+      if (!el) return;
+      el.textContent = msg;
+      setTimeout(function() {
+        if (el.textContent === msg) el.textContent = '';
+      }, 2000);
+    }
+
+    function copyIcons(format) {
+      var text = buildExport(format);
+      // navigator.clipboard may be unavailable in the Figma iframe — fall back to textarea+execCommand
+      var ok = false;
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch (e) {
+        ok = false;
+      }
+      if (ok) {
+        flashStatus('Copied ' + format + ' to clipboard.');
+      } else {
+        flashStatus('Copy failed — use Download instead.');
+      }
+    }
+
+    function downloadIcons() {
+      var text = buildExport('csv');
+      var blob = new Blob([text], { type: 'text/csv' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'lucide-icon-usage.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      flashStatus('Downloaded lucide-icon-usage.csv');
+    }
+
+    function jumpToNode(nodeId) {
+      parent.postMessage({ pluginMessage: { type: 'jump-to-nodes', nodeIds: [nodeId] } }, '*');
+    }
+
+    function jumpToIcon(iconName) {
+      var ids = [];
+      for (var i = 0; i < components.length; i++) {
+        if (components[i].matchedIcon === iconName) ids.push(components[i].id);
+      }
+      for (var j = 0; j < instances.length; j++) {
+        if (instances[j].matchedIcon === iconName) ids.push(instances[j].id);
+      }
+      if (ids.length === 0) return;
+      parent.postMessage({ pluginMessage: { type: 'jump-to-nodes', nodeIds: ids } }, '*');
     }
 
     function displayResults() {
@@ -395,19 +637,30 @@
 
       var html = '';
 
-      // Display instance counts section (TOP PRIORITY)
-      var countKeys = Object.keys(instanceCounts).sort();
+      // Display instance counts section (TOP PRIORITY) — sorted by count desc, name asc as tiebreaker
+      var countKeys = Object.keys(instanceCounts).sort(function(a, b) {
+        var diff = instanceCounts[b] - instanceCounts[a];
+        return diff !== 0 ? diff : a.localeCompare(b);
+      });
       if (countKeys.length > 0) {
         html += '<div class="section-header" onclick="toggleSection(\'usage\')">';
         html += '<span>Icon Usage Summary (' + countKeys.length + ' unique)</span>';
         html += '<span class="chevron expanded">▶</span>';
         html += '</div>';
         html += '<div class="section-content" id="usage-content">';
+        html += '<div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">';
+        html += '<button class="scan-button secondary" onclick="copyIcons(\'names\')" style="margin-bottom: 0; padding: 6px 10px; flex: 0 1 auto;">Copy names</button>';
+        html += '<button class="scan-button secondary" onclick="copyIcons(\'csv\')" style="margin-bottom: 0; padding: 6px 10px; flex: 0 1 auto;">Copy CSV</button>';
+        html += '<button class="scan-button secondary" onclick="copyIcons(\'json\')" style="margin-bottom: 0; padding: 6px 10px; flex: 0 1 auto;">Copy JSON</button>';
+        html += '<button class="scan-button secondary" onclick="downloadIcons()" style="margin-bottom: 0; padding: 6px 10px; flex: 0 1 auto;">Download CSV</button>';
+        html += '</div>';
+        html += '<div id="exportStatus" style="font-size: 11px; color: #4caf50; margin-bottom: 8px; min-height: 14px;"></div>';
         for (var k = 0; k < countKeys.length; k++) {
           var componentName = countKeys[k];
           var count = instanceCounts[componentName];
-          html += '<div class="count-item">';
-          html += '<span class="count-name">' + escapeHtml(componentName) + '</span>';
+          var safeName = componentName.replace(/'/g, "\\'");
+          html += '<div class="count-item" onclick="jumpToIcon(\'' + safeName + '\')" title="Click to select all instances">';
+          html += '<span class="count-name">' + escapeHtml(componentName) + '<span class="jump-hint">→ jump</span></span>';
           html += '<span class="count-badge">' + count + '</span>';
           html += '</div>';
         }
@@ -428,7 +681,8 @@
           html += '<div style="font-weight: 600; margin-bottom: 8px; font-size: 12px; color: #666;">Components (' + components.length + ')</div>';
           for (var i = 0; i < components.length; i++) {
             var component = components[i];
-            html += '<div class="result-item">';
+            var compIdSafe = component.id.replace(/'/g, "\\'");
+            html += '<div class="result-item" onclick="jumpToNode(\'' + compIdSafe + '\')" title="Click to jump to this layer">';
             html += '<div class="result-name">' + escapeHtml(component.name) + '</div>';
             html += '<span class="result-type type-component">Component</span>';
             if (component.matchedIcon) {
@@ -447,7 +701,8 @@
           html += '<div style="font-weight: 600; margin-bottom: 8px; font-size: 12px; color: #666;">Instances (' + instances.length + ')</div>';
           for (var j = 0; j < instances.length; j++) {
             var instance = instances[j];
-            html += '<div class="result-item">';
+            var instIdSafe = instance.id.replace(/'/g, "\\'");
+            html += '<div class="result-item" onclick="jumpToNode(\'' + instIdSafe + '\')" title="Click to jump to this layer">';
             html += '<div class="result-name">' + escapeHtml(instance.name) + '</div>';
             html += '<span class="result-type type-instance">Instance</span>';
             if (instance.matchedIcon) {
@@ -502,9 +757,40 @@
       }
     }
 
+    // Request initial state on load, then load pages
+    parent.postMessage({ pluginMessage: { type: 'init' } }, '*');
+    loadPagesList();
+
+    document.getElementById('pageFilter').addEventListener('input', renderPagesList);
+    document.getElementById('strictPrefixToggle').addEventListener('change', onStrictToggleChange);
+    document.getElementById('strictPrefixInput').addEventListener('input', saveStrictPrefix);
+
     // Listen for messages from plugin
     window.onmessage = function(event) {
       var msg = event.data.pluginMessage;
+
+      if (msg.type === 'init-data') {
+        var ids = msg.ignoredPageIds || [];
+        ignoredPageIdsSet = {};
+        for (var ii = 0; ii < ids.length; ii++) ignoredPageIdsSet[ids[ii]] = true;
+        updateIgnoreCount();
+        renderPagesList();
+
+        var savedPrefix = msg.strictPrefix || '';
+        var prefixToggle = document.getElementById('strictPrefixToggle');
+        var prefixInput = document.getElementById('strictPrefixInput');
+        if (savedPrefix) {
+          prefixToggle.checked = true;
+          prefixInput.disabled = false;
+          prefixInput.value = savedPrefix;
+        }
+        updateStrictBadge();
+      }
+
+      if (msg.type === 'pages-list') {
+        allPages = msg.pages || [];
+        renderPagesList();
+      }
 
       if (msg.type === 'scan-progress') {
         updateProgress(msg.message, msg.current, msg.total, msg.foundSoFar);

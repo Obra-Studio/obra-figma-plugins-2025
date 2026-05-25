@@ -59,7 +59,29 @@
             background: #ccc;
             cursor: not-allowed;
         }
-        
+
+        .button-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .button-secondary:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .scan-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .scan-buttons .button {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
         .button-small {
             padding: 4px 8px;
             font-size: 11px;
@@ -190,99 +212,99 @@
             line-height: 1.4;
         }
 
-        .collections-list {
+        .collection-selector {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
 
-        .collection-item {
+        .collection-option {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 8px;
-            background: #f8f9fa;
+            padding: 8px 12px;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.15s;
+            background: #ffffff;
         }
 
-        .collection-item:hover {
-            background: #f1f5f9;
+        .collection-option:hover {
+            background: #f7f7f7;
             border-color: #cbd5e1;
         }
 
-        .collection-item.selected {
+        .collection-option.selected {
             background: #e0f2fe;
-            border-color: #38bdf8;
-        }
-
-        .collection-checkbox {
-            width: 16px;
-            height: 16px;
-            border: 2px solid #cbd5e1;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.15s;
-        }
-
-        .collection-item.selected .collection-checkbox {
-            background: #0ea5e9;
             border-color: #0ea5e9;
         }
 
-        .collection-checkbox-check {
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-            opacity: 0;
+        .collection-option input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
         }
 
-        .collection-item.selected .collection-checkbox-check {
-            opacity: 1;
-        }
-
-        .collection-name {
+        .collection-option-label {
+            flex-grow: 1;
             font-size: 11px;
             font-weight: 500;
-            color: #334155;
-            flex-grow: 1;
+            color: #333;
         }
 
-        .collection-count {
+        .collection-option-count {
             font-size: 10px;
             color: #64748b;
-            background: #e2e8f0;
+            background: #f1f5f9;
             padding: 2px 6px;
             border-radius: 10px;
         }
 
-        .collection-item.selected .collection-count {
-            background: #bae6fd;
-            color: #0369a1;
+        .collection-option.selected .collection-option-count {
+            background: #0ea5e9;
+            color: white;
         }
 
-        .collections-actions {
+        .collection-rank {
             display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #e5e5e5;
+            flex-direction: column;
+            gap: 2px;
+            margin-right: 4px;
         }
 
-        .collections-action-btn {
-            font-size: 10px;
-            color: #0ea5e9;
+        .rank-btn {
+            width: 18px;
+            height: 14px;
+            font-size: 9px;
+            line-height: 1;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            border-radius: 3px;
             cursor: pointer;
-            text-decoration: underline;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .collections-action-btn:hover {
-            color: #0284c7;
+        .rank-btn:hover:not(:disabled) {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .rank-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .preferred-badge {
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #0ea5e9;
+            background: #e0f2fe;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-right: 6px;
         }
 
         .variable-tag {
@@ -685,6 +707,121 @@
             height: 100%;
             min-height: 0;
         }
+
+        @media (prefers-color-scheme: dark) {
+            body { background: #2c2c2c; color: #e0e0e0; }
+            .header { border-bottom-color: #444; }
+            .subtitle { color: #999; }
+
+            .button-secondary {
+                background: #3a3a3a;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            .button-secondary:hover { background: #454545; border-color: #666; }
+            .button:disabled { background: #555; color: #888; }
+
+            .error-banner { background: #5a2a2e; color: #f5b7b1; border-color: #7a3a3e; }
+            .status { background: #383838; color: #aaa; }
+
+            /* Tabs */
+            .tabs { background: #2c2c2c; border-bottom-color: #444; }
+            .tab { color: #999; background: transparent; }
+            .tab:hover { color: #e0e0e0; background: #383838; }
+            .tab.active { color: #e0e0e0; }
+
+            /* Accordions */
+            .accordion { background: #2c2c2c; border-color: #444; }
+            .accordion-header,
+            .accordion-header.has-problems {
+                background: transparent;
+                color: #e0e0e0;
+                border-bottom-color: #444;
+            }
+            .accordion-header:hover,
+            .accordion-header.has-problems:hover { background: #383838; }
+            .accordion-toggle { color: #aaa; }
+            .accordion-content { background: #2c2c2c; color: #e0e0e0; }
+
+            /* Layers list */
+            .layer-item { background: #2c2c2c; border-bottom-color: #3a3a3a; }
+            .layer-item:hover { background: #353535; }
+            .layer-item.selected { background: #1e3a5f; border-left-color: #18a0fb; }
+            .layer-item.is-component { background: #2e2540; }
+            .layer-item.is-component:hover { background: #382a4f; }
+            .layer-item.is-component.selected { background: #3a2b55; border-left-color: #9333ea; }
+            .layer-name { color: #e0e0e0; }
+            .layer-radius { color: #7cc7ff; background: #1e3a5f; }
+            .layer-details { color: #999; }
+            .suggestion-text { color: #e0e0e0; }
+            .component-indicator { color: #c084fc; }
+            .component-recommendation {
+                background: #2e2540; border-color: #7c3aed; color: #d8b4fe;
+            }
+            .component-recommendation-icon { color: #c084fc; }
+
+            /* Selected layer info card */
+            .selected-layer-info { background: #1e3a5f; color: #e0e0e0; }
+
+            /* Collection options */
+            .collection-option { background: #383838; border-color: #555; }
+            .collection-option:hover { background: #404040; border-color: #666; }
+            .collection-option.selected { background: #1e3a5f; border-color: #38bdf8; }
+            .collection-option-label { color: #e0e0e0; }
+            .collection-option-count { background: #2c2c2c; color: #aaa; }
+            .collection-option.selected .collection-option-count { background: #38bdf8; color: #1a1a1a; }
+            .rank-btn { background: #3a3a3a; color: #e0e0e0; border-color: #555; }
+            .rank-btn:hover:not(:disabled) { background: #454545; border-color: #666; }
+            .preferred-badge { background: #1e3a5f; color: #7cc7ff; }
+
+            /* Variable tags grid */
+            .variable-tag { background: #383838; color: #e0e0e0; border-color: #555; }
+            .variable-collection-header { color: #e0e0e0; border-bottom-color: #444; }
+
+            /* Issue badges — soften */
+            .issue-missing { background: #5a4a1a; color: #ffe082; }
+            .issue-no-match { background: #5a2a2e; color: #f5b7b1; }
+            .issue-fixed { background: #2a4a2e; color: #a5d6a7; }
+
+            /* Autofix section */
+            .autofix-section { background: #1e3a5f; border-color: #38bdf8; }
+
+            /* Apply options dropdown */
+            .apply-options { background: #383838; border-color: #555; color: #e0e0e0; }
+            .apply-option { border-bottom-color: #444; }
+            .apply-option:hover { background: #454545; }
+
+            /* Ignore section */
+            .ignore-section { border-top-color: #444; }
+            .ignore-input {
+                background: #383838;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            .ignore-input::placeholder { color: #777; }
+            .ignore-add-btn {
+                background: #3a3a3a;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+            .ignore-add-btn:hover { background: #454545; border-color: #666; }
+            .ignore-tag { background: #3a3a3a; color: #e0e0e0; }
+            .ignore-remove { color: #aaa; }
+            .ignore-remove:hover { color: #fff; }
+
+            /* Generic inputs */
+            input[type="text"], input[type="number"], select, textarea {
+                background: #383838;
+                color: #e0e0e0;
+                border-color: #555;
+            }
+
+            /* Inline-styled helper text */
+            [style*="color: #666"], [style*="color:#666"] { color: #aaa !important; }
+            [style*="color: #999"], [style*="color:#999"] { color: #888 !important; }
+            [style*="color: #333"], [style*="color:#333"] { color: #e0e0e0 !important; }
+            [style*="background:#eee"], [style*="background: #eee"] { background: #444 !important; }
+        }
     </style>
 </head>
 <body>
@@ -702,8 +839,35 @@
     <!-- Layers Tab -->
     <div id="layersTab" class="tab-content active">
         <div id="scanSection" class="section">
-            <button id="scanBtn" class="button">Scan Selected Layers</button>
+            <div class="scan-buttons">
+                <button id="scanBtn" class="button">Scan Selected Layers</button>
+                <button id="scanPageBtn" class="button button-secondary">Scan Page</button>
+                <button id="scanFileBtn" class="button button-secondary">Scan Entire File</button>
+            </div>
             <div id="status" class="status hidden">Ready to scan...</div>
+        </div>
+
+        <div id="fileScanProgress" class="hidden" style="margin-top:8px;">
+            <div style="font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between;">
+                <span id="fileScanProgressLabel">Scanning...</span>
+                <span id="fileScanProgressCount"></span>
+            </div>
+            <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden;">
+                <div id="fileScanProgressBar" style="background:#18a0fb;height:100%;width:0%;transition:width 0.15s ease;"></div>
+            </div>
+        </div>
+
+        <div id="fileScanAccordion" class="accordion hidden">
+            <div class="accordion-header" onclick="toggleAccordion('fileScan')">
+                <span class="accordion-toggle open" id="fileScanToggle">▶</span>
+                <span class="accordion-title">
+                    <span>Most Problematic Pages</span>
+                    <span id="fileScanCount" class="problem-count hidden"></span>
+                </span>
+            </div>
+            <div class="accordion-content open" id="fileScanContent">
+                <div id="fileScanList" class="layers-list"></div>
+            </div>
         </div>
 
         <div id="layersAccordion" class="accordion hidden">
@@ -755,9 +919,9 @@
                 <span class="accordion-title">Variable Collections</span>
             </div>
             <div class="accordion-content open" id="collectionsContent">
-                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Select which collections to use for applying variables:</div>
-                <div id="collectionsList" class="collections-list">
-                    <div style="color: #999; font-style: italic;">Loading...</div>
+                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Select which collections to use for applying spacing variables:</div>
+                <div id="collectionSelector" class="collection-selector">
+                    <div style="color: #999; font-style: italic;">Loading collections...</div>
                 </div>
             </div>
         </div>
@@ -806,11 +970,20 @@
         function initializePlugin() {
             var elements = {
                 scanBtn: document.getElementById('scanBtn'),
+                scanPageBtn: document.getElementById('scanPageBtn'),
+                scanFileBtn: document.getElementById('scanFileBtn'),
+                fileScanAccordion: document.getElementById('fileScanAccordion'),
+                fileScanProgress: document.getElementById('fileScanProgress'),
+                fileScanProgressBar: document.getElementById('fileScanProgressBar'),
+                fileScanProgressLabel: document.getElementById('fileScanProgressLabel'),
+                fileScanProgressCount: document.getElementById('fileScanProgressCount'),
+                fileScanList: document.getElementById('fileScanList'),
+                fileScanCount: document.getElementById('fileScanCount'),
                 status: document.getElementById('status'),
                 errorBanner: document.getElementById('errorBanner'),
                 errorMessage: document.getElementById('errorMessage'),
                 variablesList: document.getElementById('variablesList'),
-                collectionsList: document.getElementById('collectionsList'),
+                collectionSelector: document.getElementById('collectionSelector'),
                 ignoreInput: document.getElementById('ignoreInput'),
                 addIgnoreBtn: document.getElementById('addIgnoreBtn'),
                 ignoreList: document.getElementById('ignoreList'),
@@ -831,7 +1004,7 @@
 
             var variables = [];
             var collections = [];
-            var selectedCollectionIds = []; // Empty means all selected
+            var selectedCollectionIds = []; // Ordered; earlier = preferred
             var layers = [];
             var problemLayers = [];
             var fixedLayers = [];
@@ -850,6 +1023,77 @@
                 parent.postMessage({ pluginMessage: { type: 'start-scan', ignoredNames: ignoredLayerNames } }, '*');
             });
 
+            if (elements.scanPageBtn) {
+                elements.scanPageBtn.addEventListener('click', function() {
+                    hideError();
+                    parent.postMessage({ pluginMessage: { type: 'scan-page', ignoredNames: ignoredLayerNames } }, '*');
+                });
+            }
+
+            if (elements.scanFileBtn) {
+                elements.scanFileBtn.addEventListener('click', function() {
+                    hideError();
+                    parent.postMessage({ pluginMessage: { type: 'scan-file', ignoredNames: ignoredLayerNames } }, '*');
+                });
+            }
+
+            function formatScannedAt(ts) {
+                if (!ts) return '';
+                var d = new Date(ts);
+                var now = new Date();
+                var sameDay = d.toDateString() === now.toDateString();
+                var time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return sameDay ? 'Scanned at ' + time : 'Scanned ' + d.toLocaleString();
+            }
+
+            function renderFileScanResults(pages, scannedAt) {
+                if (!elements.fileScanList || !elements.fileScanAccordion) return;
+                elements.fileScanAccordion.classList.remove('hidden');
+
+                var pagesWithProblems = pages.filter(function(p) { return p.problems > 0; });
+                if (elements.fileScanCount) {
+                    elements.fileScanCount.classList.remove('hidden');
+                    elements.fileScanCount.textContent = pagesWithProblems.length + ' / ' + pages.length;
+                }
+
+                if (pages.length === 0) {
+                    elements.fileScanList.innerHTML = '<div style="color:#999;font-style:italic;padding:8px;">No pages found</div>';
+                    return;
+                }
+
+                var html = '';
+                if (scannedAt) {
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#999;padding:4px 2px 8px;">' +
+                        '<span>' + formatScannedAt(scannedAt) + '</span>' +
+                        '<span style="cursor:pointer;text-decoration:underline;" onclick="window.clearFileScan()">Clear</span>' +
+                    '</div>';
+                }
+                for (var i = 0; i < pages.length; i++) {
+                    var p = pages[i];
+                    var safeName = String(p.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                    html += '<div class="layer-item" style="cursor:pointer;" onclick="window.goToPage(\'' + p.id.replace(/'/g, "\\'") + '\')">' +
+                        '<div class="layer-name">' + safeName + '</div>' +
+                        '<div style="font-size:11px;color:#666;">' +
+                            'To fix: <strong>' + p.fixable + '</strong>' +
+                            ' &middot; No match: ' + p.noMatch +
+                            ' &middot; Already: ' + p.alreadyFixed +
+                        '</div>' +
+                    '</div>';
+                }
+                elements.fileScanList.innerHTML = html;
+            }
+
+            window.goToPage = function(pageId) {
+                parent.postMessage({ pluginMessage: { type: 'go-to-page', pageId: pageId } }, '*');
+            };
+
+            window.clearFileScan = function() {
+                parent.postMessage({ pluginMessage: { type: 'clear-file-scan' } }, '*');
+                if (elements.fileScanAccordion) elements.fileScanAccordion.classList.add('hidden');
+                if (elements.fileScanList) elements.fileScanList.innerHTML = '';
+                if (elements.fileScanCount) elements.fileScanCount.classList.add('hidden');
+            };
+
             elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
 
             elements.ignoreInput.addEventListener('keypress', function(e) {
@@ -858,9 +1102,8 @@
                 }
             });
 
-            // Request ignored names and selected collections from plugin on startup
+            // Request ignored names from plugin on startup
             parent.postMessage({ pluginMessage: { type: 'load-ignored-names' } }, '*');
-            parent.postMessage({ pluginMessage: { type: 'load-selected-collections' } }, '*');
 
             // Save ignored names via plugin clientStorage
             function saveIgnoredNames() {
@@ -873,106 +1116,111 @@
                 console.log('Requested save of ignored names:', ignoredLayerNames);
             }
 
-            // Update collections list display
-            function updateCollectionsList() {
-                if (!elements.collectionsList) return;
+            // Update collection selector with rank arrows and preferred badge
+            function updateCollectionSelector(collectionsData, currentSelectedIds) {
+                if (!elements.collectionSelector) return;
+
+                collections = collectionsData || collections;
+                if (currentSelectedIds) selectedCollectionIds = currentSelectedIds;
+
+                // If nothing selected yet but we have collections, default to all (ordered)
+                if (selectedCollectionIds.length === 0 && collections.length > 0) {
+                    selectedCollectionIds = collections.map(function(c) { return c.id; });
+                    parent.postMessage({
+                        pluginMessage: { type: 'select-collections', collectionIds: selectedCollectionIds }
+                    }, '*');
+                }
 
                 if (collections.length === 0) {
-                    elements.collectionsList.innerHTML = '<div style="color: #999; font-style: italic;">No variable collections found</div>';
+                    elements.collectionSelector.innerHTML = '<div style="color: #999; font-style: italic;">No collections with spacing variables found</div>';
                     return;
                 }
 
-                // Count variables per collection
-                var collectionCounts = {};
-                for (var i = 0; i < variables.length; i++) {
-                    var collId = variables[i].collectionId;
-                    collectionCounts[collId] = (collectionCounts[collId] || 0) + 1;
+                // Build display order: selected first (in preferred order), then unselected
+                var byId = {};
+                for (var x = 0; x < collections.length; x++) byId[collections[x].id] = collections[x];
+
+                var ordered = [];
+                for (var s = 0; s < selectedCollectionIds.length; s++) {
+                    var c = byId[selectedCollectionIds[s]];
+                    if (c) ordered.push(c);
+                }
+                for (var u = 0; u < collections.length; u++) {
+                    if (selectedCollectionIds.indexOf(collections[u].id) === -1) {
+                        ordered.push(collections[u]);
+                    }
                 }
 
+                var selectedCount = selectedCollectionIds.length;
                 var html = '';
-                for (var j = 0; j < collections.length; j++) {
-                    var coll = collections[j];
-                    var count = collectionCounts[coll.id] || 0;
 
-                    // Skip collections with no spacing variables
-                    if (count === 0) continue;
+                if (selectedCount > 1) {
+                    html += '<div style="font-size:10px;color:#666;margin-bottom:8px;">Use the arrows to set which collection is preferred when multiple have a matching value.</div>';
+                }
 
-                    var isSelected = selectedCollectionIds.length === 0 || selectedCollectionIds.indexOf(coll.id) !== -1;
-                    var selectedClass = isSelected ? ' selected' : '';
+                for (var i = 0; i < ordered.length; i++) {
+                    var collection = ordered[i];
+                    var rank = selectedCollectionIds.indexOf(collection.id);
+                    var isSelected = rank !== -1;
+                    var canMoveUp = isSelected && rank > 0;
+                    var canMoveDown = isSelected && rank < selectedCount - 1;
+                    var isPreferred = isSelected && rank === 0 && selectedCount > 1;
 
-                    html += '<div class="collection-item' + selectedClass + '" onclick="window.toggleCollection(\'' + coll.id + '\')">' +
-                           '<div class="collection-checkbox"><span class="collection-checkbox-check">✓</span></div>' +
-                           '<span class="collection-name">' + coll.name + '</span>' +
-                           '<span class="collection-count">' + count + ' vars</span>' +
+                    var rankHtml = '';
+                    if (isSelected && selectedCount > 1) {
+                        rankHtml = '<div class="collection-rank" onclick="event.stopPropagation()">' +
+                            '<button class="rank-btn" ' + (canMoveUp ? '' : 'disabled') + ' onclick="event.stopPropagation(); window.moveCollection(\'' + collection.id + '\', -1)" title="Move up">▲</button>' +
+                            '<button class="rank-btn" ' + (canMoveDown ? '' : 'disabled') + ' onclick="event.stopPropagation(); window.moveCollection(\'' + collection.id + '\', 1)" title="Move down">▼</button>' +
+                            '</div>';
+                    }
+
+                    html += '<div class="collection-option' + (isSelected ? ' selected' : '') + '" data-collection-id="' + collection.id + '" onclick="window.toggleCollection(\'' + collection.id + '\')">' +
+                           rankHtml +
+                           '<input type="checkbox" ' + (isSelected ? 'checked' : '') + '>' +
+                           '<span class="collection-option-label">' + collection.name + '</span>' +
+                           (isPreferred ? '<span class="preferred-badge">Preferred</span>' : '') +
+                           '<span class="collection-option-count">' + (collection.variableCount || 0) + ' variables</span>' +
                            '</div>';
                 }
 
-                // Add select all / deselect all actions
-                html += '<div class="collections-actions">' +
-                       '<span class="collections-action-btn" onclick="window.selectAllCollections()">Select all</span>' +
-                       '<span class="collections-action-btn" onclick="window.deselectAllCollections()">Deselect all</span>' +
-                       '</div>';
-
-                elements.collectionsList.innerHTML = html;
+                elements.collectionSelector.innerHTML = html;
+                updateVariablesListDisplay();
             }
 
-            // Toggle collection selection
-            function toggleCollection(collectionId) {
-                if (selectedCollectionIds.length === 0) {
-                    // Currently all are selected, so switch to explicit selection
-                    // Deselect this one, keep all others selected
-                    selectedCollectionIds = [];
-                    for (var i = 0; i < collections.length; i++) {
-                        if (collections[i].id !== collectionId) {
-                            selectedCollectionIds.push(collections[i].id);
-                        }
-                    }
-                } else {
-                    var index = selectedCollectionIds.indexOf(collectionId);
-                    if (index !== -1) {
-                        // Deselect
-                        selectedCollectionIds.splice(index, 1);
-                    } else {
-                        // Select
-                        selectedCollectionIds.push(collectionId);
-                    }
+            // Move a collection up (-1) or down (+1) in preference order
+            function moveCollection(collectionId, delta) {
+                var idx = selectedCollectionIds.indexOf(collectionId);
+                if (idx === -1) return;
+                var target = idx + delta;
+                if (target < 0 || target >= selectedCollectionIds.length) return;
 
-                    // If all are now selected, reset to empty array (means all)
-                    if (selectedCollectionIds.length === collections.length) {
-                        selectedCollectionIds = [];
-                    }
+                var tmp = selectedCollectionIds[target];
+                selectedCollectionIds[target] = selectedCollectionIds[idx];
+                selectedCollectionIds[idx] = tmp;
+
+                parent.postMessage({
+                    pluginMessage: { type: 'select-collections', collectionIds: selectedCollectionIds }
+                }, '*');
+
+                updateCollectionSelector(collections, selectedCollectionIds);
+            }
+            window.moveCollection = moveCollection;
+
+            // Toggle a collection selection (can't deselect last one)
+            function toggleCollection(collectionId) {
+                var index = selectedCollectionIds.indexOf(collectionId);
+                if (index !== -1) {
+                    if (selectedCollectionIds.length === 1) return;
+                    selectedCollectionIds.splice(index, 1);
+                } else {
+                    selectedCollectionIds.push(collectionId);
                 }
 
-                saveSelectedCollections();
-                updateCollectionsList();
-                updateVariablesListDisplay();
-            }
-
-            // Select all collections
-            function selectAllCollections() {
-                selectedCollectionIds = [];
-                saveSelectedCollections();
-                updateCollectionsList();
-                updateVariablesListDisplay();
-            }
-
-            // Deselect all collections
-            function deselectAllCollections() {
-                selectedCollectionIds = ['__none__']; // Special marker for none selected
-                saveSelectedCollections();
-                updateCollectionsList();
-                updateVariablesListDisplay();
-            }
-
-            // Save selected collections to plugin
-            function saveSelectedCollections() {
                 parent.postMessage({
-                    pluginMessage: {
-                        type: 'update-selected-collections',
-                        collectionIds: selectedCollectionIds
-                    }
+                    pluginMessage: { type: 'select-collections', collectionIds: selectedCollectionIds }
                 }, '*');
-                console.log('Saved selected collections:', selectedCollectionIds);
+
+                updateCollectionSelector(collections, selectedCollectionIds);
             }
 
             // Update variables list display based on selected collections
@@ -981,7 +1229,6 @@
 
                 var filteredVars = variables.filter(function(v) {
                     if (selectedCollectionIds.length === 0) return true;
-                    if (selectedCollectionIds[0] === '__none__') return false;
                     return selectedCollectionIds.indexOf(v.collectionId) !== -1;
                 });
 
@@ -1026,10 +1273,7 @@
                 elements.variablesList.innerHTML = html;
             }
 
-            // Make collection functions available globally
             window.toggleCollection = toggleCollection;
-            window.selectAllCollections = selectAllCollections;
-            window.deselectAllCollections = deselectAllCollections;
 
             // Show error banner
             function showError(message) {
@@ -1132,22 +1376,14 @@
             // Update variables list
             function updateVariablesList(variableData) {
                 variables = variableData.variables || [];
-                collections = variableData.collections || [];
 
                 if (variableData.error) {
                     if (elements.variablesList) {
                         elements.variablesList.innerHTML = '<div style="color: #ff0000;">Error: ' + variableData.error + '</div>';
                     }
-                    if (elements.collectionsList) {
-                        elements.collectionsList.innerHTML = '<div style="color: #ff0000;">Error loading collections</div>';
-                    }
                     return;
                 }
 
-                // Update collections list
-                updateCollectionsList();
-
-                // Update variables list (filtered by selected collections)
                 updateVariablesListDisplay();
             }
 
@@ -1464,6 +1700,10 @@
                 console.log('UI received message:', msg.type);
 
                 switch (msg.type) {
+                    case 'collections-found':
+                        updateCollectionSelector(msg.collections, msg.selectedCollectionIds);
+                        break;
+
                     case 'variables-found':
                         updateVariablesList(msg);
                         break;
@@ -1471,21 +1711,70 @@
                     case 'scan-started':
                         hideError();
                         if (elements.status) {
-                            elements.status.textContent = 'Scanning selected layers...';
+                            elements.status.textContent = 'Scanning...';
                             elements.status.classList.remove('hidden');
                         }
-                        if (elements.scanBtn) {
-                            elements.scanBtn.disabled = true;
+                        if (elements.scanBtn) elements.scanBtn.disabled = true;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = true;
+                        break;
+
+                    case 'scan-complete':
+                        if (elements.scanBtn) elements.scanBtn.disabled = false;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
+                        if (elements.status) {
+                            elements.status.textContent = 'Found ' + msg.totalLayers + ' layers with spacing properties';
+                        }
+                        updateLayersList(msg.layers);
+                        break;
+
+                    case 'file-scan-started':
+                        if (elements.scanBtn) elements.scanBtn.disabled = true;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = true;
+                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = true;
+                        if (elements.status) elements.status.classList.add('hidden');
+                        if (elements.fileScanProgress) {
+                            elements.fileScanProgress.classList.remove('hidden');
+                            elements.fileScanProgressBar.style.width = '0%';
+                            elements.fileScanProgressLabel.textContent = 'Loading pages...';
+                            elements.fileScanProgressCount.textContent = '';
                         }
                         break;
-                    
-                    case 'scan-complete':
-                        if (elements.status && elements.scanBtn) {
-                            elements.status.textContent = 'Found ' + msg.totalLayers + ' layers with spacing properties';
-                            elements.scanBtn.disabled = false;
+
+                    case 'file-scan-progress':
+                        if (elements.fileScanProgress) {
+                            var pct = msg.total > 0 ? Math.round((msg.current / msg.total) * 100) : 0;
+                            elements.fileScanProgressBar.style.width = pct + '%';
+                            elements.fileScanProgressLabel.textContent = msg.pageName;
+                            elements.fileScanProgressCount.textContent = msg.current + ' / ' + msg.total;
                         }
-                        // Update layers list (variant filters are managed by selection-variants)
-                        updateLayersList(msg.layers);
+                        break;
+
+                    case 'file-scan-complete':
+                        if (elements.scanBtn) elements.scanBtn.disabled = false;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
+                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = false;
+                        if (elements.fileScanProgress) {
+                            elements.fileScanProgressBar.style.width = '100%';
+                            setTimeout(function() {
+                                elements.fileScanProgress.classList.add('hidden');
+                            }, 400);
+                        }
+                        if (elements.status) {
+                            elements.status.textContent = 'File scan complete: ' + msg.pages.length + ' pages';
+                            elements.status.classList.remove('hidden');
+                        }
+                        renderFileScanResults(msg.pages, msg.scannedAt);
+                        break;
+
+                    case 'file-scan-restored':
+                        renderFileScanResults(msg.pages, msg.scannedAt);
+                        break;
+
+                    case 'page-changed':
+                        if (elements.status) {
+                            elements.status.textContent = 'Switched to page: ' + msg.pageName;
+                            elements.status.classList.remove('hidden');
+                        }
                         break;
                     
                     case 'layer-selected':
@@ -1570,22 +1859,14 @@
                     
                     case 'error':
                         showError(msg.message);
-                        if (elements.scanBtn) {
-                            elements.scanBtn.disabled = false;
-                        }
-                        break;
-                    
-                    case 'ignored-names-loaded':
-                        ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
-                        console.log('Loaded ignored names from plugin:', ignoredLayerNames);
-                        updateIgnoreList();
+                        if (elements.scanBtn) elements.scanBtn.disabled = false;
+                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
+                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = false;
                         break;
 
-                    case 'selected-collections-loaded':
-                        selectedCollectionIds = msg.collectionIds || [];
-                        console.log('Loaded selected collections from plugin:', selectedCollectionIds);
-                        updateCollectionsList();
-                        updateVariablesListDisplay();
+                    case 'ignored-names-loaded':
+                        ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
+                        updateIgnoreList();
                         break;
                 }
             });

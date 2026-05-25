@@ -1328,6 +1328,9 @@
     </div>
 
     <!-- Actions -->
+    <p class="section-hint" style="margin-bottom: 10px;">
+      Also scans every page and rewires variable bindings on fills, strokes, effects and other properties so your designs stay linked. Large files may take a while — progress is shown on the button.
+    </p>
     <div class="actions">
       <button class="btn btn-secondary" id="btn-cancel">
         Cancel
@@ -1437,6 +1440,9 @@
       </div>
 
       <!-- Split Actions -->
+      <p class="section-hint" style="margin-bottom: 10px;">
+        Also scans every page and rewires variable bindings so your designs stay linked to the new collection. Large files may take a while — progress is shown on the button.
+      </p>
       <div class="actions">
         <button class="btn btn-secondary" id="btn-split-cancel">
           Cancel
@@ -1553,6 +1559,9 @@
       </div>
 
       <!-- Move Actions -->
+      <p class="section-hint" style="margin-bottom: 10px;">
+        Also scans every page and rewires variable bindings so your designs stay linked to the new collection. Large files may take a while — progress is shown on the button.
+      </p>
       <div class="actions">
         <button class="btn btn-secondary" id="btn-move-cancel">
           Cancel
@@ -1881,6 +1890,19 @@
             }
           }
           break;
+
+        case 'progress': {
+          // Update whichever action button is currently running so the user
+          // sees live progress (rebinding nodes across pages can take a while).
+          const runningBtn = [btnMerge, btnSplit, btnMove].find(b => b.disabled);
+          if (runningBtn) {
+            runningBtn.innerHTML = `
+              <div class="spinner" style="width: 14px; height: 14px; margin: 0; border-width: 2px;"></div>
+              ${escapeHtml(msg.message)}
+            `;
+          }
+          break;
+        }
 
         case 'merge-complete':
           btnMerge.disabled = false;

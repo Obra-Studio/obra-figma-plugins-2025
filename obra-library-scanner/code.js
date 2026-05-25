@@ -13,11 +13,103 @@ const BATCH_DELAY = 10; // ms delay between batches
 // Cache for local resources (reset on each scan)
 let cachedLocalVariables = null;
 let cachedLocalStyles = null;
+let cachedLocalComponents = null;
 
-// Clear cache before new operations
+// Clear cache before new operations. Not called automatically by scans —
+// the cache survives across scans and is rebuilt only by an explicit refresh
+// (UI: "Refresh Local Index"). See refreshLocalCache.
 function clearLocalCache() {
   cachedLocalVariables = null;
   cachedLocalStyles = null;
+  cachedLocalComponents = null;
+}
+
+async function localCacheCounts() {
+  return {
+    components: cachedLocalComponents ? cachedLocalComponents.length : null,
+    variables: cachedLocalVariables ? cachedLocalVariables.length : null,
+    fillStyles: cachedLocalStyles ? cachedLocalStyles.fillStyles.length : null,
+    textStyles: cachedLocalStyles ? cachedLocalStyles.textStyles.length : null,
+    effectStyles: cachedLocalStyles ? cachedLocalStyles.effectStyles.length : null
+  };
+}
+
+async function refreshLocalCache() {
+  clearLocalCache();
+  await figma.loadAllPagesAsync();
+  // Force-populate all three caches
+  await getLocalStyles();
+  await getLocalVariables();
+  await getLocalComponents();
+  return localCacheCounts();
+}
+
+// Best-effort label for a remote item's source library. The plugin API doesn't
+// expose the source library name (BaseStyle.remote / Variable.remote /
+// ComponentNode.remote are all booleans), so we approximate:
+//   - variable → its VariableCollection name (e.g. "Primitives")
+//   - style / component → first segment of the slash-separated name path
+async function remoteLibraryLabel(kind, item) {
+  if (kind === 'variable' && item && item.variableCollectionId) {
+    try {
+      const collection = await figma.variables.getVariableCollectionByIdAsync(item.variableCollectionId);
+      if (collection && collection.name) return collection.name;
+    } catch (e) {
+      console.warn('Could not resolve variable collection name:', e);
+    }
+  }
+  if (item && typeof item.name === 'string' && item.name.includes('/')) {
+    const first = item.name.split('/')[0].trim();
+    if (first) return first;
+  }
+  return 'Remote Library';
+}
+
+// Collect every variable binding on a node, including paint-level bindings on
+// fills/strokes. boundVariables[property] is sometimes a single VariableAlias
+// (scalar fields like paddingLeft) and sometimes an array (componentProperties,
+// or mirrors of paint arrays); the actual bind for fills/strokes lives in each
+// paint's own boundVariables.color.
+function collectBoundVariableRefs(node) {
+  const refs = [];
+  if ('boundVariables' in node && node.boundVariables) {
+    for (const [property, value] of Object.entries(node.boundVariables)) {
+      // Skip array-shaped entries — fills/strokes/effects/layoutGrids are
+      // detected below by inspecting the paints themselves, and we don't
+      // attempt to rebind componentProperties from this plugin.
+      if (!value || Array.isArray(value)) continue;
+      if (typeof value === 'object' && 'id' in value) {
+        refs.push({ kind: 'scalar', property, variableId: value.id });
+      }
+    }
+  }
+  for (const list of ['fills', 'strokes']) {
+    if (list in node) {
+      const paints = node[list];
+      if (Array.isArray(paints)) {
+        for (let i = 0; i < paints.length; i++) {
+          const paint = paints[i];
+          const color = paint && paint.boundVariables && paint.boundVariables.color;
+          if (color && color.id) {
+            refs.push({ kind: 'paint', list, index: i, variableId: color.id });
+          }
+        }
+      }
+    }
+  }
+  return refs;
+}
+
+// Rebind a paint-level color variable. Paint arrays are read-only views; we
+// have to clone the array, ask figma.variables.setBoundVariableForPaint to
+// produce a new paint with the binding swapped, then reassign the array.
+function rebindPaintVariable(node, list, index, localVar) {
+  const paints = node[list];
+  if (!Array.isArray(paints) || index < 0 || index >= paints.length) return false;
+  const clones = paints.map(p => Object.assign({}, p));
+  clones[index] = figma.variables.setBoundVariableForPaint(clones[index], 'color', localVar);
+  node[list] = clones;
+  return true;
 }
 
 
@@ -294,44 +386,120 @@ async function findLocalVariableByName(variableName, enableFuzzyMatch = true) {
   return null;
 }
 
-// Find local component by name (searches current page first, then loads all if needed)
-async function findLocalComponentByName(componentName) {
-  // First, try to find in the current page
-  function searchInNode(node) {
-    const components = [];
-    
-    if (node.type === 'COMPONENT' && node.name === componentName && !node.remote) {
+// Build (and cache) a flat list of every local COMPONENT / COMPONENT_SET in the
+// document. We need all pages loaded because the local equivalent of a pasted
+// remote component frequently lives on a different page than the instance.
+async function getLocalComponents() {
+  if (cachedLocalComponents) {
+    return cachedLocalComponents;
+  }
+
+  await figma.loadAllPagesAsync();
+
+  const components = [];
+  function collect(node) {
+    if ((node.type === 'COMPONENT' || node.type === 'COMPONENT_SET') && !node.remote) {
       components.push(node);
     }
-    
     if ('children' in node) {
       for (const child of node.children) {
-        components.push(...searchInNode(child));
+        collect(child);
       }
     }
-    
-    return components;
   }
-  
-  // Search current page first
-  const currentPageComponents = searchInNode(figma.currentPage);
-  if (currentPageComponents.length > 0) {
-    return currentPageComponents[0];
+  for (const page of figma.root.children) {
+    collect(page);
   }
-  
-  // If not found, try to find in local component library (if we have access)
-  // Note: We avoid loading all pages unless absolutely necessary for performance
-  try {
-    // Try to get local components from the library
-    const localPaintStyles = await figma.getLocalPaintStylesAsync(); // This is a workaround to check if we have library access
-    
-    // If we reach here and still no component, we might need to search other pages
-    // But for performance, we'll return null instead of loading all pages
-    return null;
-  } catch (error) {
-    console.error('Error searching for local component:', error);
-    return null;
+
+  console.log(`Collected ${components.length} local components/sets`);
+  cachedLocalComponents = components;
+  return components;
+}
+
+// Find a local component matching the given name. The remote node may be a
+// COMPONENT inside a COMPONENT_SET; the local equivalent may be either a bare
+// COMPONENT, a COMPONENT_SET (match by set name), or a COMPONENT inside a set
+// (match by variant name). swapComponentAsync only accepts a ComponentNode, so
+// when we match a COMPONENT_SET we return its defaultVariant.
+async function findLocalComponentByName(componentName, enableFuzzyMatch = true) {
+  const components = await getLocalComponents();
+
+  const resolveSwapTarget = (node) => {
+    if (node.type === 'COMPONENT_SET') {
+      return node.defaultVariant || (node.children && node.children.find(c => c.type === 'COMPONENT')) || null;
+    }
+    return node;
+  };
+
+  // Some remote instance names arrive prefixed with the set name, e.g.
+  // ".Component Page Header / State=Default". Try both forms.
+  const candidates = [componentName];
+  const slashIdx = componentName.indexOf('/');
+  if (slashIdx > -1) {
+    candidates.push(componentName.slice(0, slashIdx).trim());
+    candidates.push(componentName.slice(slashIdx + 1).trim());
   }
+
+  // 1. Exact match (across all candidate names)
+  for (const name of candidates) {
+    const match = components.find(c => c.name === name);
+    if (match) {
+      console.log(`Found exact component match: ${match.name} (${match.type})`);
+      const target = resolveSwapTarget(match);
+      if (target) return target;
+    }
+  }
+
+  // 2. Normalized match
+  for (const name of candidates) {
+    const normalizedTarget = normalizeVariableName(name);
+    const match = components.find(c => normalizeVariableName(c.name) === normalizedTarget);
+    if (match) {
+      console.log(`Found normalized component match: ${match.name}`);
+      const target = resolveSwapTarget(match);
+      if (target) return target;
+    }
+  }
+
+  // 3. Final-segment match (handles "Foo/Bar" vs "Bar")
+  for (const name of candidates) {
+    const targetSegment = getVariableSegment(name);
+    const match = components.find(c => {
+      const seg = getVariableSegment(c.name);
+      return seg === targetSegment ||
+             normalizeVariableName(seg) === normalizeVariableName(targetSegment);
+    });
+    if (match) {
+      console.log(`Found segment component match: ${match.name}`);
+      const target = resolveSwapTarget(match);
+      if (target) return target;
+    }
+  }
+
+  // 4. Fuzzy match
+  if (enableFuzzyMatch) {
+    const SIMILARITY_THRESHOLD = 0.6;
+    let bestMatch = null;
+    let bestScore = 0;
+    for (const component of components) {
+      for (const name of candidates) {
+        const score = calculateSimilarity(name, component.name);
+        if (score > bestScore && score >= SIMILARITY_THRESHOLD) {
+          bestScore = score;
+          bestMatch = component;
+        }
+      }
+    }
+    if (bestMatch) {
+      console.log(`Found fuzzy component match: ${bestMatch.name} (score: ${bestScore.toFixed(2)})`);
+      const target = resolveSwapTarget(bestMatch);
+      if (target) return target;
+    }
+  }
+
+  console.log(`No local component found matching: ${componentName}`);
+  console.log('Available local component names:', components.map(c => c.name).slice(0, 20));
+  return null;
 }
 
 // Auto-fix remote styles by replacing with local ones
@@ -402,7 +570,27 @@ async function autoFixNodeStyles(rootNode) {
       }
       return fixCount;
     }
-    
+
+    // Swap remote component instances → local
+    if (node.type === 'INSTANCE') {
+      try {
+        const mainComponent = await node.getMainComponentAsync();
+        if (mainComponent && mainComponent.remote) {
+          const localComponent = await findLocalComponentByName(mainComponent.name);
+          if (localComponent) {
+            try {
+              await node.swapComponentAsync(localComponent);
+              fixCount++;
+            } catch (swapErr) {
+              console.error(`Swap failed for "${mainComponent.name}":`, swapErr);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error swapping component:', error);
+      }
+    }
+
     // Check and fix fill styles
     if ('fillStyleId' in node && node.fillStyleId) {
       const styleId = node.fillStyleId;
@@ -460,37 +648,34 @@ async function autoFixNodeStyles(rootNode) {
       }
     }
     
-    // Check and fix bound variables
-    if ('boundVariables' in node && node.boundVariables) {
-      for (const [property, variableAlias] of Object.entries(node.boundVariables)) {
-        if (variableAlias && typeof variableAlias === 'object' && 'id' in variableAlias) {
-          try {
-            const variable = await figma.variables.getVariableByIdAsync(variableAlias.id);
-            if (variable && variable.remote) {
-              const localVariable = await findLocalVariableByName(variable.name);
-              if (localVariable) {
-                // Update the bound variable to use the local one
-                await node.setBoundVariableAsync(property, {
-                  type: 'VARIABLE_ALIAS',
-                  id: localVariable.id
-                });
-                fixCount++;
-              }
-            }
-          } catch (error) {
-            console.error('Error fixing variable:', error);
+    // Check and fix bound variables (scalar + paint-level)
+    const refs = collectBoundVariableRefs(node);
+    for (const ref of refs) {
+      try {
+        const variable = await figma.variables.getVariableByIdAsync(ref.variableId);
+        if (!variable || !variable.remote) continue;
+        const localVariable = await findLocalVariableByName(variable.name);
+        if (!localVariable) continue;
+        if (ref.kind === 'scalar') {
+          await node.setBoundVariableAsync(ref.property, localVariable);
+          fixCount++;
+        } else if (ref.kind === 'paint') {
+          if (rebindPaintVariable(node, ref.list, ref.index, localVariable)) {
+            fixCount++;
           }
         }
+      } catch (error) {
+        console.error('Error fixing variable:', error);
       }
     }
-    
+
     // Recursively fix children
     if ('children' in node) {
       for (const child of node.children) {
         fixCount += await fixNodeStyles(child);
       }
     }
-    
+
     return 0; // Individual node doesn't return count, only accumulated in fixCount
   }
   
@@ -508,7 +693,6 @@ async function scanCurrentPage() {
   librariesFound = [];
   foundElements = [];
   scanCancelled = false;
-  clearLocalCache(); // Clear cache for fresh data
   currentScanId = Date.now().toString();
   currentScanType = 'current';
   const currentPage = figma.currentPage;
@@ -581,7 +765,6 @@ async function scanAllPages() {
   librariesFound = [];
   foundElements = [];
   scanCancelled = false;
-  clearLocalCache(); // Clear cache for fresh data
   currentScanId = Date.now().toString();
   currentScanType = 'all';
   
@@ -722,11 +905,6 @@ async function scanNodeWithBatching(rootNode) {
   }
 }
 
-// Legacy recursive function - now calls batching version
-async function scanNodeRecursively(node) {
-  await scanNodeWithBatching(node);
-}
-
 // Timeout wrapper for async operations
 async function withTimeout(asyncFn, timeoutMs = 5000) {
   return Promise.race([
@@ -737,30 +915,63 @@ async function withTimeout(asyncFn, timeoutMs = 5000) {
   ]);
 }
 
+async function recordStyleUsage(node, styleType) {
+  const propMap = {
+    'fill style': 'fillStyleId',
+    'text style': 'textStyleId',
+    'effect style': 'effectStyleId'
+  };
+  const prop = propMap[styleType];
+  if (!(prop in node) || !node[prop] || typeof node[prop] !== 'string') return;
+
+  try {
+    const style = await withTimeout(() => figma.getStyleByIdAsync(node[prop]), 2000);
+    if (!style) return;
+    const elementId = generateElementId();
+    foundElements.push({ id: elementId, nodeId: node.id, nodeName: node.name });
+
+    if (style.remote) {
+      addLibrary({
+        name: await remoteLibraryLabel('style', style),
+        id: 'remote',
+        type: 'remote',
+        elementType: styleType,
+        elementName: style.name,
+        elementId: elementId,
+        nodeName: node.name
+      });
+    } else {
+      addLibrary({
+        name: 'Local Styles',
+        id: 'local',
+        type: 'local',
+        elementType: styleType,
+        elementName: style.name,
+        elementId: elementId,
+        nodeName: node.name
+      });
+    }
+  } catch (error) {
+    console.error(`Error getting ${styleType}:`, error);
+  }
+}
+
 // Scan a single node for library usage
 async function scanSingleNode(node) {
-  // Skip page nodes
-  if (node.type === 'PAGE') {
-    return;
-  }
+  if (node.type === 'PAGE') return;
 
-  // Check component instances
+  // Component instances
   if (node.type === 'INSTANCE') {
     try {
       const mainComponent = await withTimeout(() => node.getMainComponentAsync(), 3000);
       if (mainComponent) {
         const elementId = generateElementId();
-        foundElements.push({
-          id: elementId,
-          nodeId: node.id,
-          nodeName: node.name
-        });
+        foundElements.push({ id: elementId, nodeId: node.id, nodeName: node.name });
 
         if (mainComponent.remote) {
-          // Remote component
           addLibrary({
-            name: mainComponent.remote.name || 'Unknown Remote Library',
-            id: mainComponent.key.split('/')[0],
+            name: await remoteLibraryLabel('component', mainComponent),
+            id: 'remote',
             type: 'remote',
             elementType: 'component',
             elementName: mainComponent.name,
@@ -768,7 +979,6 @@ async function scanSingleNode(node) {
             nodeName: node.name
           });
         } else {
-          // Local component
           addLibrary({
             name: 'Local Components',
             id: 'local',
@@ -784,187 +994,53 @@ async function scanSingleNode(node) {
       console.error('Error getting main component:', error);
     }
   }
-  
-  // Check fill styles
-  if ('fillStyleId' in node && node.fillStyleId) {
-    const styleId = node.fillStyleId;
-    if (typeof styleId === 'string') {
-      try {
-        const style = await withTimeout(() => figma.getStyleByIdAsync(styleId), 2000);
-        if (style) {
-          const elementId = generateElementId();
-          foundElements.push({
-            id: elementId,
-            nodeId: node.id,
-            nodeName: node.name
-          });
 
-          if (style.remote) {
-            // Remote style
-            addLibrary({
-              name: style.remote.name || 'Unknown Remote Library',
-              id: style.key.split('/')[0],
-              type: 'remote',
-              elementType: 'fill style',
-              elementName: style.name,
-              elementId: elementId,
-              nodeName: node.name
-            });
-          } else {
-            // Local style
-            addLibrary({
-              name: 'Local Styles',
-              id: 'local',
-              type: 'local',
-              elementType: 'fill style',
-              elementName: style.name,
-              elementId: elementId,
-              nodeName: node.name
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error getting fill style:', error);
-      }
-    }
-  }
-  
-  // Check text styles
-  if ('textStyleId' in node && node.textStyleId) {
-    const styleId = node.textStyleId;
-    if (typeof styleId === 'string') {
-      try {
-        const style = await withTimeout(() => figma.getStyleByIdAsync(styleId), 2000);
-        if (style) {
-          const elementId = generateElementId();
-          foundElements.push({
-            id: elementId,
-            nodeId: node.id,
-            nodeName: node.name
-          });
+  await recordStyleUsage(node, 'fill style');
+  await recordStyleUsage(node, 'text style');
+  await recordStyleUsage(node, 'effect style');
 
-          if (style.remote) {
-            // Remote style
-            addLibrary({
-              name: style.remote.name || 'Unknown Remote Library',
-              id: style.key.split('/')[0],
-              type: 'remote',
-              elementType: 'text style',
-              elementName: style.name,
-              elementId: elementId,
-              nodeName: node.name
-            });
-          } else {
-            // Local style
-            addLibrary({
-              name: 'Local Styles',
-              id: 'local',
-              type: 'local',
-              elementType: 'text style',
-              elementName: style.name,
-              elementId: elementId,
-              nodeName: node.name
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error getting text style:', error);
-      }
-    }
-  }
-  
-  // Check effect styles
-  if ('effectStyleId' in node && node.effectStyleId) {
-    const styleId = node.effectStyleId;
-    if (typeof styleId === 'string') {
-      try {
-        const style = await withTimeout(() => figma.getStyleByIdAsync(styleId), 2000);
-        if (style) {
-          const elementId = generateElementId();
-          foundElements.push({
-            id: elementId,
-            nodeId: node.id,
-            nodeName: node.name
-          });
+  // Bound variables (scalar + paint-level)
+  const refs = collectBoundVariableRefs(node);
+  for (const ref of refs) {
+    try {
+      const variable = await withTimeout(() => figma.variables.getVariableByIdAsync(ref.variableId), 2000);
+      if (!variable) continue;
+      const elementId = generateElementId();
+      foundElements.push({ id: elementId, nodeId: node.id, nodeName: node.name });
 
-          if (style.remote) {
-            // Remote style
-            addLibrary({
-              name: style.remote.name || 'Unknown Remote Library',
-              id: style.key.split('/')[0],
-              type: 'remote',
-              elementType: 'effect style',
-              elementName: style.name,
-              elementId: elementId,
-              nodeName: node.name
-            });
-          } else {
-            // Local style
-            addLibrary({
-              name: 'Local Styles',
-              id: 'local',
-              type: 'local',
-              elementType: 'effect style',
-              elementName: style.name,
-              elementId: elementId,
-              nodeName: node.name
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error getting effect style:', error);
-      }
-    }
-  }
-  
-  // Check bound variables
-  if ('boundVariables' in node && node.boundVariables) {
-    for (const [property, variableAlias] of Object.entries(node.boundVariables)) {
-      if (variableAlias && typeof variableAlias === 'object' && 'id' in variableAlias) {
-        try {
-          const variable = await withTimeout(() => figma.variables.getVariableByIdAsync(variableAlias.id), 2000);
-          if (variable) {
-            const elementId = generateElementId();
-            foundElements.push({
-              id: elementId,
-              nodeId: node.id,
-              nodeName: node.name
-            });
+      const propertyLabel = ref.kind === 'paint'
+        ? `${ref.list}[${ref.index}]`
+        : ref.property;
 
-            if (variable.remote) {
-              // Remote variable
-              addLibrary({
-                name: variable.remote.name || 'Unknown Remote Library',
-                id: variable.key.split('/')[0],
-                type: 'remote',
-                elementType: 'variable',
-                elementName: `${variable.name} (${property})`,
-                elementId: elementId,
-                nodeName: node.name
-              });
-            } else {
-              // Local variable
-              addLibrary({
-                name: 'Local Variables',
-                id: 'local',
-                type: 'local',
-                elementType: 'variable',
-                elementName: `${variable.name} (${property})`,
-                elementId: elementId,
-                nodeName: node.name
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error getting variable:', error);
-        }
+      if (variable.remote) {
+        addLibrary({
+          name: await remoteLibraryLabel('variable', variable),
+          id: 'remote',
+          type: 'remote',
+          elementType: 'variable',
+          elementName: `${variable.name} (${propertyLabel})`,
+          elementId: elementId,
+          nodeName: node.name
+        });
+      } else {
+        addLibrary({
+          name: 'Local Variables',
+          id: 'local',
+          type: 'local',
+          elementType: 'variable',
+          elementName: `${variable.name} (${propertyLabel})`,
+          elementId: elementId,
+          nodeName: node.name
+        });
       }
+    } catch (error) {
+      console.error('Error getting variable:', error);
     }
   }
 }
 
 function generateElementId() {
-  return 'element_' + Math.random().toString(36).substr(2, 9);
+  return 'element_' + Math.random().toString(36).slice(2, 11);
 }
 
 function addLibrary(libraryInfo) {
@@ -1003,20 +1079,42 @@ async function handleFixIndividualElement(elementId, libraryName) {
     let elementName = '';
     
     // Check and fix component instances
+    let componentLookupDetail = null;
     if (node.type === 'INSTANCE' && 'getMainComponentAsync' in node) {
       try {
-        const mainComponent = await withTimeout(() => node.getMainComponentAsync(), 3000);
-        if (mainComponent && mainComponent.remote) {
-          // Find local component with same name
-          const localComponent = await findLocalComponentByName(mainComponent.name);
+        const mainBefore = await withTimeout(() => node.getMainComponentAsync(), 3000);
+        if (mainBefore && mainBefore.remote) {
+          const localComponent = await findLocalComponentByName(mainBefore.name);
           if (localComponent) {
-            await node.swapComponentAsync(localComponent);
-            fixCount++;
-            elementName = mainComponent.name;
+            if (localComponent.id === mainBefore.id) {
+              componentLookupDetail = `Index returned the same node as the current main (${mainBefore.name}). Local copy missing — try Refresh Local Index, or check the component actually exists locally.`;
+            } else {
+              try {
+                console.log(`Swap target: name="${localComponent.name}" id=${localComponent.id} type=${localComponent.type} remote=${localComponent.remote}`);
+                await node.swapComponentAsync(localComponent);
+                // Verify: the instance's main should now point to localComponent and be non-remote.
+                const mainAfter = await node.getMainComponentAsync();
+                if (mainAfter && mainAfter.id === localComponent.id && !mainAfter.remote) {
+                  fixCount++;
+                  elementName = `${mainBefore.name} → local ${mainAfter.name}`;
+                } else if (mainAfter && mainAfter.remote) {
+                  componentLookupDetail = `swapComponentAsync succeeded but main is still remote (${mainAfter.name}). The local match may itself be a published library node, or this instance is locked by its parent. Try detaching/recreating, or fix the master directly.`;
+                } else {
+                  componentLookupDetail = `swapComponentAsync returned but main did not change. Tried: ${localComponent.name}`;
+                }
+              } catch (swapErr) {
+                componentLookupDetail = `Swap failed: ${swapErr.message}`;
+              }
+            }
+          } else {
+            const all = await getLocalComponents();
+            const sample = all.slice(0, 5).map(c => c.name).join(', ');
+            componentLookupDetail = `No local match for "${mainBefore.name}" — ${all.length} local components indexed${all.length ? ` (e.g. ${sample})` : '. Try "Refresh Local Index"'}`;
           }
         }
       } catch (error) {
         console.error('Error fixing component:', error);
+        componentLookupDetail = `Error: ${error.message}`;
       }
     }
     
@@ -1071,57 +1169,30 @@ async function handleFixIndividualElement(elementId, libraryName) {
       }
     }
     
-    // Check and fix bound variables
-    if ('boundVariables' in node && node.boundVariables) {
-      console.log('Checking bound variables on node:', node.name);
-      console.log('Bound variables:', node.boundVariables);
-      
-      for (const [property, variableAlias] of Object.entries(node.boundVariables)) {
-        console.log(`Processing property: ${property}`, variableAlias);
-        
-        if (variableAlias && typeof variableAlias === 'object' && 'id' in variableAlias) {
-          try {
-            console.log(`Fetching variable with ID: ${variableAlias.id}`);
-            const variable = await withTimeout(() => figma.variables.getVariableByIdAsync(variableAlias.id), 2000);
-            
-            if (variable) {
-              console.log(`Found variable: ${variable.name}, remote: ${variable.remote}`);
-              
-              if (variable.remote) {
-                console.log(`Variable is remote, searching for local equivalent: ${variable.name}`);
-                const localVariable = await findLocalVariableByName(variable.name);
-                
-                if (localVariable) {
-                  console.log(`Found local variable: ${localVariable.name} with ID: ${localVariable.id}`);
-                  console.log(`Attempting to bind variable for property: ${property}`);
-                  
-                  await node.setBoundVariableAsync(property, {
-                    type: 'VARIABLE_ALIAS',
-                    id: localVariable.id
-                  });
-                  
-                  fixCount++;
-                  elementName = `${variable.name} (${property})`;
-                  console.log(`Successfully fixed variable: ${elementName}`);
-                } else {
-                  console.log(`No local variable found with name: ${variable.name}`);
-                }
-              } else {
-                console.log(`Variable ${variable.name} is already local, skipping`);
-              }
-            } else {
-              console.log(`Could not fetch variable with ID: ${variableAlias.id}`);
-            }
-          } catch (error) {
-            console.error(`Error fixing variable for property ${property}:`, error);
-            console.error('Error details:', error.message, error.stack);
+    // Check and fix bound variables (scalar + paint-level)
+    const refs = collectBoundVariableRefs(node);
+    for (const ref of refs) {
+      try {
+        const variable = await withTimeout(() => figma.variables.getVariableByIdAsync(ref.variableId), 2000);
+        if (!variable || !variable.remote) continue;
+        const localVariable = await findLocalVariableByName(variable.name);
+        if (!localVariable) continue;
+        const propertyLabel = ref.kind === 'paint'
+          ? `${ref.list}[${ref.index}]`
+          : ref.property;
+        if (ref.kind === 'scalar') {
+          await node.setBoundVariableAsync(ref.property, localVariable);
+          fixCount++;
+          elementName = `${variable.name} (${propertyLabel})`;
+        } else if (ref.kind === 'paint') {
+          if (rebindPaintVariable(node, ref.list, ref.index, localVariable)) {
+            fixCount++;
+            elementName = `${variable.name} (${propertyLabel})`;
           }
-        } else {
-          console.log(`Skipping property ${property} - invalid variableAlias structure`);
         }
+      } catch (error) {
+        console.error('Error fixing variable:', error);
       }
-    } else {
-      console.log('Node has no bound variables');
     }
     
     figma.ui.postMessage({
@@ -1129,7 +1200,7 @@ async function handleFixIndividualElement(elementId, libraryName) {
       elementId: elementId,
       success: fixCount > 0,
       elementName: elementName || element.nodeName,
-      error: fixCount === 0 ? 'No matching local style/component found' : null
+      error: fixCount === 0 ? (componentLookupDetail || 'No matching local style/component found') : null
     });
     
   } catch (error) {
@@ -1246,7 +1317,6 @@ async function scanCurrentSelection() {
   librariesFound = [];
   foundElements = [];
   scanCancelled = false;
-  clearLocalCache(); // Clear cache for fresh data
   currentScanId = Date.now().toString();
   currentScanType = 'selection';
   const selection = figma.currentPage.selection;
@@ -1327,14 +1397,28 @@ async function scanCurrentSelection() {
 // Handle messages from UI
 figma.ui.onmessage = async (msg) => {
   switch (msg.type) {
+    case 'refresh-local-cache':
+      try {
+        figma.ui.postMessage({ type: 'cache-refresh-started' });
+        const counts = await refreshLocalCache();
+        figma.ui.postMessage({ type: 'cache-status', counts: counts, fresh: true });
+      } catch (error) {
+        figma.ui.postMessage({ type: 'cache-status', counts: null, error: error.message });
+      }
+      break;
+
+    case 'cache-status':
+      figma.ui.postMessage({ type: 'cache-status', counts: await localCacheCounts(), fresh: false });
+      break;
+
     case 'scan-current':
       await scanCurrentPage();
       break;
-      
+
     case 'scan-all':
       await scanAllPages();
       break;
-      
+
     case 'scan-selection':
       await scanCurrentSelection();
       break;
