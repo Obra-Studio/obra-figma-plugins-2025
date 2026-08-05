@@ -4,6 +4,28 @@ figma.showUI(__html__, { width: 480, height: 600, themeColors: true });
 // Store collections and variables data
 let collectionsData = [];
 
+// Cooperative cancellation: long-running operations (merge/split/move) poll
+// this flag at each yield point instead of being force-killed. A hard
+// figma.closePlugin() mid-mutation can't be undone and can't distinguish
+// "half-rewired" state from "fully done", so we never do that for an
+// in-progress operation.
+let cancelRequested = false;
+
+// Distinguishes "Cancel" meaning "stop the running operation" (cooperative,
+// via cancelRequested) from "Cancel" meaning "close this idle dialog" (the
+// same button/message serves both — see figma.ui.onmessage's 'cancel' case).
+let operationRunning = false;
+
+// Yield control back to the event loop. Without periodic yields, a long
+// synchronous loop (e.g. rewiring bindings across every node on every page)
+// never gives figma.ui.onmessage a chance to run, so incoming 'cancel'
+// messages queue up and do nothing until the loop finishes on its own — and
+// outgoing progress messages can appear to stall for the same reason. Insert
+// this between chunks of work, not inside tight per-property loops.
+function yieldToUI() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
+
 // Initialize plugin by loading all variable collections
 async function loadCollections() {
   try {
@@ -66,6 +88,7 @@ async function loadCollections() {
 
 // Merge variables from source collections into target collection
 async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteSourceCollections, groupByCollection, fillMissingModes, newTargetName, groupTargetVariables) {
+  operationRunning = true;
   try {
     const targetCollection = await figma.variables.getVariableCollectionByIdAsync(targetCollectionId);
     
@@ -82,9 +105,12 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
     // PHASE 0: Rename existing target variables to add group prefix (if enabled)
     if (groupTargetVariables && originalTargetName) {
       const existingVariableIds = [...targetCollection.variableIds];
-      
-      for (const variableId of existingVariableIds) {
-        const variable = await figma.variables.getVariableByIdAsync(variableId);
+      sendProgress(`Grouping existing "${originalTargetName}" variables… (0/${existingVariableIds.length})`, {
+        phase: 'prepare', current: 0, total: existingVariableIds.length
+      });
+
+      for (let vi = 0; vi < existingVariableIds.length; vi++) {
+        const variable = await figma.variables.getVariableByIdAsync(existingVariableIds[vi]);
         if (variable) {
           try {
             // Add the original collection name as a group prefix
@@ -92,6 +118,13 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
           } catch (renameError) {
             errors.push(`Failed to rename existing variable "${variable.name}": ${renameError.message}`);
           }
+        }
+
+        if (vi > 0 && vi % 50 === 0) {
+          sendProgress(`Grouping existing "${originalTargetName}" variables… (${vi}/${existingVariableIds.length})`, {
+            phase: 'prepare', current: vi, total: existingVariableIds.length
+          });
+          await yieldToUI();
         }
       }
     }
@@ -129,10 +162,22 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
       const sourceModes = sourceCollection.modes;
       const variableIds = [...sourceCollection.variableIds];
       const groupPrefix = groupByCollection ? sourceCollection.name + '/' : '';
-      
-      for (const variableId of variableIds) {
+
+      sendProgress(`Creating variables from "${sourceCollection.name}"… (0/${variableIds.length})`, {
+        phase: 'create', current: 0, total: variableIds.length
+      });
+
+      for (let vi = 0; vi < variableIds.length; vi++) {
+        const variableId = variableIds[vi];
         const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
-        
+
+        if (vi > 0 && vi % 25 === 0) {
+          sendProgress(`Creating variables from "${sourceCollection.name}"… (${vi}/${variableIds.length})`, {
+            phase: 'create', current: vi, total: variableIds.length
+          });
+          await yieldToUI();
+        }
+
         if (!sourceVariable) {
           continue;
         }
@@ -293,35 +338,42 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
     // the source variable is removed below.
     await updateDesignNodeBindings(variableIdMap, errors);
 
-    // PHASE 3: Remove source variables and optionally delete collections
-    sendProgress('Removing old variables…');
-    for (const sourceCollectionId of sourceCollectionIds) {
-      const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
-      
-      if (!sourceCollection) continue;
+    // PHASE 3: Remove source variables and optionally delete collections.
+    // Skipped entirely if the rebind pass above was cancelled partway —
+    // deleting a source variable that some node is still bound to would
+    // leave that node with a dangling/missing variable reference.
+    if (cancelRequested) {
+      errors.push('Operation cancelled — original variables and collections were left in place (new variables in the target collection were already created and are safe to keep or delete manually).');
+    } else {
+      sendProgress('Removing old variables…');
+      for (const sourceCollectionId of sourceCollectionIds) {
+        const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
 
-      // Remove all source variables
-      const variableIds = [...sourceCollection.variableIds];
-      for (const variableId of variableIds) {
-        const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
-        if (sourceVariable) {
-          try {
-            sourceVariable.remove();
-          } catch (removeError) {
-            errors.push(`Failed to remove original variable: ${removeError.message}`);
+        if (!sourceCollection) continue;
+
+        // Remove all source variables
+        const variableIds = [...sourceCollection.variableIds];
+        for (const variableId of variableIds) {
+          const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
+          if (sourceVariable) {
+            try {
+              sourceVariable.remove();
+            } catch (removeError) {
+              errors.push(`Failed to remove original variable: ${removeError.message}`);
+            }
           }
         }
-      }
 
-      // Delete source collection if requested and empty
-      if (deleteSourceCollections) {
-        try {
-          const updatedSourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
-          if (updatedSourceCollection && updatedSourceCollection.variableIds.length === 0) {
-            updatedSourceCollection.remove();
+        // Delete source collection if requested and empty
+        if (deleteSourceCollections) {
+          try {
+            const updatedSourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
+            if (updatedSourceCollection && updatedSourceCollection.variableIds.length === 0) {
+              updatedSourceCollection.remove();
+            }
+          } catch (deleteError) {
+            errors.push(`Failed to delete collection "${sourceCollection.name}": ${deleteError.message}`);
           }
-        } catch (deleteError) {
-          errors.push(`Failed to delete collection "${sourceCollection.name}": ${deleteError.message}`);
         }
       }
     }
@@ -330,7 +382,8 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
     figma.ui.postMessage({
       type: 'merge-complete',
       movedCount: movedCount,
-      errors: errors
+      errors: errors,
+      cancelled: cancelRequested
     });
 
     // Reload collections to update the UI with current state
@@ -341,6 +394,8 @@ async function mergeCollections(targetCollectionId, sourceCollectionIds, deleteS
       type: 'error',
       message: 'Merge failed: ' + error.message
     });
+  } finally {
+    operationRunning = false;
   }
 }
 
@@ -383,17 +438,26 @@ async function updateBackreferences(variableIdMap, errors) {
 }
 
 // Send a progress update to the UI (e.g. to live-update a button label)
-function sendProgress(message) {
-  figma.ui.postMessage({ type: 'progress', message: message });
+function sendProgress(message, extra) {
+  figma.ui.postMessage(Object.assign({ type: 'progress', message: message }, extra || {}));
 }
 
 // Walk every node in the document and rewire any variable bindings that point
 // at variables we're about to remove. Without this, removing the source
 // variable leaves design nodes showing "?" where the binding used to be.
+// How many nodes to process between yields, on pages heavy enough to need it.
+// Small enough that progress/cancel stay responsive; large enough that the
+// yield overhead itself doesn't dominate on files with many light pages.
+const REBIND_NODES_PER_YIELD = 200;
+
 async function updateDesignNodeBindings(variableIdMap, errors) {
   if (variableIdMap.size === 0) return 0;
 
-  sendProgress('Loading all pages…');
+  // A stale flag from a previously-cancelled operation must not silently
+  // abort this new one.
+  cancelRequested = false;
+
+  sendProgress('Loading all pages…', { phase: 'rebind' });
   try {
     await figma.loadAllPagesAsync();
   } catch (loadError) {
@@ -405,13 +469,38 @@ async function updateDesignNodeBindings(variableIdMap, errors) {
   const pages = figma.root.children.filter(n => n.type === 'PAGE');
 
   for (let p = 0; p < pages.length; p++) {
+    if (cancelRequested) {
+      errors.push(`Cancelled by user — ${pages.length - p} of ${pages.length} pages were not processed.`);
+      break;
+    }
+
     const page = pages[p];
-    sendProgress(`Rebinding variables — page ${p + 1}/${pages.length}`);
+    sendProgress(`Rebinding variables — page ${p + 1}/${pages.length}: "${page.name}"`, {
+      phase: 'rebind', current: p, total: pages.length
+    });
+    // Yield here so the progress line above actually renders before this
+    // page's (potentially large) findAll + loop begins.
+    await yieldToUI();
 
     updatedCount += rebindNodeVariables(page, variableIdMap, errors);
-    for (const node of page.findAll(() => true)) {
-      updatedCount += rebindNodeVariables(node, variableIdMap, errors);
+
+    const nodes = page.findAll(() => true);
+    for (let i = 0; i < nodes.length; i++) {
+      updatedCount += rebindNodeVariables(nodes[i], variableIdMap, errors);
+
+      if (i > 0 && i % REBIND_NODES_PER_YIELD === 0) {
+        sendProgress(
+          `Rebinding variables — page ${p + 1}/${pages.length}: "${page.name}" (${i}/${nodes.length} nodes)`,
+          { phase: 'rebind', current: p, total: pages.length, subCurrent: i, subTotal: nodes.length }
+        );
+        await yieldToUI();
+        if (cancelRequested) {
+          errors.push(`Cancelled by user mid-page "${page.name}" (${i}/${nodes.length} nodes done on this page).`);
+          break;
+        }
+      }
     }
+    if (cancelRequested) break;
   }
 
   return updatedCount;
@@ -549,6 +638,7 @@ function rebindTextRangeFills(node, variableIdMap, errors) {
 
 // Split groups from a collection into a single new collection
 async function splitCollection(sourceCollectionId, groupNames, newCollectionName) {
+  operationRunning = true;
   try {
     const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
     
@@ -711,37 +801,44 @@ async function splitCollection(sourceCollectionId, groupNames, newCollectionName
     // PHASE 2.6: Rewire design-node bindings so nodes keep their bindings
     await updateDesignNodeBindings(variableIdMap, errors);
 
-    // PHASE 3: Remove the original variables from the source collection
-    sendProgress('Removing old variables…');
-    for (const variableId of variableIds) {
-      const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
+    // PHASE 3: Remove the original variables from the source collection.
+    // Skipped if the rebind pass above was cancelled partway — see the same
+    // guard in mergeCollections for why.
+    if (cancelRequested) {
+      errors.push('Operation cancelled — original variables were left in place (new variables in the target collection were already created and are safe to keep or delete manually).');
+    } else {
+      sendProgress('Removing old variables…');
+      for (const variableId of variableIds) {
+        const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
 
-      if (!sourceVariable) continue;
+        if (!sourceVariable) continue;
 
-      // Check if this variable belongs to any of the selected groups
-      let belongsToSelectedGroup = false;
-      for (const groupName of groupNames) {
-        if (sourceVariable.name.startsWith(groupName + '/')) {
-          belongsToSelectedGroup = true;
-          break;
+        // Check if this variable belongs to any of the selected groups
+        let belongsToSelectedGroup = false;
+        for (const groupName of groupNames) {
+          if (sourceVariable.name.startsWith(groupName + '/')) {
+            belongsToSelectedGroup = true;
+            break;
+          }
+        }
+
+        if (!belongsToSelectedGroup) continue;
+
+        try {
+          sourceVariable.remove();
+        } catch (removeError) {
+          errors.push(`Failed to remove original variable: ${removeError.message}`);
         }
       }
-      
-      if (!belongsToSelectedGroup) continue;
-      
-      try {
-        sourceVariable.remove();
-      } catch (removeError) {
-        errors.push(`Failed to remove original variable: ${removeError.message}`);
-      }
     }
-    
+
     // Send success message
     figma.ui.postMessage({
       type: 'split-complete',
       movedCount: movedCount,
       collectionName: newCollectionName,
-      errors: errors
+      errors: errors,
+      cancelled: cancelRequested
     });
     
     // Reload collections
@@ -752,11 +849,14 @@ async function splitCollection(sourceCollectionId, groupNames, newCollectionName
       type: 'error',
       message: 'Split failed: ' + error.message
     });
+  } finally {
+    operationRunning = false;
   }
 }
 
 // Move a group from one collection to another (existing or new)
 async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionName, groupPath) {
+  operationRunning = true;
   try {
     const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
 
@@ -929,20 +1029,26 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
     // PHASE 2.6: Rewire design-node bindings so nodes keep their bindings
     await updateDesignNodeBindings(variableIdMap, errors);
 
-    // PHASE 3: Remove the original variables from the source collection
-    sendProgress('Removing old variables…');
-    for (const variableId of variableIds) {
-      const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
+    // PHASE 3: Remove the original variables from the source collection.
+    // Skipped if the rebind pass above was cancelled partway — see the same
+    // guard in mergeCollections for why.
+    if (cancelRequested) {
+      errors.push('Operation cancelled — original variables were left in place (new variables in the target collection were already created and are safe to keep or delete manually).');
+    } else {
+      sendProgress('Removing old variables…');
+      for (const variableId of variableIds) {
+        const sourceVariable = await figma.variables.getVariableByIdAsync(variableId);
 
-      if (!sourceVariable) continue;
+        if (!sourceVariable) continue;
 
-      // Check if this variable belongs to the selected group
-      if (!sourceVariable.name.startsWith(groupPrefix)) continue;
+        // Check if this variable belongs to the selected group
+        if (!sourceVariable.name.startsWith(groupPrefix)) continue;
 
-      try {
-        sourceVariable.remove();
-      } catch (removeError) {
-        errors.push(`Failed to remove original variable: ${removeError.message}`);
+        try {
+          sourceVariable.remove();
+        } catch (removeError) {
+          errors.push(`Failed to remove original variable: ${removeError.message}`);
+        }
       }
     }
 
@@ -951,7 +1057,8 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
       type: 'move-complete',
       movedCount: movedCount,
       newCollectionName: newCollectionName,
-      errors: errors
+      errors: errors,
+      cancelled: cancelRequested
     });
 
     // Reload collections
@@ -962,6 +1069,8 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
       type: 'error',
       message: 'Move failed: ' + error.message
     });
+  } finally {
+    operationRunning = false;
   }
 }
 
@@ -1002,7 +1111,16 @@ figma.ui.onmessage = async (msg) => {
       break;
 
     case 'cancel':
-      figma.closePlugin();
+      if (operationRunning) {
+        // Cooperative: just flip a flag that the running operation's yield
+        // points check — it will stop at the next safe checkpoint (never
+        // mid-mutation) and skip the destructive "remove old variables"
+        // phase, rather than being force-killed via figma.closePlugin().
+        cancelRequested = true;
+      } else {
+        // No operation running — this Cancel click means "close the dialog".
+        figma.closePlugin();
+      }
       break;
   }
 };

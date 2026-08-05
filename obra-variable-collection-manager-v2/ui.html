@@ -1896,9 +1896,35 @@
           // sees live progress (rebinding nodes across pages can take a while).
           const runningBtn = [btnMerge, btnSplit, btnMove].find(b => b.disabled);
           if (runningBtn) {
+            // current/total (and optionally subCurrent/subTotal for progress
+            // within a single heavy page) are sent by the backend once it
+            // reaches a phase that can measure real progress; earlier phases
+            // send just a message with no numbers, which we treat as
+            // indeterminate.
+            let percent = null;
+            if (typeof msg.subCurrent === 'number' && typeof msg.subTotal === 'number' && msg.subTotal > 0) {
+              // Fine-grained: fraction of the way through the current page,
+              // blended into the coarse page-level fraction.
+              const pageFraction = typeof msg.total === 'number' && msg.total > 0
+                ? (msg.current + msg.subCurrent / msg.subTotal) / msg.total
+                : msg.subCurrent / msg.subTotal;
+              percent = Math.min(100, Math.round(pageFraction * 100));
+            } else if (typeof msg.current === 'number' && typeof msg.total === 'number' && msg.total > 0) {
+              percent = Math.min(100, Math.round((msg.current / msg.total) * 100));
+            }
+
+            const barHtml = percent !== null
+              ? `<div style="position:absolute; inset:0; width:${percent}%; background:rgba(255,255,255,0.22); transition:width 0.15s linear;"></div>`
+              : '';
+
+            runningBtn.style.position = 'relative';
+            runningBtn.style.overflow = 'hidden';
             runningBtn.innerHTML = `
-              <div class="spinner" style="width: 14px; height: 14px; margin: 0; border-width: 2px;"></div>
-              ${escapeHtml(msg.message)}
+              ${barHtml}
+              <div style="position:relative; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <div class="spinner" style="width: 14px; height: 14px; margin: 0; border-width: 2px; flex: none;"></div>
+                <span>${escapeHtml(msg.message)}${percent !== null ? ` — ${percent}%` : ''}</span>
+              </div>
             `;
           }
           break;
@@ -1916,17 +1942,20 @@
             Merge Collections
           `;
           
-          if (msg.errors && msg.errors.length > 0) {
+          if (msg.cancelled) {
+            showStatus(`Cancelled — ${msg.movedCount} variable${msg.movedCount !== 1 ? 's were' : ' was'} created in the target collection before stopping. Original variables were left in place (safe to keep or delete manually).`, 'warning');
+          } else if (msg.errors && msg.errors.length > 0) {
             showStatus(`Moved ${msg.movedCount} variables with ${msg.errors.length} warning(s)`, 'warning');
           } else {
             showStatus(`Successfully moved ${msg.movedCount} variable${msg.movedCount !== 1 ? 's' : ''}!`, 'success');
           }
-          
+
           // Reset selection
           targetCollectionId = null;
           sourceCollectionIds.clear();
           updateSteps();
-          
+          resetCancelButton();
+
           // Scroll to top so user sees the success message
           window.scrollTo({ top: 0, behavior: 'smooth' });
           break;
@@ -1942,6 +1971,7 @@
             </svg>
             Merge Collections
           `;
+          resetCancelButton();
           showStatus(msg.message, 'error');
           break;
 
@@ -1957,7 +1987,9 @@
             Split Collection
           `;
 
-          if (msg.errors && msg.errors.length > 0) {
+          if (msg.cancelled) {
+            showStatus(`Cancelled — ${msg.movedCount} variable${msg.movedCount !== 1 ? 's were' : ' was'} created in "${msg.collectionName}" before stopping. Original variables were left in place (safe to keep or delete manually).`, 'warning');
+          } else if (msg.errors && msg.errors.length > 0) {
             showStatus(`Moved ${msg.movedCount} variables with ${msg.errors.length} warning(s)`, 'warning');
           } else {
             showStatus(`Successfully created "${msg.collectionName}" with ${msg.movedCount} variable${msg.movedCount !== 1 ? 's' : ''}!`, 'success');
@@ -1971,6 +2003,7 @@
           renderSplitGroupList();
           updateSplitPreview();
           updateSplitButton();
+          resetCancelButton();
 
           // Scroll to top
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1986,7 +2019,10 @@
             Move Group
           `;
 
-          if (msg.errors && msg.errors.length > 0) {
+          if (msg.cancelled) {
+            const targetName = msg.newCollectionName || 'target collection';
+            showStatus(`Cancelled — ${msg.movedCount} variable${msg.movedCount !== 1 ? 's were' : ' was'} created in "${targetName}" before stopping. Original variables were left in place (safe to keep or delete manually).`, 'warning');
+          } else if (msg.errors && msg.errors.length > 0) {
             showStatus(`Moved ${msg.movedCount} variables with ${msg.errors.length} warning(s)`, 'warning');
           } else {
             const targetName = msg.newCollectionName || 'target collection';
@@ -2005,6 +2041,7 @@
           renderMoveTargetList();
           updateMovePreview();
           updateMoveButton();
+          resetCancelButton();
 
           // Scroll to top
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2038,10 +2075,26 @@
 
     // Cancel button click
     btnCancel.addEventListener('click', () => {
+      // If an operation is running, this is a graceful stop-request — give
+      // immediate feedback since the actual stop may take a moment (it only
+      // takes effect at the next yield point, never mid-mutation). If
+      // nothing is running, the backend just closes the plugin as before.
+      const runningBtn = [btnMerge, btnSplit, btnMove].find(b => b.disabled);
+      if (runningBtn) {
+        btnCancel.disabled = true;
+        btnCancel.textContent = 'Cancelling…';
+      }
       parent.postMessage({
         pluginMessage: { type: 'cancel' }
       }, '*');
     });
+
+    // Restore the Cancel button after any operation finishes (success,
+    // warning, or error) — it may have been left in "Cancelling…" state.
+    function resetCancelButton() {
+      btnCancel.disabled = false;
+      btnCancel.textContent = 'Cancel';
+    }
 
     // Utility: Escape HTML
     function escapeHtml(text) {
