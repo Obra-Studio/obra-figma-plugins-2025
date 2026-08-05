@@ -2183,31 +2183,42 @@
     // Extract groups from collection's variables
     function updateAvailableGroups() {
       availableGroups = [];
-      
+
       if (!splitCollectionId) return;
-      
+
       const collection = collections.find(c => c.id === splitCollectionId);
       if (!collection || !collection.variables) return;
-      
+
       const groupSet = new Set();
-      
+      // If variable names are redundantly self-prefixed with the collection's
+      // own name (e.g. "theme/neutrals/50" inside the "theme" collection),
+      // the real group boundary is the slash AFTER that prefix, not the
+      // first slash — otherwise every group collapses into one giant group
+      // literally named after the collection itself.
+      const selfPrefix = collection.name + '/';
+
       for (const variable of collection.variables) {
-        const slashIndex = variable.name.indexOf('/');
+        const searchFrom = variable.name.startsWith(selfPrefix) ? selfPrefix.length : 0;
+        const slashIndex = variable.name.indexOf('/', searchFrom);
         if (slashIndex > 0) {
           const groupName = variable.name.substring(0, slashIndex);
           groupSet.add(groupName);
         }
       }
-      
-      // Convert to array with variable counts
+
+      // Convert to array with variable counts. `name` is the full prefix used
+      // for matching/backend calls; `displayName` strips the redundant
+      // self-prefix (if any) so the group list doesn't repeat the collection
+      // name on every row.
       for (const groupName of groupSet) {
         const varCount = collection.variables.filter(v => v.name.startsWith(groupName + '/')).length;
         availableGroups.push({
           name: groupName,
+          displayName: groupName.startsWith(selfPrefix) ? groupName.slice(selfPrefix.length) : groupName,
           variableCount: varCount
         });
       }
-      
+
       // Sort alphabetically
       availableGroups.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -2232,7 +2243,7 @@
              data-group-index="${index}">
           <div class="collection-checkbox"></div>
           <div class="collection-info">
-            <div class="collection-name">${escapeHtml(group.name)}</div>
+            <div class="collection-name">${escapeHtml(group.displayName || group.name)}</div>
           </div>
           <div class="collection-count">${group.variableCount} var${group.variableCount !== 1 ? 's' : ''}</div>
         </div>
@@ -2339,10 +2350,22 @@
 
           // Only process if there's at least one group level
           if (parts.length > 1) {
+            // If the variable name is redundantly self-prefixed with the
+            // collection's own name (e.g. "theme/neutrals/50" inside the
+            // "theme" collection), skip creating a tree node for that first
+            // segment — it's implied by already being inside this
+            // collection. Left unskipped, every real group nests one
+            // confusing extra level deep, under a node named after the
+            // collection itself with 0 vars of its own. fullPath still uses
+            // the ORIGINAL (unskipped) parts below, so it stays the true
+            // variable-name prefix the backend matches against.
+            const startIndex = (parts[0] === collection.name) ? 1 : 0;
+            if (startIndex >= parts.length - 1) continue; // nothing left to group by
+
             let currentLevel = hierarchy;
 
             // Navigate/create the hierarchy (exclude the last part which is the variable name)
-            for (let i = 0; i < parts.length - 1; i++) {
+            for (let i = startIndex; i < parts.length - 1; i++) {
               const part = parts[i];
 
               if (!currentLevel[part]) {
