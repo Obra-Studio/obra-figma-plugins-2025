@@ -855,7 +855,7 @@ async function splitCollection(sourceCollectionId, groupNames, newCollectionName
 }
 
 // Move a group from one collection to another (existing or new)
-async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionName, groupPath) {
+async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionName, groupPath, isWholeCollectionGroup) {
   operationRunning = true;
   try {
     const sourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
@@ -903,8 +903,22 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
     // Get all variable IDs from source collection
     const variableIds = [...sourceCollection.variableIds];
 
-    // Prefix to match (groupPath + '/')
+    // Prefix to match (groupPath + '/'). Unused when isWholeCollectionGroup —
+    // that mode (for collections with no "/" grouping at all, e.g. flatly
+    // named "chart 1".."chart 5") matches every variable in the source
+    // collection instead, and prefixes each with the collection's own name
+    // on the way in so they land as one recognizable group in the target.
     const groupPrefix = groupPath + '/';
+
+    function belongsToSelectedGroup(sourceVariable) {
+      return isWholeCollectionGroup || sourceVariable.name.startsWith(groupPrefix);
+    }
+
+    function targetVariableName(sourceVariable) {
+      return isWholeCollectionGroup
+        ? sourceCollection.name + '/' + sourceVariable.name
+        : sourceVariable.name;
+    }
 
     // PHASE 1: Create all variables in the target collection
     for (const variableId of variableIds) {
@@ -913,12 +927,14 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
       if (!sourceVariable) continue;
 
       // Check if this variable belongs to the selected group
-      if (!sourceVariable.name.startsWith(groupPrefix)) continue;
+      if (!belongsToSelectedGroup(sourceVariable)) continue;
 
       try {
-        // Create the variable in the target collection with the same name
+        // Create the variable in the target collection (prefixed with the
+        // source collection's own name in whole-collection mode, unchanged
+        // otherwise)
         const newVariable = figma.variables.createVariable(
-          sourceVariable.name,
+          targetVariableName(sourceVariable),
           targetCollection,
           sourceVariable.resolvedType
         );
@@ -1042,12 +1058,26 @@ async function moveGroup(sourceCollectionId, targetCollectionId, newCollectionNa
         if (!sourceVariable) continue;
 
         // Check if this variable belongs to the selected group
-        if (!sourceVariable.name.startsWith(groupPrefix)) continue;
+        if (!belongsToSelectedGroup(sourceVariable)) continue;
 
         try {
           sourceVariable.remove();
         } catch (removeError) {
           errors.push(`Failed to remove original variable: ${removeError.message}`);
+        }
+      }
+
+      // Whole-collection mode moved every variable out, so the source
+      // collection is now empty and no longer serves any purpose — remove it
+      // too, matching the semantic of "relocate this entire collection".
+      if (isWholeCollectionGroup) {
+        try {
+          const updatedSourceCollection = await figma.variables.getVariableCollectionByIdAsync(sourceCollectionId);
+          if (updatedSourceCollection && updatedSourceCollection.variableIds.length === 0) {
+            updatedSourceCollection.remove();
+          }
+        } catch (deleteError) {
+          errors.push(`Failed to delete now-empty source collection "${sourceCollection.name}": ${deleteError.message}`);
         }
       }
     }
@@ -1106,7 +1136,8 @@ figma.ui.onmessage = async (msg) => {
         msg.sourceCollectionId,
         msg.targetCollectionId,
         msg.newCollectionName,
-        msg.groupPath
+        msg.groupPath,
+        msg.isWholeCollectionGroup
       );
       break;
 

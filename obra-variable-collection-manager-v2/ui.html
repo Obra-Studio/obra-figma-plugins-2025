@@ -2335,6 +2335,13 @@
     // MOVE TAB FUNCTIONS
     // =====================
 
+    // Sentinel groupPath meaning "the whole collection, treated as one
+    // synthetic group named after the collection itself" — used for
+    // collections whose variables have no "/" grouping at all (e.g. chart
+    // colors: "chart 1".."chart 5"), which otherwise have no group for Move
+    // to select. See buildAllMoveGroupHierarchies and moveGroup's backend.
+    const MOVE_WHOLE_COLLECTION_PATH = '__WHOLE_COLLECTION__';
+
     // Build group hierarchies for all collections
     function buildAllMoveGroupHierarchies() {
       moveGroupHierarchies = {};
@@ -2385,6 +2392,20 @@
               currentLevel = currentLevel[part].children;
             }
           }
+        }
+
+        // No "/"-grouped variables at all, but the collection isn't empty —
+        // synthesize a single virtual group named after the collection
+        // itself so it can still be selected and moved as one unit (e.g.
+        // "chart colors" with its 5 flatly-named chart 1..5 variables).
+        if (Object.keys(hierarchy).length === 0 && collection.variables.length > 0) {
+          hierarchy[MOVE_WHOLE_COLLECTION_PATH] = {
+            name: collection.name,
+            fullPath: MOVE_WHOLE_COLLECTION_PATH,
+            children: {},
+            variableCount: collection.variables.length,
+            isWholeCollection: true
+          };
         }
 
         moveGroupHierarchies[collection.id] = hierarchy;
@@ -2511,7 +2532,9 @@
         if (moveIsNewCollection && !moveNewCollectionNameInput.value.trim()) {
           const sourceCollection = collections.find(c => c.id === collectionId);
           const collectionName = sourceCollection ? sourceCollection.name : '';
-          const fullName = collectionName + ' ' + groupPath;
+          const fullName = groupPath === MOVE_WHOLE_COLLECTION_PATH
+            ? collectionName
+            : collectionName + ' ' + groupPath;
           moveNewCollectionNameInput.value = fullName.replace(/\//g, ' ').trim();
         }
       }
@@ -2608,16 +2631,22 @@
       movePreviewEl.classList.remove('hidden');
 
       const sourceCollection = collections.find(c => c.id === moveSourceCollectionId);
+      const isWhole = moveSelectedGroupPath === MOVE_WHOLE_COLLECTION_PATH;
 
-      // Count variables in the selected group
+      // Count variables in the selected group (or the whole collection, for
+      // the synthetic whole-collection group)
       let varCount = 0;
       if (sourceCollection && sourceCollection.variables) {
-        const prefix = moveSelectedGroupPath + '/';
-        varCount = sourceCollection.variables.filter(v => v.name.startsWith(prefix)).length;
+        if (isWhole) {
+          varCount = sourceCollection.variables.length;
+        } else {
+          const prefix = moveSelectedGroupPath + '/';
+          varCount = sourceCollection.variables.filter(v => v.name.startsWith(prefix)).length;
+        }
       }
 
       movePreviewVarsEl.textContent = varCount;
-      movePreviewGroupEl.textContent = moveSelectedGroupPath;
+      movePreviewGroupEl.textContent = isWhole ? (sourceCollection ? sourceCollection.name : '') : moveSelectedGroupPath;
       movePreviewModesEl.textContent = sourceCollection ? sourceCollection.modes.length : 0;
     }
 
@@ -2650,7 +2679,8 @@
           sourceCollectionId: moveSourceCollectionId,
           targetCollectionId: moveIsNewCollection ? null : moveTargetCollectionId,
           newCollectionName: moveIsNewCollection ? moveNewCollectionNameInput.value.trim() : null,
-          groupPath: moveSelectedGroupPath
+          groupPath: moveSelectedGroupPath,
+          isWholeCollectionGroup: moveSelectedGroupPath === MOVE_WHOLE_COLLECTION_PATH
         }
       }, '*');
     });
