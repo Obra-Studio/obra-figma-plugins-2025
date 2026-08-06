@@ -2,136 +2,237 @@
 <html>
 <head>
     <style>
+        * { box-sizing: border-box; }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 12px;
-            background: #ffffff;
-            color: #333333;
+            padding: 0;
+            background: var(--figma-color-bg, #ffffff);
+            color: var(--figma-color-text, #333333);
             font-size: 11px;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
+            overflow: hidden;
         }
-        
-        .header {
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #e5e5e5;
+
+        /* Topbar */
+        .topbar {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--figma-color-border, #e5e5e5);
         }
-        
-        .title {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0 0 8px 0;
+
+        .topbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        
-        .subtitle {
-            color: #666;
-            font-size: 12px;
-            margin: 0;
-        }
-        
-        .section {
-            margin-bottom: 12px;
-            flex-shrink: 0;
-        }
-        
-        .button {
-            background: #18a0fb;
-            color: white;
-            border: none;
-            padding: 6px 12px;
+
+        .topbar-nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
             font-weight: 500;
-            width: 100%;
-            margin-bottom: 8px;
+            color: var(--figma-color-text, #475569);
+            background: transparent;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            user-select: none;
         }
-        
-        .button:hover {
-            background: #0d8ce8;
+        .topbar-nav-btn:hover { background: var(--figma-color-bg-hover, #f0f0f0); }
+        .topbar-nav-btn.active {
+            background: var(--figma-color-bg-selected, #e5f4ff);
+            color: var(--figma-color-text, #1e1e1e);
         }
-        
-        .button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+        .topbar-nav-btn .row-icon { font-size: 12px; }
 
-        .button-secondary {
-            background: #f1f5f9;
-            color: #475569;
-            border: 1px solid #cbd5e1;
-        }
-
-        .button-secondary:hover {
-            background: #e2e8f0;
-            border-color: #94a3b8;
-        }
-
-        .scan-buttons {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .scan-buttons .button {
-            flex: 1;
-            margin-bottom: 0;
-        }
-
-        .button-small {
-            padding: 4px 8px;
+        .btn {
+            background: var(--figma-color-bg-secondary, #f1f5f9);
+            color: var(--figma-color-text, #475569);
+            border: 1px solid var(--figma-color-border, #cbd5e1);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
             font-size: 11px;
-            width: auto;
-            margin: 0;
+            font-weight: 500;
+            white-space: nowrap;
         }
-        
-        .button-success {
-            background: #28a745;
+
+        .btn:hover { background: var(--figma-color-bg-hover, #e2e8f0); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn.primary {
+            background: var(--figma-color-bg-brand, #18a0fb);
+            color: var(--figma-color-text-onbrand, #ffffff);
+            border-color: transparent;
         }
-        
-        .button-success:hover {
-            background: #218838;
+        .btn.primary:hover { filter: brightness(0.94); }
+
+        .btn.danger {
+            background: #dc3545;
+            color: #ffffff;
+            border-color: transparent;
         }
-        
+        .btn.danger:hover { background: #c82333; }
+
+        .btn.icon { padding: 6px 8px; font-size: 13px; line-height: 1; }
+        .btn.small { padding: 4px 8px; font-size: 10px; }
+
+        /* Body: sidebar + main */
+        .body {
+            flex: 1 1 auto;
+            display: flex;
+            min-height: 0;
+            position: relative;
+        }
+
+        .sidebar {
+            flex: 0 0 216px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            border-right: 1px solid var(--figma-color-border, #e5e5e5);
+            background: var(--figma-color-bg-secondary, #fafafa);
+        }
+
+        .sidebar-summary {
+            padding: 10px 12px;
+            font-size: 10px;
+            color: var(--figma-color-text-secondary, #6b7280);
+            border-bottom: 1px solid var(--figma-color-border, #e5e5e5);
+            line-height: 1.4;
+        }
+
+        .sidebar-scroll { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+
+        .section-head {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            padding: 6px 12px;
+            background: var(--figma-color-bg-secondary, #fafafa);
+            border-bottom: 1px solid var(--figma-color-border, #e5e5e5);
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--figma-color-text-tertiary, #9ca3af);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .section-head .spacer { flex: 1 1 auto; }
+        .section-head label {
+            font-size: 9px;
+            text-transform: none;
+            letter-spacing: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 12px;
+            border-bottom: 1px solid var(--figma-color-border, #efefef);
+            cursor: pointer;
+            user-select: none;
+        }
+        .row:hover { background: var(--figma-color-bg-hover, #f0f0f0); }
+        .row.active { background: var(--figma-color-bg-selected, #e5f4ff); }
+        .row .row-icon { font-size: 12px; flex-shrink: 0; width: 14px; text-align: center; }
+        .row .name {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .row.current .name::after {
+            content: ' \00b7 current';
+            color: var(--figma-color-text-tertiary, #9ca3af);
+            font-weight: 400;
+        }
+        .row .dirty-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #f5a623; flex-shrink: 0;
+        }
+        .row .spinner {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 2px solid var(--figma-color-border, #ccc);
+            border-top-color: var(--figma-color-bg-brand, #18a0fb);
+            animation: spin 0.6s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 9px;
+            background: var(--figma-color-bg-secondary, #f1f5f9);
+            color: var(--figma-color-text-secondary, #64748b);
+            flex-shrink: 0;
+        }
+        .badge.has { background: #fdecea; color: #c0392b; }
+        .badge.nomatch { background: #fff3cd; color: #856404; }
+        .badge.clean { background: #e6f7ee; color: #0f8a4d; }
+        .badge.unknown { background: transparent; color: var(--figma-color-text-tertiary, #9ca3af); }
+
+        /* Main pane */
+        .main { flex: 1 1 auto; overflow-y: auto; min-height: 0; padding: 14px 16px 20px; }
+
+        .view-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+        .view-title { font-size: 14px; font-weight: 600; margin: 0; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .view-meta { font-size: 10px; color: var(--figma-color-text-secondary, #8c8c8c); margin: 6px 0 14px 0; }
+
+        .empty { text-align: center; padding: 40px 16px; color: var(--figma-color-text-secondary, #6b7280); }
+        .empty .empty-icon { font-size: 22px; margin-bottom: 8px; }
+        .empty .empty-title { font-weight: 600; color: var(--figma-color-text, #1e1e1e); margin-bottom: 4px; font-size: 12px; }
+        .empty .empty-body { font-size: 11px; margin-bottom: 14px; }
+
+        .stale-banner {
+            display: flex; align-items: center; gap: 8px;
+            background: #fff3cd; color: #856404; border: 1px solid #ffe69c;
+            padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 11px;
+        }
+
+        .status-line {
+            background: var(--figma-color-bg-secondary, #f7f7f7);
+            color: var(--figma-color-text-secondary, #8c8c8c);
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 10px;
+        }
+
         .error-banner {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
+            padding: 10px 12px;
             font-size: 12px;
             display: flex;
             align-items: center;
+            flex: 0 0 auto;
         }
-        
-        .error-icon {
-            margin-right: 8px;
-            font-weight: bold;
-        }
-        
-        .status {
-            background: #f7f7f7;
-            padding: 8px 12px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            font-size: 10px;
-            color: #8c8c8c;
-        }
-        
-        .accordion {
-            border: none;
-            border-radius: 0;
-            margin-bottom: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
+        .error-banner .error-icon { margin-right: 8px; font-weight: bold; }
+
+        /* Accordions */
+        .accordion { margin-bottom: 4px; }
         .accordion-header {
             background: transparent;
             padding: 8px 0;
@@ -141,826 +242,329 @@
             gap: 6px;
             font-weight: 500;
             font-size: 11px;
-            border-bottom: 1px solid #e1e1e1;
-            transition: background-color 0.15s;
+            border-bottom: 1px solid var(--figma-color-border, #e1e1e1);
         }
-        
-        .accordion-header:hover {
-            background: #f7f7f7;
-        }
-        
-        .accordion-header.has-problems {
-            background: transparent;
-        }
-        
-        .accordion-header.has-problems:hover {
-            background: #f7f7f7;
-        }
-        
-        .accordion-toggle {
-            font-size: 12px;
-            color: #666;
-            transition: transform 0.2s;
-            flex-shrink: 0;
-            width: 12px;
-            text-align: center;
-        }
-        
-        .accordion-toggle.open {
-            transform: rotate(90deg);
-        }
-        
-        .accordion-title {
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .accordion-content {
-            display: none;
-            padding: 12px 0 16px 0;
-        }
-        
-        .accordion-content.open {
-            display: block;
-        }
-        
-        .problem-count {
-            background: #dc3545;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 8px;
-        }
-        
-        .success-count {
-            background: #28a745;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 8px;
-        }
-        
-        .variables-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 11px;
-            line-height: 1.4;
-        }
+        .accordion-header:hover { background: var(--figma-color-bg-hover, #f7f7f7); }
+        .accordion-toggle { font-size: 12px; color: #666; transition: transform 0.2s; flex-shrink: 0; width: 12px; text-align: center; }
+        .accordion-toggle.open { transform: rotate(90deg); }
+        .accordion-title { flex-grow: 1; display: flex; align-items: center; gap: 8px; }
+        .accordion-content { display: none; padding: 12px 0 16px 0; }
+        .accordion-content.open { display: block; }
 
-        .collection-selector {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .problem-count { background: #dc3545; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; }
+        .success-count { background: #28a745; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: 8px; }
 
-        .collection-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        /* Layer list */
+        .layers-list { border: none; margin-bottom: 12px; }
+        .layer-item { padding: 8px 12px; border-bottom: 1px solid var(--figma-color-border, #f0f0f0); cursor: pointer; }
+        .layer-item:hover { background: var(--figma-color-bg-hover, #f7f7f7); }
+        .layer-item:last-child { border-bottom: none; }
+        .layer-item.selected { background: #e3f2fd; border-left: 3px solid #0066ff; }
+        .layer-item.is-component { background: #faf5ff; }
+        .layer-item.is-component:hover { background: #f3e8ff; }
+        .layer-item.is-component.selected { background: #ede9f1; border-left-color: #9333ea; }
+
+        .component-indicator { color: #9333ea; font-size: 12px; margin-right: 4px; }
+
+        .component-recommendation {
+            background: #f3e8ff; border: 1px solid #c084fc; color: #7c3aed;
+            padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 12px;
+            display: flex; align-items: flex-start; gap: 8px;
+        }
+        .component-recommendation-icon { color: #9333ea; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+        .autofix-section {
+            background: #f0f9ff; border: 1px solid #38bdf8; border-radius: 6px;
+            padding: 12px; margin-bottom: 16px; text-align: center;
+        }
+        .autofix-button {
+            background: #0ea5e9; color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px;
+        }
+        .autofix-button:hover { background: #0284c7; }
+        .autofix-button:disabled { background: #94a3b8; cursor: not-allowed; }
+        .autofix-icon { font-size: 14px; }
+        .autofix-description { color: #0369a1; font-size: 11px; margin: 0; }
+
+        .layer-name { font-weight: 500; font-size: 11px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; }
+        .layer-radius { font-size: 10px; color: #18a0fb; background: #e8f4fd; padding: 2px 4px; border-radius: 4px; }
+        .layer-details { font-size: 10px; color: var(--figma-color-text-secondary, #8c8c8c); margin-bottom: 4px; }
+        .layer-suggestion { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; }
+        .suggestion-text { font-size: 11px; color: var(--figma-color-text, #333); flex-grow: 1; }
+        .suggestion-button { padding: 4px 8px; font-size: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+        .suggestion-button:hover { background: #218838; }
+
+        .issue-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 8px; }
+        .issue-missing { background: #fff3cd; color: #856404; }
+        .issue-no-match { background: #f8d7da; color: #721c24; }
+        .issue-fixed { background: #d4edda; color: #155724; }
+
+        .selected-layer-info { background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+        .selected-layer-name { font-weight: 500; margin-bottom: 8px; }
+
+        .hidden { display: none !important; }
+
+        /* Progress bar */
+        .progress-bar-wrap {
+            flex: 0 0 auto;
+            border-top: 1px solid var(--figma-color-border, #e5e5e5);
+            background: var(--figma-color-bg-secondary, #fafafa);
             padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.15s;
-            background: #ffffff;
+            display: none;
+        }
+        .progress-bar-wrap.visible { display: flex; flex-direction: column; gap: 6px; }
+        .progress-bar-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--figma-color-text-secondary, #6b7280); gap: 8px; }
+        .progress-bar-row .progress-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .progress-track { background: var(--figma-color-border, #e5e5e5); border-radius: 4px; height: 6px; overflow: hidden; }
+        .progress-fill { background: var(--figma-color-bg-brand, #18a0fb); height: 100%; width: 0%; transition: width 0.15s ease; }
+        .progress-fill.indeterminate { width: 40% !important; animation: indeterminate-slide 1.1s ease-in-out infinite; }
+        @keyframes indeterminate-slide {
+            0% { margin-left: -40%; }
+            100% { margin-left: 100%; }
         }
 
-        .collection-option:hover {
-            background: #f7f7f7;
-            border-color: #cbd5e1;
-        }
-
-        .collection-option.selected {
-            background: #e0f2fe;
-            border-color: #0ea5e9;
-        }
-
-        .collection-option input[type="checkbox"] {
-            margin: 0;
-            cursor: pointer;
-        }
-
-        .collection-option-label {
-            flex-grow: 1;
-            font-size: 11px;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .collection-option-count {
+        /* Pass breakdown chips */
+        .pass-breakdown { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0 2px; }
+        .pass-chip {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 10px; border-radius: 14px;
+            background: var(--figma-color-bg, #ffffff);
+            color: var(--figma-color-text-secondary, #64748b);
+            border: 1px solid var(--figma-color-border, #e2e8f0);
             font-size: 10px;
-            color: #64748b;
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 10px;
         }
-
-        .collection-option.selected .collection-option-count {
-            background: #0ea5e9;
-            color: white;
+        .pass-chip .pass-num {
+            width: 15px; height: 15px; border-radius: 50%;
+            background: var(--figma-color-border, #cbd5e1); color: var(--figma-color-bg, #fff);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px; font-weight: 700; flex-shrink: 0;
         }
+        .pass-chip strong { color: var(--figma-color-text, #1e1e1e); }
+        .pass-chip.active { background: #e0f2fe; border-color: #0ea5e9; color: #0369a1; }
+        .pass-chip.active .pass-num { background: #0ea5e9; }
+        .pass-chip.done { background: #e6f7ee; border-color: #22c55e; color: #0f8a4d; }
+        .pass-chip.done .pass-num { background: #22c55e; }
+        .pass-arrow { color: var(--figma-color-text-tertiary, #9ca3af); font-size: 11px; }
 
-        .collection-rank {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            margin-right: 4px;
+        /* Settings drawer */
+        .drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.15); display: none; z-index: 10; }
+        .drawer-backdrop.open { display: block; }
+        .drawer {
+            position: absolute; top: 0; right: 0; bottom: 0; width: 320px; max-width: 92%;
+            background: var(--figma-color-bg, #ffffff);
+            border-left: 1px solid var(--figma-color-border, #e5e5e5);
+            box-shadow: -4px 0 16px rgba(0,0,0,0.12);
+            transform: translateX(100%);
+            transition: transform 0.2s ease;
+            z-index: 11;
+            display: flex; flex-direction: column;
         }
+        .drawer.open { transform: translateX(0); }
+        .drawer-header { display: flex; align-items: center; gap: 8px; padding: 12px; border-bottom: 1px solid var(--figma-color-border, #e5e5e5); flex-shrink: 0; }
+        .drawer-header .title { font-size: 12px; font-weight: 600; flex: 1 1 auto; }
+        .drawer-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; }
 
+        /* Confirm modal */
+        .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: none; z-index: 20; }
+        .modal-backdrop.open { display: block; }
+        .modal {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.96);
+            width: 300px; max-width: 88%;
+            background: var(--figma-color-bg, #ffffff);
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            padding: 16px;
+            z-index: 21;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .modal.open { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .modal-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--figma-color-text, #1e1e1e); display: flex; align-items: center; gap: 6px; }
+        .modal-body { font-size: 11px; color: var(--figma-color-text-secondary, #666); line-height: 1.5; margin-bottom: 16px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* Collections / variables / ignore list (settings drawer content) */
+        .variables-list { display: flex; flex-direction: column; gap: 8px; font-size: 11px; line-height: 1.4; }
+
+        .collection-selector { display: flex; flex-direction: column; gap: 6px; }
+        .collection-option {
+            display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+            border: 1px solid var(--figma-color-border, #e2e8f0); border-radius: 6px; cursor: pointer; background: var(--figma-color-bg, #ffffff);
+        }
+        .collection-option:hover { background: var(--figma-color-bg-hover, #f7f7f7); }
+        .collection-option.selected { background: #e0f2fe; border-color: #0ea5e9; }
+        .collection-option input[type="checkbox"] { margin: 0; cursor: pointer; }
+        .collection-option-label { flex-grow: 1; font-size: 11px; font-weight: 500; color: var(--figma-color-text, #333); }
+        .collection-option-count { font-size: 10px; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 10px; }
+        .collection-option.selected .collection-option-count { background: #0ea5e9; color: white; }
+
+        .collection-rank { display: flex; flex-direction: column; gap: 2px; margin-right: 4px; }
         .rank-btn {
-            width: 18px;
-            height: 14px;
-            font-size: 9px;
-            line-height: 1;
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            color: #475569;
-            border-radius: 3px;
-            cursor: pointer;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 18px; height: 14px; font-size: 9px; line-height: 1;
+            background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; border-radius: 3px;
+            cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;
         }
-
-        .rank-btn:hover:not(:disabled) {
-            background: #e2e8f0;
-            border-color: #94a3b8;
-        }
-
+        .rank-btn:hover:not(:disabled) { background: #e2e8f0; border-color: #94a3b8; }
         .rank-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
         .preferred-badge {
-            font-size: 9px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #0ea5e9;
-            background: #e0f2fe;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-right: 6px;
+            font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+            color: #0ea5e9; background: #e0f2fe; padding: 2px 6px; border-radius: 10px; margin-right: 6px;
         }
 
-        .variable-tag {
-            background: #ffffff;
-            color: #1e293b;
-            border: 1px solid #e2e8f0;
-            padding: 4px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            white-space: nowrap;
-        }
+        .variable-tag { background: var(--figma-color-bg, #ffffff); color: var(--figma-color-text, #1e293b); border: 1px solid var(--figma-color-border, #e2e8f0); padding: 4px 6px; border-radius: 4px; font-size: 10px; white-space: nowrap; }
+        .variable-collection-group { margin-bottom: 12px; }
+        .variable-collection-group:last-child { margin-bottom: 0; }
+        .variable-collection-header { font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--figma-color-border, #e2e8f0); }
+        .variable-collection-vars { display: flex; flex-wrap: wrap; gap: 4px; }
 
-        .variable-collection-group {
-            margin-bottom: 12px;
-        }
-
-        .variable-collection-group:last-child {
-            margin-bottom: 0;
-        }
-
-        .variable-collection-header {
-            font-size: 11px;
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 6px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .variable-collection-vars {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        
-        .ignore-section {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e5e5;
-        }
-        
-        .ignore-input-container {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-        
-        .ignore-input {
-            flex-grow: 1;
-            padding: 6px 8px;
-            border: 1px solid #e5e5e5;
-            border-radius: 4px;
-            font-size: 11px;
-        }
-        
-        .ignore-add-btn {
-            padding: 6px 12px;
-            font-size: 10px;
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #475569;
-        }
-        
-        .ignore-add-btn:hover {
-            background: #e2e8f0;
-            border-color: #94a3b8;
-        }
-        
-        .ignore-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 8px;
-        }
-        
-        .ignore-tag {
-            background: #e2e8f0;
-            color: #475569;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .ignore-remove {
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 12px;
-            color: #64748b;
-        }
-        
-        .ignore-remove:hover {
-            color: #1e293b;
-        }
-        
-        .layers-list {
-            max-height: calc(100vh - 250px);
-            overflow-y: auto;
-            border: none;
-            border-radius: 0;
-            margin-bottom: 12px;
-            min-height: 200px;
-        }
-        
-        .layer-item {
-            padding: 8px 12px;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-            transition: background-color 0.15s;
-        }
-        
-        .layer-item:hover {
-            background: #f7f7f7;
-        }
-        
-        .layer-item:last-child {
-            border-bottom: none;
-        }
-        
-        .layer-item.selected {
-            background: #e3f2fd;
-            border-left: 3px solid #0066ff;
-        }
-        
-        .layer-item.is-component {
-            background: #faf5ff;
-        }
-        
-        .layer-item.is-component:hover {
-            background: #f3e8ff;
-        }
-        
-        .layer-item.is-component.selected {
-            background: #ede9f1;
-            border-left-color: #9333ea;
-        }
-        
-        .component-indicator {
-            color: #9333ea;
-            font-size: 12px;
-            margin-right: 4px;
-        }
-        
-        .component-recommendation {
-            background: #f3e8ff;
-            border: 1px solid #c084fc;
-            color: #7c3aed;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            font-size: 12px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-        
-        .component-recommendation-icon {
-            color: #9333ea;
-            font-size: 14px;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-        
-        .autofix-section {
-            background: #f0f9ff;
-            border: 1px solid #38bdf8;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-        
-        .autofix-button {
-            background: #0ea5e9;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 6px;
-            transition: background-color 0.2s;
-        }
-        
-        .autofix-button:hover {
-            background: #0284c7;
-        }
-        
-        .autofix-button:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-        }
-        
-        .autofix-icon {
-            font-size: 14px;
-        }
-        
-        .autofix-description {
-            color: #0369a1;
-            font-size: 11px;
-            margin: 0;
-        }
-        
-        .layer-name {
-            font-weight: 500;
-            font-size: 11px;
-            margin-bottom: 3px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .layer-radius {
-            font-size: 10px;
-            color: #18a0fb;
-            background: #e8f4fd;
-            padding: 2px 4px;
-            border-radius: 4px;
-        }
-        
-        .layer-details {
-            font-size: 10px;
-            color: #8c8c8c;
-            margin-bottom: 4px;
-        }
-        
-        .layer-suggestion {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 8px;
-            gap: 8px;
-        }
-        
-        .suggestion-text {
-            font-size: 11px;
-            color: #333;
-            flex-grow: 1;
-        }
-        
-        .suggestion-button {
-            padding: 4px 8px;
-            font-size: 10px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        
-        .suggestion-button:hover {
-            background: #218838;
-        }
-        
-        .apply-options {
-            display: none;
-            position: absolute;
-            background: white;
-            border: 1px solid #e5e5e5;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            z-index: 1000;
-            min-width: 120px;
-            font-size: 10px;
-        }
-        
-        .apply-option {
-            padding: 6px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .apply-option:hover {
-            background: #f5f5f5;
-        }
-        
-        .apply-option:last-child {
-            border-bottom: none;
-        }
-        
-        .suggestion-button-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .dropdown-arrow {
-            margin-left: 2px;
-            font-size: 8px;
-        }
-        
-        .issue-badge {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 3px;
-            margin-left: 8px;
-        }
-        
-        .issue-missing {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .issue-no-match {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .issue-fixed {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .selected-layer-info {
-            background: #e3f2fd;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-        }
-        
-        .selected-layer-name {
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #e1e1e1;
-            margin: -12px -12px 12px -12px;
-            padding: 0;
-            background: #ffffff;
-            flex-shrink: 0;
-        }
-        
-        .tab {
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 400;
-            color: #8c8c8c;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid transparent;
-            transition: all 0.15s ease;
-            position: relative;
-            line-height: 1.2;
-        }
-        
-        .tab:hover {
-            color: #333333;
-            background: #f7f7f7;
-        }
-        
-        .tab.active {
-            color: #333333;
-            font-weight: 500;
-        }
-        
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #18a0fb;
-        }
-        
-        .tab-content {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            min-height: 0;
-        }
-        
-        .tab-content.active {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        #layersTab {
-            overflow-y: auto;
-        }
-        
-        .plugin-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            min-height: 0;
-        }
+        .ignore-input-container { display: flex; gap: 8px; margin-bottom: 8px; }
+        .ignore-input { flex-grow: 1; padding: 6px 8px; border: 1px solid var(--figma-color-border, #e5e5e5); border-radius: 4px; font-size: 11px; background: var(--figma-color-bg, #fff); color: var(--figma-color-text, #333); }
+        .ignore-add-btn { padding: 6px 12px; font-size: 10px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #475569; }
+        .ignore-add-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
+        .ignore-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+        .ignore-tag { background: #e2e8f0; color: #475569; padding: 3px 8px; border-radius: 10px; font-size: 10px; display: flex; align-items: center; gap: 4px; }
+        .ignore-remove { cursor: pointer; font-weight: bold; font-size: 12px; color: #64748b; }
+        .ignore-remove:hover { color: #1e293b; }
 
         @media (prefers-color-scheme: dark) {
-            body { background: #2c2c2c; color: #e0e0e0; }
-            .header { border-bottom-color: #444; }
-            .subtitle { color: #999; }
-
-            .button-secondary {
-                background: #3a3a3a;
-                color: #e0e0e0;
-                border-color: #555;
-            }
-            .button-secondary:hover { background: #454545; border-color: #666; }
-            .button:disabled { background: #555; color: #888; }
-
-            .error-banner { background: #5a2a2e; color: #f5b7b1; border-color: #7a3a3e; }
-            .status { background: #383838; color: #aaa; }
-
-            /* Tabs */
-            .tabs { background: #2c2c2c; border-bottom-color: #444; }
-            .tab { color: #999; background: transparent; }
-            .tab:hover { color: #e0e0e0; background: #383838; }
-            .tab.active { color: #e0e0e0; }
-
-            /* Accordions */
-            .accordion { background: #2c2c2c; border-color: #444; }
-            .accordion-header,
-            .accordion-header.has-problems {
-                background: transparent;
-                color: #e0e0e0;
-                border-bottom-color: #444;
-            }
-            .accordion-header:hover,
-            .accordion-header.has-problems:hover { background: #383838; }
-            .accordion-toggle { color: #aaa; }
-            .accordion-content { background: #2c2c2c; color: #e0e0e0; }
-
-            /* Layers list */
-            .layer-item { background: #2c2c2c; border-bottom-color: #3a3a3a; }
-            .layer-item:hover { background: #353535; }
             .layer-item.selected { background: #1e3a5f; border-left-color: #18a0fb; }
             .layer-item.is-component { background: #2e2540; }
             .layer-item.is-component:hover { background: #382a4f; }
             .layer-item.is-component.selected { background: #3a2b55; border-left-color: #9333ea; }
-            .layer-name { color: #e0e0e0; }
             .layer-radius { color: #7cc7ff; background: #1e3a5f; }
-            .layer-details { color: #999; }
-            .suggestion-text { color: #e0e0e0; }
             .component-indicator { color: #c084fc; }
-            .component-recommendation {
-                background: #2e2540; border-color: #7c3aed; color: #d8b4fe;
-            }
+            .component-recommendation { background: #2e2540; border-color: #7c3aed; color: #d8b4fe; }
             .component-recommendation-icon { color: #c084fc; }
-
-            /* Selected layer info card */
             .selected-layer-info { background: #1e3a5f; color: #e0e0e0; }
-
-            /* Collection options */
-            .collection-option { background: #383838; border-color: #555; }
-            .collection-option:hover { background: #404040; border-color: #666; }
             .collection-option.selected { background: #1e3a5f; border-color: #38bdf8; }
-            .collection-option-label { color: #e0e0e0; }
             .collection-option-count { background: #2c2c2c; color: #aaa; }
             .collection-option.selected .collection-option-count { background: #38bdf8; color: #1a1a1a; }
             .rank-btn { background: #3a3a3a; color: #e0e0e0; border-color: #555; }
             .rank-btn:hover:not(:disabled) { background: #454545; border-color: #666; }
             .preferred-badge { background: #1e3a5f; color: #7cc7ff; }
-
-            /* Variable tags grid */
-            .variable-tag { background: #383838; color: #e0e0e0; border-color: #555; }
-            .variable-collection-header { color: #e0e0e0; border-bottom-color: #444; }
-
-            /* Issue badges — soften */
+            .variable-collection-header { color: #e0e0e0; }
             .issue-missing { background: #5a4a1a; color: #ffe082; }
             .issue-no-match { background: #5a2a2e; color: #f5b7b1; }
             .issue-fixed { background: #2a4a2e; color: #a5d6a7; }
-
-            /* Autofix section */
             .autofix-section { background: #1e3a5f; border-color: #38bdf8; }
-
-            /* Apply options dropdown */
-            .apply-options { background: #383838; border-color: #555; color: #e0e0e0; }
-            .apply-option { border-bottom-color: #444; }
-            .apply-option:hover { background: #454545; }
-
-            /* Ignore section */
-            .ignore-section { border-top-color: #444; }
-            .ignore-input {
-                background: #383838;
-                color: #e0e0e0;
-                border-color: #555;
-            }
-            .ignore-input::placeholder { color: #777; }
-            .ignore-add-btn {
-                background: #3a3a3a;
-                color: #e0e0e0;
-                border-color: #555;
-            }
-            .ignore-add-btn:hover { background: #454545; border-color: #666; }
             .ignore-tag { background: #3a3a3a; color: #e0e0e0; }
             .ignore-remove { color: #aaa; }
             .ignore-remove:hover { color: #fff; }
-
-            /* Generic inputs */
-            input[type="text"], input[type="number"], select, textarea {
-                background: #383838;
-                color: #e0e0e0;
-                border-color: #555;
-            }
-
-            /* Inline-styled helper text */
-            [style*="color: #666"], [style*="color:#666"] { color: #aaa !important; }
-            [style*="color: #999"], [style*="color:#999"] { color: #888 !important; }
-            [style*="color: #333"], [style*="color:#333"] { color: #e0e0e0 !important; }
-            [style*="background:#eee"], [style*="background: #eee"] { background: #444 !important; }
+            .ignore-add-btn { background: #3a3a3a; color: #e0e0e0; border-color: #555; }
+            .ignore-add-btn:hover { background: #454545; border-color: #666; }
+            .badge.has { background: #5a2a2e; color: #f5b7b1; }
+            .badge.nomatch { background: #5a4a1a; color: #ffe082; }
+            .badge.clean { background: #2a4a2e; color: #a5d6a7; }
+            .stale-banner { background: #5a4a1a; color: #ffe082; border-color: #7a6a2e; }
+            .error-banner { background: #5a2a2e; color: #f5b7b1; border-color: #7a3a3e; }
+            .pass-chip.active { background: #1e3a5f; border-color: #38bdf8; color: #7cc7ff; }
+            .pass-chip.active .pass-num { background: #38bdf8; color: #1a1a1a; }
+            .pass-chip.done { background: #2a4a2e; border-color: #22c55e; color: #a5d6a7; }
+            .pass-chip.done .pass-num { background: #22c55e; color: #1a1a1a; }
         }
     </style>
 </head>
 <body>
-    <div class="plugin-container">
-    <div class="tabs">
-        <button class="tab active" onclick="switchTab('layers')">Layers</button>
-        <button class="tab" onclick="switchTab('settings')">Settings</button>
-    </div>
-
     <div id="errorBanner" class="error-banner hidden">
-        <span class="error-icon">⚠</span>
+        <span class="error-icon">&#9888;</span>
         <span id="errorMessage"></span>
     </div>
 
-    <!-- Layers Tab -->
-    <div id="layersTab" class="tab-content active">
-        <div id="scanSection" class="section">
-            <div class="scan-buttons">
-                <button id="scanBtn" class="button">Scan Selected Layers</button>
-                <button id="scanPageBtn" class="button button-secondary">Scan Page</button>
-                <button id="scanFileBtn" class="button button-secondary">Scan Entire File</button>
-            </div>
-            <div id="status" class="status hidden">Ready to scan...</div>
-        </div>
+    <div class="topbar">
+        <div class="topbar-nav" id="topbarNav"></div>
+        <span class="spacer" style="flex:1 1 auto;"></span>
+        <button id="gearBtn" class="btn icon" title="Settings" aria-label="Settings">&#9881;</button>
+    </div>
 
-        <div id="fileScanProgress" class="hidden" style="margin-top:8px;">
-            <div style="font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between;">
-                <span id="fileScanProgressLabel">Scanning...</span>
-                <span id="fileScanProgressCount"></span>
-            </div>
-            <div style="background:#eee;border-radius:4px;height:6px;overflow:hidden;">
-                <div id="fileScanProgressBar" style="background:#18a0fb;height:100%;width:0%;transition:width 0.15s ease;"></div>
-            </div>
-        </div>
-
-        <div id="fileScanAccordion" class="accordion hidden">
-            <div class="accordion-header" onclick="toggleAccordion('fileScan')">
-                <span class="accordion-toggle open" id="fileScanToggle">▶</span>
-                <span class="accordion-title">
-                    <span>Most Problematic Pages</span>
-                    <span id="fileScanCount" class="problem-count hidden"></span>
-                </span>
-            </div>
-            <div class="accordion-content open" id="fileScanContent">
-                <div id="fileScanList" class="layers-list"></div>
-            </div>
-        </div>
-
-        <div id="layersAccordion" class="accordion hidden">
-            <div class="accordion-header" id="layersHeader" onclick="toggleAccordion('layers')">
-                <span class="accordion-toggle open" id="layersToggle">▶</span>
-                <span class="accordion-title">
-                    <span id="layersTitle">Layers with Problems</span>
-                    <span id="problemsCount" class="problem-count hidden"></span>
-                </span>
-            </div>
-            <div class="accordion-content open" id="layersContent">
-                <div id="layersList" class="layers-list"></div>
-            </div>
-        </div>
-
-        <div id="fixedLayersAccordion" class="accordion hidden">
-            <div class="accordion-header" onclick="toggleAccordion('fixed')">
-                <span class="accordion-toggle" id="fixedToggle">▶</span>
-                <span class="accordion-title">
-                    <span>Layers Already Fixed</span>
-                    <span id="fixedCount" class="success-count hidden"></span>
-                </span>
-            </div>
-            <div class="accordion-content" id="fixedContent">
-                <div id="fixedLayersList" class="layers-list"></div>
-            </div>
-        </div>
-
-        <div id="selectedLayerAccordion" class="accordion hidden">
-            <div class="accordion-header" onclick="toggleAccordion('selected')">
-                <span class="accordion-toggle open" id="selectedToggle">▶</span>
-                <span id="selectedLayerTitle" class="accordion-title">Selected Layer</span>
-            </div>
-            <div class="accordion-content open" id="selectedContent">
-                <div id="selectedLayerInfo" class="selected-layer-info">
-                    <div id="selectedLayerName" class="selected-layer-name"></div>
-                    <div id="selectedLayerDetails" style="font-size: 11px; color: #666; margin-bottom: 8px;"></div>
-                    <div id="selectedLayerSuggestion"></div>
+    <div class="body">
+        <aside class="sidebar">
+            <div class="sidebar-summary" id="sidebarSummary"></div>
+            <div class="sidebar-scroll">
+                <div class="section-head">
+                    <span>Pages</span>
+                    <span class="spacer"></span>
+                    <label><input type="checkbox" id="hideCleanToggle" /> hide clean</label>
                 </div>
+                <div id="pageRows"></div>
+            </div>
+        </aside>
+
+        <main class="main" id="mainPane"></main>
+
+        <div class="drawer-backdrop" id="drawerBackdrop"></div>
+        <div class="drawer" id="settingsDrawer">
+            <div class="drawer-header">
+                <span class="title">Settings</span>
+                <button id="closeDrawerBtn" class="btn icon" aria-label="Close">&times;</button>
+            </div>
+            <div class="drawer-body">
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('collections')">
+                        <span class="accordion-toggle open" id="collectionsToggle">&#9654;</span>
+                        <span class="accordion-title">Variable Collections</span>
+                    </div>
+                    <div class="accordion-content open" id="collectionsContent">
+                        <div style="font-size: 11px; color: var(--figma-color-text-secondary, #666); margin-bottom: 12px;">Select which collections to use for applying spacing variables:</div>
+                        <div id="collectionSelector" class="collection-selector">
+                            <div style="color: #999; font-style: italic;">Loading collections...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('variables')">
+                        <span class="accordion-toggle open" id="variablesToggle">&#9654;</span>
+                        <span class="accordion-title">Available Variables</span>
+                    </div>
+                    <div class="accordion-content open" id="variablesContent">
+                        <div id="variablesList" class="variables-list">
+                            <div style="color: #999; font-style: italic;">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion('ignored')">
+                        <span class="accordion-toggle open" id="ignoredToggle">&#9654;</span>
+                        <span class="accordion-title">Ignored Layer Names</span>
+                    </div>
+                    <div class="accordion-content open" id="ignoredContent">
+                        <div style="font-size: 11px; color: var(--figma-color-text-secondary, #666); margin-bottom: 12px;">Layers with these exact names will be skipped during scanning:</div>
+                        <div class="ignore-input-container">
+                            <input type="text" id="ignoreInput" class="ignore-input" placeholder="Enter exact layer name to ignore">
+                            <button id="addIgnoreBtn" class="ignore-add-btn">Add</button>
+                        </div>
+                        <div id="ignoreList" class="ignore-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-backdrop" id="confirmBackdrop"></div>
+        <div class="modal" id="confirmModal">
+            <div class="modal-title" id="confirmTitle"></div>
+            <div class="modal-body" id="confirmBody"></div>
+            <div class="modal-actions">
+                <button class="btn" id="confirmCancelBtn">Cancel</button>
+                <button class="btn danger" id="confirmOkBtn">Fix All</button>
             </div>
         </div>
     </div>
 
-    <!-- Settings Tab -->
-    <div id="settingsTab" class="tab-content">
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion('collections')">
-                <span class="accordion-toggle open" id="collectionsToggle">▶</span>
-                <span class="accordion-title">Variable Collections</span>
-            </div>
-            <div class="accordion-content open" id="collectionsContent">
-                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Select which collections to use for applying spacing variables:</div>
-                <div id="collectionSelector" class="collection-selector">
-                    <div style="color: #999; font-style: italic;">Loading collections...</div>
-                </div>
-            </div>
+    <div class="progress-bar-wrap" id="progressBarWrap">
+        <div class="progress-bar-row">
+            <span class="progress-text" id="progressLabel">Scanning&hellip;</span>
+            <span id="progressCount"></span>
+            <button id="cancelScanBtn" class="btn small danger">Cancel</button>
         </div>
-
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion('variables')">
-                <span class="accordion-toggle open" id="variablesToggle">▶</span>
-                <span class="accordion-title">Available Variables</span>
-            </div>
-            <div class="accordion-content open" id="variablesContent">
-                <div id="variablesList" class="variables-list">
-                    <div style="color: #999; font-style: italic;">Loading...</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="accordion">
-            <div class="accordion-header" onclick="toggleAccordion('ignored')">
-                <span class="accordion-toggle open" id="ignoredToggle">▶</span>
-                <span class="accordion-title">Ignored Layer Names</span>
-            </div>
-            <div class="accordion-content open" id="ignoredContent">
-                <div style="font-size: 11px; color: #666; margin-bottom: 12px;">Layers with these exact names will be skipped during scanning:</div>
-                <div class="ignore-input-container">
-                    <input type="text" id="ignoreInput" class="ignore-input" placeholder="Enter exact layer name to ignore">
-                    <button id="addIgnoreBtn" class="ignore-add-btn">Add</button>
-                </div>
-                <div id="ignoreList" class="ignore-list"></div>
-            </div>
-        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     </div>
 
     <script>
-        // Wait for DOM to be ready
-        document.addEventListener('DOMContentLoaded', function() {
-            initializePlugin();
-        });
-
-        // If DOMContentLoaded already fired, initialize immediately
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializePlugin);
         } else {
@@ -969,76 +573,120 @@
 
         function initializePlugin() {
             var elements = {
-                scanBtn: document.getElementById('scanBtn'),
-                scanPageBtn: document.getElementById('scanPageBtn'),
-                scanFileBtn: document.getElementById('scanFileBtn'),
-                fileScanAccordion: document.getElementById('fileScanAccordion'),
-                fileScanProgress: document.getElementById('fileScanProgress'),
-                fileScanProgressBar: document.getElementById('fileScanProgressBar'),
-                fileScanProgressLabel: document.getElementById('fileScanProgressLabel'),
-                fileScanProgressCount: document.getElementById('fileScanProgressCount'),
-                fileScanList: document.getElementById('fileScanList'),
-                fileScanCount: document.getElementById('fileScanCount'),
-                status: document.getElementById('status'),
                 errorBanner: document.getElementById('errorBanner'),
                 errorMessage: document.getElementById('errorMessage'),
-                variablesList: document.getElementById('variablesList'),
+                gearBtn: document.getElementById('gearBtn'),
+                drawerBackdrop: document.getElementById('drawerBackdrop'),
+                settingsDrawer: document.getElementById('settingsDrawer'),
+                closeDrawerBtn: document.getElementById('closeDrawerBtn'),
+                topbarNav: document.getElementById('topbarNav'),
+                sidebarSummary: document.getElementById('sidebarSummary'),
+                pageRows: document.getElementById('pageRows'),
+                hideCleanToggle: document.getElementById('hideCleanToggle'),
+                mainPane: document.getElementById('mainPane'),
                 collectionSelector: document.getElementById('collectionSelector'),
+                variablesList: document.getElementById('variablesList'),
                 ignoreInput: document.getElementById('ignoreInput'),
                 addIgnoreBtn: document.getElementById('addIgnoreBtn'),
                 ignoreList: document.getElementById('ignoreList'),
-                layersAccordion: document.getElementById('layersAccordion'),
-                layersHeader: document.getElementById('layersHeader'),
-                layersTitle: document.getElementById('layersTitle'),
-                problemsCount: document.getElementById('problemsCount'),
-                layersList: document.getElementById('layersList'),
-                fixedLayersAccordion: document.getElementById('fixedLayersAccordion'),
-                fixedCount: document.getElementById('fixedCount'),
-                fixedLayersList: document.getElementById('fixedLayersList'),
-                selectedLayerAccordion: document.getElementById('selectedLayerAccordion'),
-                selectedLayerTitle: document.getElementById('selectedLayerTitle'),
-                selectedLayerName: document.getElementById('selectedLayerName'),
-                selectedLayerDetails: document.getElementById('selectedLayerDetails'),
-                selectedLayerSuggestion: document.getElementById('selectedLayerSuggestion')
+                progressBarWrap: document.getElementById('progressBarWrap'),
+                progressLabel: document.getElementById('progressLabel'),
+                progressCount: document.getElementById('progressCount'),
+                progressFill: document.getElementById('progressFill'),
+                cancelScanBtn: document.getElementById('cancelScanBtn'),
+                confirmBackdrop: document.getElementById('confirmBackdrop'),
+                confirmModal: document.getElementById('confirmModal'),
+                confirmTitle: document.getElementById('confirmTitle'),
+                confirmBody: document.getElementById('confirmBody'),
+                confirmOkBtn: document.getElementById('confirmOkBtn'),
+                confirmCancelBtn: document.getElementById('confirmCancelBtn')
             };
 
-            var variables = [];
-            var collections = [];
-            var selectedCollectionIds = []; // Ordered; earlier = preferred
-            var layers = [];
-            var problemLayers = [];
-            var fixedLayers = [];
-            var selectedLayer = null;
-            var ignoredLayerNames = [];
+            var state = {
+                view: { kind: 'selection', pageId: null },
+                pages: [],
+                pageById: {},
+                currentPageId: null,
+                variables: [],
+                collections: [],
+                selectedCollectionIds: [],
+                ignoredLayerNames: [],
+                scanning: false,
+                scanScope: null,
+                scanAllSkipped: 0,
+                fixingFile: false,
+                autofixPhase: null,
+                hideClean: false,
+                selectionReport: null,
+                pageReports: {},
+                selectedLayer: null,
+                statusMessage: null
+            };
 
-            // Check all elements exist before adding event listeners
-            if (!elements.scanBtn || !elements.addIgnoreBtn || !elements.ignoreInput) {
-                console.error('Required DOM elements not found');
-                return;
+            function send(type, payload) {
+                var msg = payload || {};
+                msg.type = type;
+                parent.postMessage({ pluginMessage: msg }, '*');
             }
 
-            // Event listeners
-            elements.scanBtn.addEventListener('click', function() {
-                hideError();
-                parent.postMessage({ pluginMessage: { type: 'start-scan', ignoredNames: ignoredLayerNames } }, '*');
+            // ---------------- error / status ----------------
+            function showError(message) {
+                elements.errorMessage.textContent = message;
+                elements.errorBanner.classList.remove('hidden');
+            }
+            function hideError() {
+                elements.errorBanner.classList.add('hidden');
+            }
+
+            // ---------------- drawer ----------------
+            function openDrawer() {
+                elements.settingsDrawer.classList.add('open');
+                elements.drawerBackdrop.classList.add('open');
+            }
+            function closeDrawer() {
+                elements.settingsDrawer.classList.remove('open');
+                elements.drawerBackdrop.classList.remove('open');
+            }
+            elements.gearBtn.addEventListener('click', openDrawer);
+            elements.closeDrawerBtn.addEventListener('click', closeDrawer);
+            elements.drawerBackdrop.addEventListener('click', closeDrawer);
+
+            // ---------------- confirm modal ----------------
+            var confirmCallback = null;
+            function showConfirm(title, body, onConfirm) {
+                elements.confirmTitle.textContent = title;
+                elements.confirmBody.textContent = body;
+                confirmCallback = onConfirm;
+                elements.confirmBackdrop.classList.add('open');
+                elements.confirmModal.classList.add('open');
+            }
+            function hideConfirm() {
+                elements.confirmBackdrop.classList.remove('open');
+                elements.confirmModal.classList.remove('open');
+                confirmCallback = null;
+            }
+            elements.confirmOkBtn.addEventListener('click', function() {
+                var cb = confirmCallback;
+                hideConfirm();
+                if (cb) cb();
             });
+            elements.confirmCancelBtn.addEventListener('click', hideConfirm);
+            elements.confirmBackdrop.addEventListener('click', hideConfirm);
 
-            if (elements.scanPageBtn) {
-                elements.scanPageBtn.addEventListener('click', function() {
-                    hideError();
-                    parent.postMessage({ pluginMessage: { type: 'scan-page', ignoredNames: ignoredLayerNames } }, '*');
-                });
+            // ---------------- accordion ----------------
+            function toggleAccordion(section) {
+                var content = document.getElementById(section + 'Content');
+                var toggle = document.getElementById(section + 'Toggle');
+                if (content && toggle) {
+                    content.classList.toggle('open');
+                    toggle.classList.toggle('open');
+                }
             }
+            window.toggleAccordion = toggleAccordion;
 
-            if (elements.scanFileBtn) {
-                elements.scanFileBtn.addEventListener('click', function() {
-                    hideError();
-                    parent.postMessage({ pluginMessage: { type: 'scan-file', ignoredNames: ignoredLayerNames } }, '*');
-                });
-            }
-
+            // ---------------- formatting ----------------
             function formatScannedAt(ts) {
-                if (!ts) return '';
+                if (!ts) return 'Never scanned';
                 var d = new Date(ts);
                 var now = new Date();
                 var sameDay = d.toDateString() === now.toDateString();
@@ -1046,97 +694,546 @@
                 return sameDay ? 'Scanned at ' + time : 'Scanned ' + d.toLocaleString();
             }
 
-            function renderFileScanResults(pages, scannedAt) {
-                if (!elements.fileScanList || !elements.fileScanAccordion) return;
-                elements.fileScanAccordion.classList.remove('hidden');
+            var PASS_ORDER = ['components', 'local', 'pro-blocks'];
 
-                var pagesWithProblems = pages.filter(function(p) { return p.problems > 0; });
-                if (elements.fileScanCount) {
-                    elements.fileScanCount.classList.remove('hidden');
-                    elements.fileScanCount.textContent = pagesWithProblems.length + ' / ' + pages.length;
-                }
-
-                if (pages.length === 0) {
-                    elements.fileScanList.innerHTML = '<div style="color:#999;font-style:italic;padding:8px;">No pages found</div>';
-                    return;
-                }
-
-                var html = '';
-                if (scannedAt) {
-                    html += '<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#999;padding:4px 2px 8px;">' +
-                        '<span>' + formatScannedAt(scannedAt) + '</span>' +
-                        '<span style="cursor:pointer;text-decoration:underline;" onclick="window.clearFileScan()">Clear</span>' +
-                    '</div>';
-                }
-                for (var i = 0; i < pages.length; i++) {
-                    var p = pages[i];
-                    var safeName = String(p.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                    html += '<div class="layer-item" style="cursor:pointer;" onclick="window.goToPage(\'' + p.id.replace(/'/g, "\\'") + '\')">' +
-                        '<div class="layer-name">' + safeName + '</div>' +
-                        '<div style="font-size:11px;color:#666;">' +
-                            'To fix: <strong>' + p.fixable + '</strong>' +
-                            ' &middot; No match: ' + p.noMatch +
-                            ' &middot; Already: ' + p.alreadyFixed +
-                        '</div>' +
-                    '</div>';
-                }
-                elements.fileScanList.innerHTML = html;
+            function phaseLabel(phase) {
+                if (phase === 'components') return 'Fixing components first';
+                if (phase === 'local') return 'Fixing layers local to each component';
+                if (phase === 'pro-blocks') return 'Fixing Pro Blocks pages';
+                return 'Fixing…';
             }
 
-            window.goToPage = function(pageId) {
-                parent.postMessage({ pluginMessage: { type: 'go-to-page', pageId: pageId } }, '*');
-            };
+            // Must match code.js's isProBlocksPage — used here only to preview the
+            // pass breakdown before a fix actually runs.
+            var PRO_BLOCKS_PAGE_PATTERN_UI = /^pro\s*blocks\b/i;
+            function isProBlocksPageNameUI(name) {
+                return PRO_BLOCKS_PAGE_PATTERN_UI.test(name || '');
+            }
 
-            window.clearFileScan = function() {
-                parent.postMessage({ pluginMessage: { type: 'clear-file-scan' } }, '*');
-                if (elements.fileScanAccordion) elements.fileScanAccordion.classList.add('hidden');
-                if (elements.fileScanList) elements.fileScanList.innerHTML = '';
-                if (elements.fileScanCount) elements.fileScanCount.classList.add('hidden');
-            };
+            function computePassBreakdown(scannedPages) {
+                var components = 0, local = 0, proBlocks = 0;
+                scannedPages.forEach(function(p) {
+                    var comp = p.componentFixable || 0;
+                    var nonComp = Math.max(0, (p.fixable || 0) - comp);
+                    components += comp;
+                    if (isProBlocksPageNameUI(p.name)) proBlocks += nonComp;
+                    else local += nonComp;
+                });
+                return { components: components, local: local, proBlocks: proBlocks };
+            }
 
-            elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
+            function passChipClass(phaseKey, currentPhase) {
+                if (!currentPhase) return '';
+                var curIdx = PASS_ORDER.indexOf(currentPhase);
+                var thisIdx = PASS_ORDER.indexOf(phaseKey);
+                if (thisIdx < curIdx) return ' done';
+                if (thisIdx === curIdx) return ' active';
+                return '';
+            }
 
-            elements.ignoreInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    addIgnoreItem();
+            function passBreakdownHtml(breakdown, currentPhase) {
+                if (breakdown.components + breakdown.local + breakdown.proBlocks === 0) return '';
+                return '<div class="pass-breakdown">' +
+                    '<div class="pass-chip' + passChipClass('components', currentPhase) + '"><span class="pass-num">1</span> Components <strong>' + breakdown.components + '</strong></div>' +
+                    '<span class="pass-arrow">&#8594;</span>' +
+                    '<div class="pass-chip' + passChipClass('local', currentPhase) + '"><span class="pass-num">2</span> Local layers <strong>' + breakdown.local + '</strong></div>' +
+                    '<span class="pass-arrow">&#8594;</span>' +
+                    '<div class="pass-chip' + passChipClass('pro-blocks', currentPhase) + '"><span class="pass-num">3</span> Pro Blocks <strong>' + breakdown.proBlocks + '</strong></div>' +
+                    '</div>';
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            // ---------------- sidebar ----------------
+            function pageBadgeHtml(entry) {
+                if (!entry || entry.scannedAt == null) {
+                    return '<span class="badge unknown">&ndash;</span>';
+                }
+                // "Fixable" is actionable (Fix All can resolve it) - shown in red.
+                // "No match" alone means nothing is left for autofix to do; there's
+                // just no variable for that exact value, which isn't a fix-state
+                // regression, so it gets its own (amber) badge instead of reusing
+                // the "still needs fixing" red one.
+                if (entry.fixable > 0) {
+                    return '<span class="badge has" title="' + entry.fixable + ' fixable, ' + entry.noMatch + ' no match">' + (entry.fixable + entry.noMatch) + '</span>';
+                }
+                if (entry.noMatch > 0) {
+                    return '<span class="badge nomatch" title="No variable matches this exact value - nothing left for Fix All to do">' + entry.noMatch + '</span>';
+                }
+                return '<span class="badge clean">clean</span>';
+            }
+
+            function renderTopbarNav() {
+                var currentEntry = state.pageById[state.currentPageId];
+                var html = '';
+
+                html += '<div class="topbar-nav-btn' + (state.view.kind === 'selection' ? ' active' : '') + '" data-special="selection">' +
+                    '<span class="row-icon">&#9634;</span><span>Selection</span>' +
+                    (state.scanning && state.scanScope === 'selection' ? '<span class="spinner"></span>' : '') +
+                    '</div>';
+
+                html += '<div class="topbar-nav-btn' + (state.view.kind === 'page' && state.view.pageId === state.currentPageId ? ' active' : '') + '" data-special="current-page">' +
+                    '<span class="row-icon">&#9673;</span><span>Current Page</span>' +
+                    (state.scanning && state.scanScope === 'page' && state.scanPageId === state.currentPageId ? '<span class="spinner"></span>' : pageBadgeHtml(currentEntry)) +
+                    '</div>';
+
+                html += '<div class="topbar-nav-btn' + (state.view.kind === 'document' ? ' active' : '') + '" data-special="document">' +
+                    '<span class="row-icon">&#9776;</span><span>Whole File</span>' +
+                    (state.scanning && state.scanScope === 'all' ? '<span class="spinner"></span>' : '') +
+                    '</div>';
+
+                elements.topbarNav.innerHTML = html;
+            }
+
+            function renderSidebar() {
+                renderTopbarNav();
+
+                var scannedPages = state.pages.filter(function(p) { return p.scannedAt != null; });
+                var totalIssues = scannedPages.reduce(function(sum, p) { return sum + (p.fixable || 0) + (p.noMatch || 0); }, 0);
+                elements.sidebarSummary.innerHTML = scannedPages.length === 0
+                    ? 'No pages scanned yet'
+                    : '<strong>' + totalIssues + '</strong> issue' + (totalIssues === 1 ? '' : 's') + ' across ' + scannedPages.length + ' / ' + state.pages.length + ' scanned page' + (state.pages.length === 1 ? '' : 's');
+
+                var pages = state.pages.slice();
+                if (state.hideClean) {
+                    pages = pages.filter(function(p) { return p.scannedAt == null || p.fixable > 0 || p.noMatch > 0; });
+                }
+                pages.sort(function(a, b) {
+                    var pa = a.scannedAt == null ? -1 : (a.fixable + a.noMatch);
+                    var pb = b.scannedAt == null ? -1 : (b.fixable + b.noMatch);
+                    if (pb !== pa) return pb - pa;
+                    return a.name.localeCompare(b.name);
+                });
+
+                if (pages.length === 0) {
+                    elements.pageRows.innerHTML = '<div style="padding:12px;color:var(--figma-color-text-tertiary,#999);font-style:italic;font-size:10px;">No pages to show</div>';
+                } else {
+                    var html = '';
+                    for (var i = 0; i < pages.length; i++) {
+                        var p = pages[i];
+                        var isCurrent = p.id === state.currentPageId;
+                        var isActive = state.view.kind === 'page' && state.view.pageId === p.id;
+                        var isScanning = state.scanning && state.scanScope === 'page' && state.scanPageId === p.id;
+                        html += '<div class="row' + (isActive ? ' active' : '') + (isCurrent ? ' current' : '') + '" data-page-id="' + p.id + '">' +
+                            '<span class="name" title="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</span>' +
+                            (p.dirty ? '<span class="dirty-dot" title="Changed since last scan"></span>' : '') +
+                            (isScanning ? '<span class="spinner"></span>' : pageBadgeHtml(p)) +
+                            '</div>';
+                    }
+                    elements.pageRows.innerHTML = html;
+                }
+            }
+
+            elements.hideCleanToggle.addEventListener('change', function() {
+                state.hideClean = elements.hideCleanToggle.checked;
+                renderSidebar();
+            });
+
+            document.querySelector('.sidebar-scroll').addEventListener('click', function(e) {
+                var pageRow = e.target.closest('[data-page-id]');
+                if (pageRow) {
+                    var pageId = pageRow.getAttribute('data-page-id');
+                    setView({ kind: 'page', pageId: pageId });
+                    send('select-page', { pageId: pageId, force: false });
                 }
             });
 
-            // Request ignored names from plugin on startup
-            parent.postMessage({ pluginMessage: { type: 'load-ignored-names' } }, '*');
-
-            // Save ignored names via plugin clientStorage
-            function saveIgnoredNames() {
-                parent.postMessage({
-                    pluginMessage: {
-                        type: 'save-ignored-names',
-                        ignoredNames: ignoredLayerNames
+            elements.topbarNav.addEventListener('click', function(e) {
+                var special = e.target.closest('[data-special]');
+                if (!special) return;
+                var kind = special.getAttribute('data-special');
+                if (kind === 'selection') {
+                    hideError();
+                    setView({ kind: 'selection' });
+                } else if (kind === 'current-page') {
+                    if (state.currentPageId) {
+                        hideError();
+                        setView({ kind: 'page', pageId: state.currentPageId });
+                        send('select-page', { pageId: state.currentPageId, force: false });
                     }
-                }, '*');
-                console.log('Requested save of ignored names:', ignoredLayerNames);
+                } else if (kind === 'document') {
+                    hideError();
+                    setView({ kind: 'document' });
+                }
+            });
+
+            // ---------------- view state machine ----------------
+            function setView(view) {
+                state.view = view;
+                if (view.kind === 'selection' && !state.selectionReport && !state.scanning) {
+                    send('scan-selection');
+                }
+                renderSidebar();
+                renderMain();
             }
 
-            // Update collection selector with rank arrows and preferred badge
-            function updateCollectionSelector(collectionsData, currentSelectedIds) {
-                if (!elements.collectionSelector) return;
+            function renderMain() {
+                if (state.view.kind === 'selection') return renderSelectionView();
+                if (state.view.kind === 'page') return renderPageView(state.view.pageId);
+                if (state.view.kind === 'document') return renderDocumentView();
+            }
 
-                collections = collectionsData || collections;
-                if (currentSelectedIds) selectedCollectionIds = currentSelectedIds;
+            // ---------------- shared layer-list rendering ----------------
+            function createLayerItemHtml(layer) {
+                var issueClass = 'issue-missing';
+                var issueBadge = 'Missing Variable';
+                var suggestionButton = '';
 
-                // If nothing selected yet but we have collections, default to all (ordered)
+                if (layer.issueType === 'has_variable') {
+                    issueClass = 'issue-fixed';
+                    issueBadge = 'Has Variable';
+                } else if (layer.issueType === 'no_matching_variable') {
+                    issueClass = 'issue-no-match';
+                    issueBadge = 'No Match';
+                } else if (layer.issueType === 'missing_variable' && layer.suggestion.type === 'apply_variable') {
+                    if (layer.type === 'INSTANCE') {
+                        suggestionButton = '<div>' +
+                            '<span style="font-size: 10px; color: #7c3aed; font-style: italic; display: block; margin-bottom: 4px;">Tip: Fix in component instead</span>' +
+                            '<button class="suggestion-button" data-apply-layer="' + layer.id + '" data-apply-variable="' + layer.suggestion.variable.id + '" data-apply-property="' + (layer.suggestion.property || layer.spacingProperty) + '">Apply</button>' +
+                            '</div>';
+                    } else {
+                        suggestionButton = '<button class="suggestion-button" data-apply-layer="' + layer.id + '" data-apply-variable="' + layer.suggestion.variable.id + '" data-apply-property="' + (layer.suggestion.property || layer.spacingProperty) + '">Apply</button>';
+                    }
+                }
+
+                var isComponent = layer.type === 'COMPONENT' || layer.type === 'INSTANCE';
+                var componentClass = isComponent ? ' is-component' : '';
+                var componentIndicator = '';
+                if (layer.type === 'COMPONENT') {
+                    componentIndicator = '<span class="component-indicator">&#10070;</span>';
+                } else if (layer.type === 'INSTANCE') {
+                    componentIndicator = '<span class="component-indicator">&#9671;</span>';
+                }
+
+                return '<div class="layer-item' + componentClass + '" data-layer-id="' + layer.id + '">' +
+                       '<div class="layer-name">' +
+                       '<span>' + componentIndicator + escapeHtml(layer.name) + '</span>' +
+                       '<span class="layer-radius">' + layer.spacingValue + 'px</span>' +
+                       '</div>' +
+                       '<div class="layer-details">' + layer.type + '</div>' +
+                       '<div class="layer-suggestion">' +
+                       '<span class="suggestion-text">' + escapeHtml(layer.suggestion.message) + '</span>' +
+                       '<div style="display: flex; gap: 4px; align-items: center;">' +
+                       suggestionButton +
+                       '<span class="issue-badge ' + issueClass + '">' + issueBadge + '</span>' +
+                       '</div>' +
+                       '</div>' +
+                       '</div>';
+            }
+
+            function sortLayersByPriority(a, b) {
+                var priorityA = a.type === 'COMPONENT' ? 0 : (a.type === 'INSTANCE' ? 1 : 2);
+                var priorityB = b.type === 'COMPONENT' ? 0 : (b.type === 'INSTANCE' ? 1 : 2);
+                if (priorityA !== priorityB) return priorityA - priorityB;
+                return a.name.localeCompare(b.name);
+            }
+
+            function buildLayersSectionsHtml(layers) {
+                var problemLayers = [];
+                var fixedLayers = [];
+                for (var i = 0; i < layers.length; i++) {
+                    if (layers[i].issueType === 'has_variable') fixedLayers.push(layers[i]);
+                    else problemLayers.push(layers[i]);
+                }
+                problemLayers.sort(sortLayersByPriority);
+                fixedLayers.sort(sortLayersByPriority);
+
+                var html = '';
+
+                if (layers.length === 0) {
+                    html += '<div class="empty"><div class="empty-icon">&#10003;</div>' +
+                            '<div class="empty-title">No spacing properties found</div>' +
+                            '<div class="empty-body">Nothing with a gap or padding was found here.</div></div>';
+                    return html;
+                }
+
+                html += '<div class="accordion">' +
+                        '<div class="accordion-header" onclick="toggleAccordion(\'layers\')">' +
+                        '<span class="accordion-toggle open" id="layersToggle">&#9654;</span>' +
+                        '<span class="accordion-title"><span>Layers with Problems</span>' +
+                        (problemLayers.length > 0 ? '<span class="problem-count">' + problemLayers.length + '</span>' : '') +
+                        '</span></div>' +
+                        '<div class="accordion-content open" id="layersContent"><div class="layers-list">';
+
+                if (problemLayers.length === 0) {
+                    html += '<div style="padding: 16px; text-align: center; color: var(--figma-color-text-secondary, #666);">No problems found</div>';
+                } else {
+                    var hasInstances = problemLayers.some(function(l) { return l.type === 'INSTANCE' && l.issueType === 'missing_variable'; });
+                    if (hasInstances) {
+                        html += '<div class="component-recommendation">' +
+                                '<span class="component-recommendation-icon">&#10070;</span>' +
+                                '<div><strong>Tip:</strong> Fix spacing variables in components (&#10070;) rather than instances (&#9671;). Changes to components automatically apply to all their instances.</div>' +
+                                '</div>';
+                    }
+                    var fixableLayers = problemLayers.filter(function(l) { return l.issueType === 'missing_variable' && l.suggestion && l.suggestion.type === 'apply_variable'; });
+                    if (fixableLayers.length > 0) {
+                        html += '<div class="autofix-section">' +
+                                '<button class="autofix-button" id="autofixBtn">' +
+                                '<span class="autofix-icon">&#9889;</span> Fix All (' + fixableLayers.length + ')' +
+                                '</button>' +
+                                '<div class="autofix-description">Apply all suggested spacing variables automatically</div>' +
+                                '</div>';
+                    }
+                    for (var j = 0; j < problemLayers.length; j++) html += createLayerItemHtml(problemLayers[j]);
+                }
+                html += '</div></div></div>';
+
+                html += '<div class="accordion">' +
+                        '<div class="accordion-header" onclick="toggleAccordion(\'fixed\')">' +
+                        '<span class="accordion-toggle" id="fixedToggle">&#9654;</span>' +
+                        '<span class="accordion-title"><span>Layers Already Fixed</span>' +
+                        (fixedLayers.length > 0 ? '<span class="success-count">' + fixedLayers.length + '</span>' : '') +
+                        '</span></div>' +
+                        '<div class="accordion-content" id="fixedContent"><div class="layers-list">';
+                if (fixedLayers.length === 0) {
+                    html += '<div style="padding: 16px; text-align: center; color: var(--figma-color-text-secondary, #666);">Nothing fixed yet</div>';
+                } else {
+                    for (var k = 0; k < fixedLayers.length; k++) html += createLayerItemHtml(fixedLayers[k]);
+                }
+                html += '</div></div></div>';
+
+                return html;
+            }
+
+            function selectedLayerPanelHtml() {
+                var layer = state.selectedLayer;
+                if (!layer) return '';
+                var suggestionHtml;
+                if (layer.suggestion.type === 'apply_variable') {
+                    suggestionHtml = '<div style="margin-bottom: 8px;">' + escapeHtml(layer.suggestion.message) + '</div>' +
+                        '<button class="btn primary small" data-apply-layer="' + layer.id + '" data-apply-variable="' + layer.suggestion.variable.id + '" data-apply-property="' + (layer.suggestion.property || layer.spacingProperty) + '">Apply Variable</button>';
+                } else {
+                    suggestionHtml = '<div style="color: var(--figma-color-text-secondary, #666); font-size: 11px;">' + escapeHtml(layer.suggestion.message) + '</div>';
+                }
+                return '<div class="selected-layer-info">' +
+                    '<div class="selected-layer-name">Selected: ' + escapeHtml(layer.name) + '</div>' +
+                    '<div style="font-size: 11px; color: var(--figma-color-text-secondary, #666); margin-bottom: 8px;">' + layer.type + ' &middot; ' + layer.spacingValue + 'px ' + layer.spacingProperty + '</div>' +
+                    suggestionHtml +
+                    '</div>';
+            }
+
+            function statusLineHtml() {
+                if (!state.statusMessage) return '';
+                return '<div class="status-line">' + escapeHtml(state.statusMessage) + '</div>';
+            }
+
+            // ---------------- view: selection ----------------
+            function renderSelectionView() {
+                var html = '<div class="view-header"><h2 class="view-title">Selection</h2>' +
+                    '<button class="btn small" id="rescanSelectionBtn">Rescan</button></div>' +
+                    statusLineHtml();
+
+                if (!state.selectionReport) {
+                    html += '<div class="empty"><div class="empty-icon">&#9634;</div>' +
+                        '<div class="empty-title">Nothing scanned yet</div>' +
+                        '<div class="empty-body">Select one or more layers on the canvas, then click Rescan.</div>' +
+                        '<button class="btn primary" id="scanSelectionEmptyBtn">Scan Selected Layers</button></div>';
+                } else {
+                    html += '<div class="view-meta">' + state.selectionReport.totalLayers + ' spacing propert' + (state.selectionReport.totalLayers === 1 ? 'y' : 'ies') + ' found</div>';
+                    html += buildLayersSectionsHtml(state.selectionReport.layers);
+                    html += selectedLayerPanelHtml();
+                }
+
+                elements.mainPane.innerHTML = html;
+                bindMainPaneEvents();
+
+                var rescanBtn = document.getElementById('rescanSelectionBtn');
+                if (rescanBtn) rescanBtn.addEventListener('click', function() { hideError(); send('scan-selection'); });
+                var emptyBtn = document.getElementById('scanSelectionEmptyBtn');
+                if (emptyBtn) emptyBtn.addEventListener('click', function() { hideError(); send('scan-selection'); });
+            }
+
+            // ---------------- view: single page ----------------
+            function renderPageView(pageId) {
+                var pageInfo = state.pageById[pageId];
+                var report = state.pageReports[pageId];
+                var name = report ? report.pageName : (pageInfo ? pageInfo.name : 'Page');
+
+                var html = '<div class="view-header"><h2 class="view-title">' + escapeHtml(name) + '</h2>' +
+                    '<button class="btn small" id="rescanPageBtn">Rescan</button></div>' +
+                    statusLineHtml();
+
+                if (pageInfo && pageInfo.dirty && report) {
+                    html += '<div class="stale-banner"><span>&#9888;</span><span>This page changed since the last scan &mdash; results may be out of date.</span></div>';
+                }
+
+                if (!report) {
+                    if (state.scanning && state.scanScope === 'page' && state.scanPageId === pageId) {
+                        html += '<div class="empty"><div class="empty-icon">&#8987;</div><div class="empty-title">Scanning&hellip;</div></div>';
+                    } else {
+                        html += '<div class="empty"><div class="empty-icon">&#9776;</div><div class="empty-title">Not scanned yet</div>' +
+                            '<div class="empty-body">Click Rescan to check this page for spacing issues.</div></div>';
+                    }
+                } else {
+                    html += '<div class="view-meta">' + report.totalLayers + ' spacing propert' + (report.totalLayers === 1 ? 'y' : 'ies') + ' found &middot; ' + (report.cached ? 'from cache &middot; ' : '') + formatScannedAt(report.scannedAt) + '</div>';
+                    html += buildLayersSectionsHtml(report.layers);
+                    html += selectedLayerPanelHtml();
+                }
+
+                elements.mainPane.innerHTML = html;
+                bindMainPaneEvents();
+
+                var rescanBtn = document.getElementById('rescanPageBtn');
+                if (rescanBtn) rescanBtn.addEventListener('click', function() {
+                    hideError();
+                    send('scan-page', { pageId: pageId, force: true });
+                });
+            }
+
+            // ---------------- view: whole file ----------------
+            function renderDocumentView() {
+                var scannedPages = state.pages.filter(function(p) { return p.scannedAt != null; });
+                var busy = state.scanning || state.fixingFile;
+                var html = '<div class="view-header"><h2 class="view-title">Whole File</h2>' +
+                    '<button class="btn primary small" id="scanAllBtn"' + (busy ? ' disabled' : '') + '>' +
+                    (scannedPages.length > 0 ? 'Rescan All' : 'Scan File') + '</button></div>' +
+                    statusLineHtml();
+
+                if (scannedPages.length === 0 && !(state.scanning && state.scanScope === 'all')) {
+                    html += '<div class="empty"><div class="empty-icon">&#9776;</div>' +
+                        '<div class="empty-title">No pages scanned yet</div>' +
+                        '<div class="empty-body">Scan the whole file to see which pages need the most fixes.</div></div>';
+                    elements.mainPane.innerHTML = html;
+                    bindMainPaneEvents();
+                } else {
+                    var pages = state.pages.slice();
+                    pages.sort(function(a, b) {
+                        var pa = a.scannedAt == null ? -1 : (a.fixable + a.noMatch);
+                        var pb = b.scannedAt == null ? -1 : (b.fixable + b.noMatch);
+                        if (pb !== pa) return pb - pa;
+                        return a.name.localeCompare(b.name);
+                    });
+
+                    html += '<div class="view-meta">' + scannedPages.length + ' / ' + state.pages.length + ' pages scanned' +
+                        (state.scanAllSkipped > 0 ? ' &middot; ' + state.scanAllSkipped + ' skipped as unchanged (cached)' : '') + '</div>';
+
+                    var totalFixableAcrossFile = scannedPages.reduce(function(sum, p) { return sum + (p.fixable || 0); }, 0);
+                    var pagesWithFixable = scannedPages.filter(function(p) { return (p.fixable || 0) > 0; }).length;
+                    if (totalFixableAcrossFile > 0) {
+                        var breakdown = computePassBreakdown(scannedPages);
+                        html += '<div class="autofix-section">' +
+                            '<button class="autofix-button" id="autofixFileBtn"' + (busy ? ' disabled' : '') + '>' +
+                            '<span class="autofix-icon">&#9889;</span> Fix All Pages (' + totalFixableAcrossFile + ')' +
+                            '</button>' +
+                            '<div class="autofix-description">Applies spacing variables across ' + pagesWithFixable + ' scanned page' + (pagesWithFixable === 1 ? '' : 's') + ' in 3 passes, rescanning after each:</div>' +
+                            passBreakdownHtml(breakdown, state.autofixPhase) +
+                            '</div>';
+                    }
+
+                    html += '<div class="layers-list">';
+                    for (var i = 0; i < pages.length; i++) {
+                        var p = pages[i];
+                        var subtitle = p.scannedAt == null
+                            ? 'Not scanned yet'
+                            : ('To fix: <strong>' + p.fixable + '</strong> &middot; No match: ' + p.noMatch + ' &middot; Already: ' + p.alreadyFixed + (p.dirty ? ' &middot; <span style="color:#f5a623;">changed since scan</span>' : ''));
+                        html += '<div class="layer-item" data-open-page="' + p.id + '">' +
+                            '<div class="layer-name"><span>' + escapeHtml(p.name) + '</span>' + pageBadgeHtml(p) + '</div>' +
+                            '<div class="layer-details">' + subtitle + '</div>' +
+                            '</div>';
+                    }
+                    html += '</div>';
+
+                    elements.mainPane.innerHTML = html;
+                    bindMainPaneEvents();
+
+                    var openHandlers = elements.mainPane.querySelectorAll('[data-open-page]');
+                    for (var h = 0; h < openHandlers.length; h++) {
+                        (function(el) {
+                            el.addEventListener('click', function() {
+                                var pageId = el.getAttribute('data-open-page');
+                                setView({ kind: 'page', pageId: pageId });
+                                send('select-page', { pageId: pageId, force: false });
+                            });
+                        })(openHandlers[h]);
+                    }
+                }
+
+                var scanAllBtn = document.getElementById('scanAllBtn');
+                if (scanAllBtn) scanAllBtn.addEventListener('click', function() {
+                    hideError();
+                    send('scan-all', { force: false });
+                });
+
+                var autofixFileBtn = document.getElementById('autofixFileBtn');
+                if (autofixFileBtn) autofixFileBtn.addEventListener('click', function() {
+                    var scanned = state.pages.filter(function(p) { return p.scannedAt != null; });
+                    var totalFixable = scanned.reduce(function(sum, p) { return sum + (p.fixable || 0); }, 0);
+                    var pagesWithFixable = scanned.filter(function(p) { return (p.fixable || 0) > 0; }).length;
+                    showConfirm(
+                        '⚠ This is a big action',
+                        'This will directly modify up to ' + totalFixable + ' layer' + (totalFixable === 1 ? '' : 's') + ' across ' + pagesWithFixable + ' page' + (pagesWithFixable === 1 ? '' : 's') + ' in this file, in 3 passes: components (and component-set variants) first, then layers local to each component’s own page, then "Pro Blocks" pages last. Pages are rescanned after each pass, so later passes work from current data. A version history snapshot is saved first as a restore point, on top of Figma’s regular undo history.',
+                        function() {
+                            hideError();
+                            state.fixingFile = true;
+                            renderMain();
+                            send('autofix-file');
+                        }
+                    );
+                });
+            }
+
+            // ---------------- shared main-pane event binding ----------------
+            function bindMainPaneEvents() {
+                var applyBtns = elements.mainPane.querySelectorAll('[data-apply-layer]');
+                for (var i = 0; i < applyBtns.length; i++) {
+                    (function(btn) {
+                        btn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            send('apply-variable', {
+                                layerId: btn.getAttribute('data-apply-layer'),
+                                variableId: btn.getAttribute('data-apply-variable'),
+                                propertyName: btn.getAttribute('data-apply-property')
+                            });
+                        });
+                    })(applyBtns[i]);
+                }
+
+                var layerItems = elements.mainPane.querySelectorAll('.layer-item[data-layer-id]');
+                for (var j = 0; j < layerItems.length; j++) {
+                    (function(item) {
+                        item.addEventListener('click', function() {
+                            var prevSelected = elements.mainPane.querySelector('.layer-item.selected');
+                            if (prevSelected) prevSelected.classList.remove('selected');
+                            item.classList.add('selected');
+                            send('navigate-to-layer', { layerId: item.getAttribute('data-layer-id') });
+                        });
+                    })(layerItems[j]);
+                }
+
+                var autofixBtn = document.getElementById('autofixBtn');
+                if (autofixBtn) {
+                    autofixBtn.addEventListener('click', function() {
+                        autofixBtn.disabled = true;
+                        autofixBtn.innerHTML = '<span class="autofix-icon">&#8987;</span> Applying&hellip;';
+                        send('autofix-all');
+                    });
+                }
+            }
+
+            // ---------------- collections / variables (settings drawer) ----------------
+            function updateCollectionSelector() {
+                var collections = state.collections;
+                var selectedCollectionIds = state.selectedCollectionIds;
+
                 if (selectedCollectionIds.length === 0 && collections.length > 0) {
-                    selectedCollectionIds = collections.map(function(c) { return c.id; });
-                    parent.postMessage({
-                        pluginMessage: { type: 'select-collections', collectionIds: selectedCollectionIds }
-                    }, '*');
+                    state.selectedCollectionIds = collections.map(function(c) { return c.id; });
+                    send('select-collections', { collectionIds: state.selectedCollectionIds });
+                    return;
                 }
 
                 if (collections.length === 0) {
                     elements.collectionSelector.innerHTML = '<div style="color: #999; font-style: italic;">No collections with spacing variables found</div>';
+                    updateVariablesListDisplay();
                     return;
                 }
 
-                // Build display order: selected first (in preferred order), then unselected
                 var byId = {};
                 for (var x = 0; x < collections.length; x++) byId[collections[x].id] = collections[x];
 
@@ -1146,16 +1243,13 @@
                     if (c) ordered.push(c);
                 }
                 for (var u = 0; u < collections.length; u++) {
-                    if (selectedCollectionIds.indexOf(collections[u].id) === -1) {
-                        ordered.push(collections[u]);
-                    }
+                    if (selectedCollectionIds.indexOf(collections[u].id) === -1) ordered.push(collections[u]);
                 }
 
                 var selectedCount = selectedCollectionIds.length;
                 var html = '';
-
                 if (selectedCount > 1) {
-                    html += '<div style="font-size:10px;color:#666;margin-bottom:8px;">Use the arrows to set which collection is preferred when multiple have a matching value.</div>';
+                    html += '<div style="font-size:10px;color:var(--figma-color-text-secondary,#666);margin-bottom:8px;">Use the arrows to set which collection is preferred when multiple have a matching value.</div>';
                 }
 
                 for (var i = 0; i < ordered.length; i++) {
@@ -1168,68 +1262,75 @@
 
                     var rankHtml = '';
                     if (isSelected && selectedCount > 1) {
-                        rankHtml = '<div class="collection-rank" onclick="event.stopPropagation()">' +
-                            '<button class="rank-btn" ' + (canMoveUp ? '' : 'disabled') + ' onclick="event.stopPropagation(); window.moveCollection(\'' + collection.id + '\', -1)" title="Move up">▲</button>' +
-                            '<button class="rank-btn" ' + (canMoveDown ? '' : 'disabled') + ' onclick="event.stopPropagation(); window.moveCollection(\'' + collection.id + '\', 1)" title="Move down">▼</button>' +
+                        rankHtml = '<div class="collection-rank" data-rank-for="' + collection.id + '">' +
+                            '<button class="rank-btn" data-move="-1" ' + (canMoveUp ? '' : 'disabled') + ' title="Move up">&#9650;</button>' +
+                            '<button class="rank-btn" data-move="1" ' + (canMoveDown ? '' : 'disabled') + ' title="Move down">&#9660;</button>' +
                             '</div>';
                     }
 
-                    html += '<div class="collection-option' + (isSelected ? ' selected' : '') + '" data-collection-id="' + collection.id + '" onclick="window.toggleCollection(\'' + collection.id + '\')">' +
+                    html += '<div class="collection-option' + (isSelected ? ' selected' : '') + '" data-collection-id="' + collection.id + '">' +
                            rankHtml +
                            '<input type="checkbox" ' + (isSelected ? 'checked' : '') + '>' +
-                           '<span class="collection-option-label">' + collection.name + '</span>' +
+                           '<span class="collection-option-label">' + escapeHtml(collection.name) + '</span>' +
                            (isPreferred ? '<span class="preferred-badge">Preferred</span>' : '') +
                            '<span class="collection-option-count">' + (collection.variableCount || 0) + ' variables</span>' +
                            '</div>';
                 }
 
                 elements.collectionSelector.innerHTML = html;
+
+                var options = elements.collectionSelector.querySelectorAll('.collection-option');
+                for (var oi = 0; oi < options.length; oi++) {
+                    (function(el) {
+                        el.addEventListener('click', function() {
+                            toggleCollection(el.getAttribute('data-collection-id'));
+                        });
+                    })(options[oi]);
+                }
+                var rankBtns = elements.collectionSelector.querySelectorAll('.rank-btn');
+                for (var ri = 0; ri < rankBtns.length; ri++) {
+                    (function(btn) {
+                        btn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var group = btn.closest('[data-rank-for]');
+                            moveCollection(group.getAttribute('data-rank-for'), parseInt(btn.getAttribute('data-move'), 10));
+                        });
+                    })(rankBtns[ri]);
+                }
+
                 updateVariablesListDisplay();
             }
 
-            // Move a collection up (-1) or down (+1) in preference order
             function moveCollection(collectionId, delta) {
-                var idx = selectedCollectionIds.indexOf(collectionId);
+                var ids = state.selectedCollectionIds;
+                var idx = ids.indexOf(collectionId);
                 if (idx === -1) return;
                 var target = idx + delta;
-                if (target < 0 || target >= selectedCollectionIds.length) return;
-
-                var tmp = selectedCollectionIds[target];
-                selectedCollectionIds[target] = selectedCollectionIds[idx];
-                selectedCollectionIds[idx] = tmp;
-
-                parent.postMessage({
-                    pluginMessage: { type: 'select-collections', collectionIds: selectedCollectionIds }
-                }, '*');
-
-                updateCollectionSelector(collections, selectedCollectionIds);
+                if (target < 0 || target >= ids.length) return;
+                var tmp = ids[target];
+                ids[target] = ids[idx];
+                ids[idx] = tmp;
+                send('select-collections', { collectionIds: ids });
+                updateCollectionSelector();
             }
-            window.moveCollection = moveCollection;
 
-            // Toggle a collection selection (can't deselect last one)
             function toggleCollection(collectionId) {
-                var index = selectedCollectionIds.indexOf(collectionId);
+                var ids = state.selectedCollectionIds;
+                var index = ids.indexOf(collectionId);
                 if (index !== -1) {
-                    if (selectedCollectionIds.length === 1) return;
-                    selectedCollectionIds.splice(index, 1);
+                    if (ids.length === 1) return;
+                    ids.splice(index, 1);
                 } else {
-                    selectedCollectionIds.push(collectionId);
+                    ids.push(collectionId);
                 }
-
-                parent.postMessage({
-                    pluginMessage: { type: 'select-collections', collectionIds: selectedCollectionIds }
-                }, '*');
-
-                updateCollectionSelector(collections, selectedCollectionIds);
+                send('select-collections', { collectionIds: ids });
+                updateCollectionSelector();
             }
 
-            // Update variables list display based on selected collections
             function updateVariablesListDisplay() {
-                if (!elements.variablesList) return;
-
-                var filteredVars = variables.filter(function(v) {
-                    if (selectedCollectionIds.length === 0) return true;
-                    return selectedCollectionIds.indexOf(v.collectionId) !== -1;
+                var filteredVars = state.variables.filter(function(v) {
+                    if (state.selectedCollectionIds.length === 0) return true;
+                    return state.selectedCollectionIds.indexOf(v.collectionId) !== -1;
                 });
 
                 if (filteredVars.length === 0) {
@@ -1237,641 +1338,314 @@
                     return;
                 }
 
-                // Group variables by collection
                 var varsByCollection = {};
                 for (var i = 0; i < filteredVars.length; i++) {
                     var v = filteredVars[i];
                     var collName = v.collectionName || 'Unknown';
-                    if (!varsByCollection[collName]) {
-                        varsByCollection[collName] = [];
-                    }
+                    if (!varsByCollection[collName]) varsByCollection[collName] = [];
                     varsByCollection[collName].push(v);
                 }
 
-                // Build HTML grouped by collection
                 var html = '';
                 var collectionNames = Object.keys(varsByCollection).sort();
-
                 for (var j = 0; j < collectionNames.length; j++) {
-                    var collName = collectionNames[j];
-                    var collVars = varsByCollection[collName];
-
+                    var collName2 = collectionNames[j];
+                    var collVars = varsByCollection[collName2];
                     html += '<div class="variable-collection-group">';
-                    html += '<div class="variable-collection-header">' + collName + '</div>';
+                    html += '<div class="variable-collection-header">' + escapeHtml(collName2) + '</div>';
                     html += '<div class="variable-collection-vars">';
-
                     for (var k = 0; k < collVars.length; k++) {
                         var variable = collVars[k];
                         var displayText = variable.name + ' = ' + variable.value + 'px';
-                        html += '<div class="variable-tag" title="' + displayText + '">' + displayText + '</div>';
+                        html += '<div class="variable-tag" title="' + escapeHtml(displayText) + '">' + escapeHtml(displayText) + '</div>';
                     }
-
-                    html += '</div>';
-                    html += '</div>';
+                    html += '</div></div>';
                 }
-
                 elements.variablesList.innerHTML = html;
             }
 
-            window.toggleCollection = toggleCollection;
-
-            // Show error banner
-            function showError(message) {
-                if (elements.errorMessage && elements.errorBanner) {
-                    elements.errorMessage.textContent = message;
-                    elements.errorBanner.classList.remove('hidden');
-                }
-            }
-
-            // Hide error banner
-            function hideError() {
-                if (elements.errorBanner) {
-                    elements.errorBanner.classList.add('hidden');
-                }
-            }
-
-            // Ignore list management
+            // ---------------- ignore list ----------------
             function addIgnoreItem() {
                 var name = elements.ignoreInput.value.trim();
-                if (name && ignoredLayerNames.indexOf(name) === -1) {
-                    ignoredLayerNames.push(name);
+                if (name && state.ignoredLayerNames.indexOf(name) === -1) {
+                    state.ignoredLayerNames.push(name);
                     elements.ignoreInput.value = '';
                     updateIgnoreList();
-                    saveIgnoredNames();
+                    send('save-ignored-names', { ignoredNames: state.ignoredLayerNames });
                 }
             }
-
             function removeIgnoreItem(name) {
-                var index = ignoredLayerNames.indexOf(name);
+                var index = state.ignoredLayerNames.indexOf(name);
                 if (index !== -1) {
-                    ignoredLayerNames.splice(index, 1);
+                    state.ignoredLayerNames.splice(index, 1);
                     updateIgnoreList();
-                    saveIgnoredNames();
+                    send('save-ignored-names', { ignoredNames: state.ignoredLayerNames });
                 }
             }
-
             function updateIgnoreList() {
-                if (!elements.ignoreList) return;
-
-                if (ignoredLayerNames.length === 0) {
+                if (state.ignoredLayerNames.length === 0) {
                     elements.ignoreList.innerHTML = '<div style="color: #999; font-size: 10px; font-style: italic;">No ignored layer names</div>';
                     return;
                 }
-
                 var html = '';
-                for (var i = 0; i < ignoredLayerNames.length; i++) {
-                    var name = ignoredLayerNames[i];
-                    html += '<div class="ignore-tag">' +
-                           '<span>' + name + '</span>' +
-                           '<span class="ignore-remove" onclick="window.removeIgnoreItem(\'' + name + '\')">&times;</span>' +
-                           '</div>';
+                for (var i = 0; i < state.ignoredLayerNames.length; i++) {
+                    var name = state.ignoredLayerNames[i];
+                    html += '<div class="ignore-tag"><span>' + escapeHtml(name) + '</span>' +
+                            '<span class="ignore-remove" data-remove-name="' + escapeHtml(name) + '">&times;</span></div>';
                 }
                 elements.ignoreList.innerHTML = html;
-            }
-
-            // Make removeIgnoreItem available globally
-            window.removeIgnoreItem = removeIgnoreItem;
-
-            // Toggle accordion sections
-            function toggleAccordion(section) {
-                var content = document.getElementById(section + 'Content');
-                var toggle = document.getElementById(section + 'Toggle');
-                
-                if (content && toggle) {
-                    if (content.classList.contains('open')) {
-                        content.classList.remove('open');
-                        toggle.classList.remove('open');
-                    } else {
-                        content.classList.add('open');
-                        toggle.classList.add('open');
-                    }
+                var removeEls = elements.ignoreList.querySelectorAll('[data-remove-name]');
+                for (var r = 0; r < removeEls.length; r++) {
+                    (function(el) {
+                        el.addEventListener('click', function() { removeIgnoreItem(el.getAttribute('data-remove-name')); });
+                    })(removeEls[r]);
                 }
             }
+            elements.addIgnoreBtn.addEventListener('click', addIgnoreItem);
+            elements.ignoreInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') addIgnoreItem(); });
 
-            // Make toggleAccordion available globally
-            window.toggleAccordion = toggleAccordion;
-
-            // Tab switching function
-            function switchTab(tabName) {
-                // Remove active class from all tabs
-                var tabs = document.querySelectorAll('.tab');
-                for (var i = 0; i < tabs.length; i++) {
-                    tabs[i].classList.remove('active');
-                }
-                
-                // Remove active class from all tab contents
-                var contents = document.querySelectorAll('.tab-content');
-                for (var j = 0; j < contents.length; j++) {
-                    contents[j].classList.remove('active');
-                }
-                
-                // Add active class to clicked tab and its content
-                event.target.classList.add('active');
-                document.getElementById(tabName + 'Tab').classList.add('active');
-            }
-
-            // Make switchTab available globally
-            window.switchTab = switchTab;
-
-            // Update variables list
-            function updateVariablesList(variableData) {
-                variables = variableData.variables || [];
-
-                if (variableData.error) {
-                    if (elements.variablesList) {
-                        elements.variablesList.innerHTML = '<div style="color: #ff0000;">Error: ' + variableData.error + '</div>';
-                    }
-                    return;
-                }
-
-                updateVariablesListDisplay();
-            }
-
-            // Update layers list with separation
-            function updateLayersList(layersData) {
-                layers = layersData;
-
-                // Sort function to prioritize components over instances
-                function sortLayersByPriority(a, b) {
-                    // Components first, then instances, then other types
-                    var priorityA = a.type === 'COMPONENT' ? 0 : (a.type === 'INSTANCE' ? 1 : 2);
-                    var priorityB = b.type === 'COMPONENT' ? 0 : (b.type === 'INSTANCE' ? 1 : 2);
-
-                    if (priorityA !== priorityB) {
-                        return priorityA - priorityB;
-                    }
-
-                    // If same priority, sort by name
-                    return a.name.localeCompare(b.name);
-                }
-
-                // Separate layers by problem type
-                problemLayers = [];
-                fixedLayers = [];
-
-                for (var i = 0; i < layers.length; i++) {
-                    var layer = layers[i];
-
-                    if (layer.issueType === 'has_variable') {
-                        fixedLayers.push(layer);
-                    } else {
-                        problemLayers.push(layer);
-                    }
-                }
-
-                // Sort both groups by priority
-                problemLayers.sort(sortLayersByPriority);
-                fixedLayers.sort(sortLayersByPriority);
-                
-                // Update problem layers accordion
-                if (problemLayers.length > 0 && elements.layersAccordion && elements.problemsCount) {
-                    elements.problemsCount.textContent = problemLayers.length;
-                    elements.problemsCount.classList.remove('hidden');
-                    elements.layersHeader.classList.add('has-problems');
-                    elements.layersAccordion.classList.remove('hidden');
-                    
-                    var problemHtml = '';
-                    
-                    // Check if we have instances with problems
-                    var hasInstances = problemLayers.some(function(layer) { 
-                        return layer.type === 'INSTANCE' && layer.issueType === 'missing_variable'; 
-                    });
-                    
-                    // Add recommendation banner if instances need fixing
-                    if (hasInstances) {
-                        problemHtml += '<div class="component-recommendation">' +
-                                     '<span class="component-recommendation-icon">❖</span>' +
-                                     '<div><strong>Tip:</strong> Fix spacing variables in components (❖) rather than instances (◇). ' +
-                                     'Changes to components automatically apply to all their instances.</div>' +
-                                     '</div>';
-                    }
-                    
-                    // Add autofix button if there are layers that can be fixed
-                    var fixableLayers = problemLayers.filter(function(layer) {
-                        return layer.issueType === 'missing_variable' && layer.suggestion && layer.suggestion.type === 'apply_variable';
-                    });
-                    
-                    if (fixableLayers.length > 0) {
-                        problemHtml += '<div class="autofix-section">' +
-                                     '<button class="button button-primary autofix-button" onclick="window.autofixAll()">' +
-                                     '<span class="autofix-icon">⚡</span> Fix All (' + fixableLayers.length + ')' +
-                                     '</button>' +
-                                     '<div class="autofix-description">Apply all suggested spacing variables automatically</div>' +
-                                     '</div>';
-                    }
-                    
-                    for (var j = 0; j < problemLayers.length; j++) {
-                        problemHtml += createLayerItemHtml(problemLayers[j]);
-                    }
-                    elements.layersList.innerHTML = problemHtml;
-                    addLayerClickHandlers(elements.layersList);
-                } else if (elements.layersAccordion) {
-                    elements.layersAccordion.classList.add('hidden');
-                }
-                
-                // Update fixed layers accordion
-                if (fixedLayers.length > 0 && elements.fixedLayersAccordion && elements.fixedCount) {
-                    elements.fixedCount.textContent = fixedLayers.length;
-                    elements.fixedCount.classList.remove('hidden');
-                    elements.fixedLayersAccordion.classList.remove('hidden');
-                    
-                    var fixedHtml = '';
-                    for (var k = 0; k < fixedLayers.length; k++) {
-                        fixedHtml += createLayerItemHtml(fixedLayers[k]);
-                    }
-                    elements.fixedLayersList.innerHTML = fixedHtml;
-                    addLayerClickHandlers(elements.fixedLayersList);
-                } else if (elements.fixedLayersAccordion) {
-                    elements.fixedLayersAccordion.classList.add('hidden');
-                }
-                
-                // Show message if no layers found
-                if (layers.length === 0 && elements.layersList && elements.layersAccordion) {
-                    elements.layersList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No layers with spacing properties found</div>';
-                    elements.layersAccordion.classList.remove('hidden');
-                    elements.layersHeader.classList.remove('has-problems');
+            // ---------------- pages state helpers ----------------
+            function upsertPage(entryWithId) {
+                var existing = state.pageById[entryWithId.id];
+                if (existing) {
+                    for (var key in entryWithId) { if (key !== 'id') existing[key] = entryWithId[key]; }
+                } else {
+                    state.pageById[entryWithId.id] = entryWithId;
+                    state.pages.push(entryWithId);
                 }
             }
 
-            // Create HTML for a layer item
-            function createLayerItemHtml(layer) {
-                var issueClass = 'issue-missing';
-                var issueBadge = 'Missing Variable';
-                var suggestionButton = '';
-                
-                if (layer.issueType === 'has_variable') {
-                    issueClass = 'issue-fixed';
-                    issueBadge = 'Has Variable';
-                } else if (layer.issueType === 'no_matching_variable') {
-                    issueClass = 'issue-no-match';
-                    issueBadge = 'No Match';
-                } else if (layer.issueType === 'missing_variable' && layer.suggestion.type === 'apply_variable') {
-                    // Create dropdown ID
-                    var dropdownId = 'dropdown-' + layer.id;
-                    
-                    // For instances, show both tip and apply button
-                    if (layer.type === 'INSTANCE') {
-                        suggestionButton = '<div>' +
-                                         '<span style="font-size: 10px; color: #7c3aed; font-style: italic; display: block; margin-bottom: 4px;">Tip: Fix in component instead</span>' +
-                                         '<button class="suggestion-button" onclick="window.applyVariable(\'' + 
-                                         layer.id + '\', \'' + layer.suggestion.variable.id + '\', null, \'' + 
-                                         (layer.suggestion.property || layer.spacingProperty) + '\')">Apply</button>' +
-                                         '</div>';
-                    } else {
-                        // For spacing, apply directly to the detected property
-                        suggestionButton = '<button class="suggestion-button" onclick="window.applyVariable(\'' + 
-                                         layer.id + '\', \'' + layer.suggestion.variable.id + '\', null, \'' + 
-                                         (layer.suggestion.property || layer.spacingProperty) + '\')">Apply</button>';
-                    }
-                }
-                
-                // Check if it's a component/instance and add appropriate styling
-                var isComponent = layer.type === 'COMPONENT' || layer.type === 'INSTANCE';
-                var componentClass = isComponent ? ' is-component' : '';
-                var componentIndicator = '';
-                
-                if (layer.type === 'COMPONENT') {
-                    componentIndicator = '<span class="component-indicator">\u2756</span>'; // ❖ for components
-                } else if (layer.type === 'INSTANCE') {
-                    componentIndicator = '<span class="component-indicator">\u25c7</span>'; // ◇ for instances
-                }
-                
-                return '<div class="layer-item' + componentClass + '" data-layer-id="' + layer.id + '">' +
-                       '<div class="layer-name">' +
-                       '<span>' + componentIndicator + layer.name + '</span>' +
-                       '<span class="layer-radius">' + (layer.spacingValue || layer.radiusValue) + 'px</span>' +
-                       '</div>' +
-                       '<div class="layer-details">' + layer.type + '</div>' +
-                       '<div class="layer-suggestion">' +
-                       '<span class="suggestion-text">' + layer.suggestion.message + '</span>' +
-                       '<div style="display: flex; gap: 4px; align-items: center;">' +
-                       suggestionButton +
-                       '<span class="issue-badge ' + issueClass + '">' + issueBadge + '</span>' +
-                       '</div>' +
-                       '</div>' +
-                       '</div>';
-            }
-
-            // Add click handlers to layer items
-            function addLayerClickHandlers(container) {
-                if (!container) return;
-                var items = container.querySelectorAll('.layer-item');
-                for (var i = 0; i < items.length; i++) {
-                    (function(item) {
-                        item.addEventListener('click', function() {
-                            var layerId = this.getAttribute('data-layer-id');
-                            selectLayer(layerId);
-                        });
-                    })(items[i]);
+            // ---------------- progress bar ----------------
+            function showProgress(label, current, total, indeterminate) {
+                elements.progressBarWrap.classList.add('visible');
+                elements.progressLabel.textContent = label;
+                elements.progressCount.textContent = (total > 0) ? (current + ' / ' + total) : '';
+                if (indeterminate) {
+                    elements.progressFill.classList.add('indeterminate');
+                } else {
+                    elements.progressFill.classList.remove('indeterminate');
+                    var pct = total > 0 ? Math.round((current / total) * 100) : 0;
+                    elements.progressFill.style.width = pct + '%';
                 }
             }
-
-            // Select a layer
-            function selectLayer(layerId) {
-                // Remove previous selection from both lists
-                var prevSelected = document.querySelector('.layer-item.selected');
-                if (prevSelected) {
-                    prevSelected.classList.remove('selected');
-                }
-
-                // Add selection to clicked item
-                var newSelected = document.querySelector('[data-layer-id="' + layerId + '"]');
-                if (newSelected) {
-                    newSelected.classList.add('selected');
-                }
-
-                // Navigate to layer in Figma
-                parent.postMessage({ 
-                    pluginMessage: { 
-                        type: 'navigate-to-layer', 
-                        layerId: layerId 
-                    } 
-                }, '*');
+            function hideProgress() {
+                elements.progressBarWrap.classList.remove('visible');
+                elements.progressFill.classList.remove('indeterminate');
             }
-
-            // Update selected layer info
-            function updateSelectedLayerInfo(layer) {
-                selectedLayer = layer;
-                
-                if (elements.selectedLayerTitle && elements.selectedLayerName && elements.selectedLayerDetails) {
-                    elements.selectedLayerTitle.textContent = 'Selected: ' + layer.name;
-                    elements.selectedLayerName.textContent = layer.name;
-                    elements.selectedLayerDetails.textContent = layer.type + ' • ' + (layer.spacingValue || layer.radiusValue) + 'px ' + (layer.spacingProperty || 'spacing');
-                    
-                    var suggestionHtml = '';
-                    if (layer.suggestion.type === 'apply_variable') {
-                        suggestionHtml = '<div style="margin-bottom: 8px;">' + layer.suggestion.message + '</div>' +
-                                       '<button class="button button-success button-small" onclick="window.applyVariable(\'' + 
-                                       layer.id + '\', \'' + layer.suggestion.variable.id + '\', null, \'' + 
-                                       (layer.suggestion.property || layer.spacingProperty) + '\')">Apply Variable</button>';
-                    } else {
-                        suggestionHtml = '<div style="color: #666; font-size: 11px;">' + layer.suggestion.message + '</div>';
-                    }
-                    
-                    elements.selectedLayerSuggestion.innerHTML = suggestionHtml;
-                    elements.selectedLayerAccordion.classList.remove('hidden');
-                }
-            }
-
-            // Apply variable to layer
-            function applyVariable(layerId, variableId, applyMode, propertyName) {
-                // Hide any open dropdowns
-                var dropdowns = document.querySelectorAll('.apply-options');
-                for (var i = 0; i < dropdowns.length; i++) {
-                    dropdowns[i].style.display = 'none';
-                }
-                
-                parent.postMessage({ 
-                    pluginMessage: { 
-                        type: 'apply-variable', 
-                        layerId: layerId,
-                        variableId: variableId,
-                        applyMode: applyMode,
-                        propertyName: propertyName
-                    } 
-                }, '*');
-            }
-
-            // Toggle apply dropdown
-            function toggleApplyDropdown(dropdownId) {
-                var dropdown = document.getElementById(dropdownId);
-                if (dropdown) {
-                    // Hide all other dropdowns first
-                    var allDropdowns = document.querySelectorAll('.apply-options');
-                    for (var i = 0; i < allDropdowns.length; i++) {
-                        if (allDropdowns[i].id !== dropdownId) {
-                            allDropdowns[i].style.display = 'none';
-                        }
-                    }
-                    
-                    // Toggle this dropdown
-                    if (dropdown.style.display === 'block') {
-                        dropdown.style.display = 'none';
-                    } else {
-                        dropdown.style.display = 'block';
-                        
-                        // Position dropdown relative to button
-                        var rect = dropdown.parentElement.getBoundingClientRect();
-                        dropdown.style.top = '100%';
-                        dropdown.style.right = '0';
-                    }
-                }
-            }
-
-            // Hide dropdowns when clicking elsewhere
-            document.addEventListener('click', function(event) {
-                if (!event.target.closest('.suggestion-button-dropdown')) {
-                    var dropdowns = document.querySelectorAll('.apply-options');
-                    for (var i = 0; i < dropdowns.length; i++) {
-                        dropdowns[i].style.display = 'none';
-                    }
-                }
+            elements.cancelScanBtn.addEventListener('click', function() {
+                elements.cancelScanBtn.disabled = true;
+                send('cancel-scan');
             });
 
-            // Make functions available globally
-            window.toggleApplyDropdown = toggleApplyDropdown;
-
-            // Make applyVariable available globally
-            window.applyVariable = applyVariable;
-            
-            // Autofix all function
-            function autofixAll() {
-                var button = document.querySelector('.autofix-button');
-                if (button) {
-                    button.disabled = true;
-                    button.innerHTML = '<span class="autofix-icon">⏳</span> Applying...';
-                }
-                
-                parent.postMessage({
-                    pluginMessage: {
-                        type: 'autofix_all'
-                    }
-                }, '*');
-            }
-            
-            // Make autofixAll available globally
-            window.autofixAll = autofixAll;
-
-            // Handle messages from plugin
+            // ---------------- plugin -> UI messages ----------------
             window.addEventListener('message', function(event) {
                 var msg = event.data.pluginMessage;
                 if (!msg) return;
 
-                console.log('UI received message:', msg.type);
-
                 switch (msg.type) {
+                    case 'pages-found':
+                        state.pages = msg.pages;
+                        state.pageById = {};
+                        for (var pi = 0; pi < state.pages.length; pi++) state.pageById[state.pages[pi].id] = state.pages[pi];
+                        state.currentPageId = msg.currentPageId;
+                        renderSidebar();
+                        if (state.view.kind === 'document') renderMain();
+                        break;
+
                     case 'collections-found':
-                        updateCollectionSelector(msg.collections, msg.selectedCollectionIds);
+                        state.collections = msg.collections || [];
+                        state.selectedCollectionIds = msg.selectedCollectionIds || [];
+                        updateCollectionSelector();
                         break;
 
                     case 'variables-found':
-                        updateVariablesList(msg);
+                        state.variables = msg.variables || [];
+                        if (msg.error) {
+                            elements.variablesList.innerHTML = '<div style="color: #ff0000;">Error: ' + escapeHtml(msg.error) + '</div>';
+                        } else {
+                            updateVariablesListDisplay();
+                        }
+                        break;
+
+                    case 'ignored-names-loaded':
+                        state.ignoredLayerNames = msg.ignoredNames || [];
+                        updateIgnoreList();
                         break;
 
                     case 'scan-started':
                         hideError();
-                        if (elements.status) {
-                            elements.status.textContent = 'Scanning...';
-                            elements.status.classList.remove('hidden');
-                        }
-                        if (elements.scanBtn) elements.scanBtn.disabled = true;
-                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = true;
-                        break;
-
-                    case 'scan-complete':
-                        if (elements.scanBtn) elements.scanBtn.disabled = false;
-                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
-                        if (elements.status) {
-                            elements.status.textContent = 'Found ' + msg.totalLayers + ' layers with spacing properties';
-                        }
-                        updateLayersList(msg.layers);
-                        break;
-
-                    case 'file-scan-started':
-                        if (elements.scanBtn) elements.scanBtn.disabled = true;
-                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = true;
-                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = true;
-                        if (elements.status) elements.status.classList.add('hidden');
-                        if (elements.fileScanProgress) {
-                            elements.fileScanProgress.classList.remove('hidden');
-                            elements.fileScanProgressBar.style.width = '0%';
-                            elements.fileScanProgressLabel.textContent = 'Loading pages...';
-                            elements.fileScanProgressCount.textContent = '';
+                        state.scanning = true;
+                        state.scanScope = msg.scope;
+                        state.scanPageId = msg.pageId || null;
+                        state.statusMessage = null;
+                        renderSidebar();
+                        if (msg.scope === 'all') showProgress('Starting scan…', 0, 0);
+                        if ((msg.scope === 'selection' && state.view.kind === 'selection') ||
+                            (msg.scope === 'page' && state.view.kind === 'page' && state.view.pageId === msg.pageId)) {
+                            renderMain();
                         }
                         break;
 
-                    case 'file-scan-progress':
-                        if (elements.fileScanProgress) {
-                            var pct = msg.total > 0 ? Math.round((msg.current / msg.total) * 100) : 0;
-                            elements.fileScanProgressBar.style.width = pct + '%';
-                            elements.fileScanProgressLabel.textContent = msg.pageName;
-                            elements.fileScanProgressCount.textContent = msg.current + ' / ' + msg.total;
-                        }
+                    case 'selection-report':
+                        state.scanning = false;
+                        state.selectionReport = { layers: msg.layers, totalLayers: msg.totalLayers };
+                        renderSidebar();
+                        if (state.view.kind === 'selection') renderMain();
                         break;
 
-                    case 'file-scan-complete':
-                        if (elements.scanBtn) elements.scanBtn.disabled = false;
-                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
-                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = false;
-                        if (elements.fileScanProgress) {
-                            elements.fileScanProgressBar.style.width = '100%';
-                            setTimeout(function() {
-                                elements.fileScanProgress.classList.add('hidden');
-                            }, 400);
-                        }
-                        if (elements.status) {
-                            elements.status.textContent = 'File scan complete: ' + msg.pages.length + ' pages';
-                            elements.status.classList.remove('hidden');
-                        }
-                        renderFileScanResults(msg.pages, msg.scannedAt);
+                    case 'page-report':
+                        state.scanning = false;
+                        state.pageReports[msg.pageId] = {
+                            pageName: msg.pageName,
+                            layers: msg.layers,
+                            totalLayers: msg.totalLayers,
+                            cached: msg.cached,
+                            scannedAt: msg.scannedAt
+                        };
+                        renderSidebar();
+                        if (state.view.kind === 'page' && state.view.pageId === msg.pageId) renderMain();
                         break;
 
-                    case 'file-scan-restored':
-                        renderFileScanResults(msg.pages, msg.scannedAt);
+                    case 'page-scanned':
+                        upsertPage(Object.assign({ id: msg.pageId }, msg.entry));
+                        renderSidebar();
+                        if (state.view.kind === 'document') renderMain();
+                        break;
+
+                    case 'page-dirty':
+                        if (state.pageById[msg.pageId]) state.pageById[msg.pageId].dirty = true;
+                        renderSidebar();
+                        if (state.view.kind === 'page' && state.view.pageId === msg.pageId) renderMain();
+                        break;
+
+                    case 'scan-all-started':
+                        state.scanAllSkipped = msg.skipped || 0;
+                        showProgress(msg.skipped > 0 ? 'Scanning… (' + msg.skipped + ' already up to date)' : 'Scanning…', 0, msg.total);
+                        break;
+
+                    case 'scan-all-progress':
+                        showProgress(msg.pageName, msg.current, msg.total);
+                        break;
+
+                    case 'scan-all-complete':
+                        state.scanning = false;
+                        state.scanAllSkipped = msg.skipped || 0;
+                        elements.cancelScanBtn.disabled = false;
+                        for (var ci = 0; ci < msg.pages.length; ci++) upsertPage(msg.pages[ci]);
+                        setTimeout(hideProgress, 300);
+                        renderSidebar();
+                        if (state.view.kind === 'document') renderMain();
+                        break;
+
+                    case 'scan-cancelled':
+                        state.scanning = false;
+                        elements.cancelScanBtn.disabled = false;
+                        hideProgress();
+                        renderSidebar();
+                        renderMain();
                         break;
 
                     case 'page-changed':
-                        if (elements.status) {
-                            elements.status.textContent = 'Switched to page: ' + msg.pageName;
-                            elements.status.classList.remove('hidden');
-                        }
-                        break;
-                    
-                    case 'layer-selected':
-                        updateSelectedLayerInfo(msg.layer);
-                        break;
-                    
-                    case 'variable-applied':
-                        hideError();
-                        if (elements.status) {
-                            elements.status.textContent = 'Applied "' + msg.variableName + '" to "' + msg.layerName + '"';
-                            elements.status.classList.remove('hidden');
-                        }
-                        
-                        // Update the layer in our lists
-                        for (var i = 0; i < layers.length; i++) {
-                            if (layers[i].id === msg.layerId) {
-                                layers[i].hasVariable = true;
-                                layers[i].issueType = 'has_variable';
-                                layers[i].suggestion = {
-                                    type: 'already_fixed',
-                                    message: 'Already using variable'
-                                };
-                                break;
-                            }
-                        }
-                        
-                        // Update problem and fixed arrays
-                        for (var j = 0; j < problemLayers.length; j++) {
-                            if (problemLayers[j].id === msg.layerId) {
-                                problemLayers[j].hasVariable = true;
-                                problemLayers[j].issueType = 'has_variable';
-                                problemLayers[j].suggestion = {
-                                    type: 'already_fixed',
-                                    message: 'Already using variable'
-                                };
-                                break;
-                            }
-                        }
-                        
-                        // Refresh the layers list to move item to fixed section and remove apply button
-                        updateLayersList(layers);
-                        
-                        // Update selected layer info if it's the same layer
-                        if (selectedLayer && selectedLayer.id === msg.layerId) {
-                            selectedLayer.hasVariable = true;
-                            selectedLayer.issueType = 'has_variable';
-                            selectedLayer.suggestion = {
-                                type: 'already_fixed',
-                                message: 'Already using variable'
-                            };
-                            updateSelectedLayerInfo(selectedLayer);
-                        }
-                        break;
-                    
-                    case 'autofix-complete':
-                        var button = document.querySelector('.autofix-button');
-                        if (button) {
-                            button.disabled = false;
-                            button.innerHTML = '<span class="autofix-icon">⚡</span> Fix All (' + 
-                                             (button.innerHTML.match(/\((\d+)\)/) ? button.innerHTML.match(/\((\d+)\)/)[1] : '0') + ')';
-                        }
-                        
-                        hideError();
-                        if (elements.status) {
-                            var statusText = 'Autofix complete: ' + msg.totalFixed + ' fixed';
-                            if (msg.totalFailed > 0) {
-                                statusText += ', ' + msg.totalFailed + ' failed';
-                            }
-                            elements.status.textContent = statusText;
-                            elements.status.classList.remove('hidden');
-                        }
-                        
-                        // Show detailed results if there were failures
-                        if (msg.totalFailed > 0) {
-                            var failureDetails = 'Failed layers:\n' + 
-                                               msg.failedLayers.map(function(fail) {
-                                                   return '• ' + fail.layerName + ': ' + fail.reason;
-                                               }).join('\n');
-                            console.warn('Autofix failures:', failureDetails);
-                        }
-                        break;
-                    
-                    case 'error':
-                        showError(msg.message);
-                        if (elements.scanBtn) elements.scanBtn.disabled = false;
-                        if (elements.scanPageBtn) elements.scanPageBtn.disabled = false;
-                        if (elements.scanFileBtn) elements.scanFileBtn.disabled = false;
+                        state.currentPageId = msg.pageId;
+                        renderSidebar();
                         break;
 
-                    case 'ignored-names-loaded':
-                        ignoredLayerNames = msg.ignoredNames || ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
-                        updateIgnoreList();
+                    case 'layer-selected':
+                        state.selectedLayer = msg.layer;
+                        renderMain();
+                        break;
+
+                    case 'variable-applied':
+                        hideError();
+                        state.statusMessage = 'Applied "' + msg.variableName + '" to "' + msg.layerName + '"';
+                        if (state.selectedLayer && state.selectedLayer.id === msg.layerId) {
+                            state.selectedLayer.hasVariable = true;
+                            state.selectedLayer.issueType = 'has_variable';
+                            state.selectedLayer.suggestion = { type: 'already_fixed', message: 'Already using variable' };
+                        }
+                        updateLayerAcrossReports(msg.layerId);
+                        renderSidebar();
+                        renderMain();
+                        break;
+
+                    case 'autofix-complete':
+                        hideError();
+                        state.statusMessage = 'Autofix complete: ' + msg.totalFixed + ' fixed' + (msg.totalFailed > 0 ? ', ' + msg.totalFailed + ' failed' : '');
+                        renderSidebar();
+                        renderMain();
+                        break;
+
+                    case 'autofix-file-started':
+                        state.fixingFile = true;
+                        state.autofixPhase = null;
+                        state.statusMessage = null;
+                        if (msg.snapshotOk) {
+                            hideError();
+                        } else {
+                            showError('Could not save a version history snapshot (' + msg.snapshotError + '). Proceeding anyway — use manual undo if needed.');
+                        }
+                        showProgress('Preparing…', 0, msg.total);
+                        renderMain();
+                        break;
+
+                    case 'autofix-file-pass-started':
+                        state.autofixPhase = msg.phase;
+                        showProgress(phaseLabel(msg.phase) + '…', 0, msg.total);
+                        renderMain();
+                        break;
+
+                    case 'autofix-file-progress':
+                        state.autofixPhase = msg.phase;
+                        showProgress(phaseLabel(msg.phase) + ' (' + msg.current + ' / ' + msg.total + ')', msg.current, msg.total);
+                        renderMain();
+                        break;
+
+                    case 'autofix-file-rescanning':
+                        showProgress('Rescanning ' + msg.pageCount + ' changed page' + (msg.pageCount === 1 ? '' : 's') + '…', 0, 0, true);
+                        break;
+
+                    case 'autofix-file-complete':
+                        state.fixingFile = false;
+                        state.autofixPhase = null;
+                        hideProgress();
+                        state.statusMessage = 'Fixed ' + msg.totalFixed + ' spacing issue' + (msg.totalFixed === 1 ? '' : 's') + ' across ' + msg.totalPages + ' page' + (msg.totalPages === 1 ? '' : 's') + (msg.totalFailed > 0 ? ', ' + msg.totalFailed + ' failed' : '');
+                        renderSidebar();
+                        renderMain();
+                        break;
+
+                    case 'error':
+                        showError(msg.message);
+                        state.scanning = false;
+                        state.fixingFile = false;
+                        hideProgress();
+                        elements.cancelScanBtn.disabled = false;
+                        renderSidebar();
+                        renderMain();
                         break;
                 }
             });
+
+            function updateLayerAcrossReports(layerId) {
+                function patch(list) {
+                    if (!list) return;
+                    for (var i = 0; i < list.length; i++) {
+                        if (list[i].id === layerId) {
+                            list[i].hasVariable = true;
+                            list[i].issueType = 'has_variable';
+                            list[i].suggestion = { type: 'already_fixed', message: 'Already using variable' };
+                            break;
+                        }
+                    }
+                }
+                if (state.selectionReport) patch(state.selectionReport.layers);
+                for (var pid in state.pageReports) patch(state.pageReports[pid].layers);
+            }
+
+            // ---------------- initial requests ----------------
+            send('load-ignored-names');
+            renderSidebar();
+            renderMain();
         }
     </script>
-    </div>
 </body>
 </html>

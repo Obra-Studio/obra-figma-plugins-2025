@@ -1,18 +1,188 @@
 // code.js
-var layersWithIssues = [];
 var spacingVariables = [];
 var variableCollections = [];
 var selectedCollectionIds = []; // Ordered array: earlier = preferred rank. Empty = no filter (all)
-var currentIndex = -1;
-var isScanning = false;
+var ignoredLayerNames = ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
+
+// Scan bookkeeping
+var currentGen = 0;
+var isApplying = false;             // suppresses dirty-marking while we apply our own fixes
+var watchedPageIds = {};            // pageId -> true, pages with a nodechange listener attached
+var dirtyPages = {};                // pageId -> true, edited since last scan THIS session
+var scannedThisSession = {};        // pageId -> true, scanned at least once this session
+var pageReports = {};               // pageId -> array of layer issue objects (full, in-memory only)
+var pageNames = {};                 // pageId -> name (cached for pages we've touched)
+
+var currentView = { kind: null, pageId: null }; // which report apply/autofix/navigate should act on
+var currentViewLayers = [];
+
+var INDEX_KEY = 'obraSpacingScan.index.v1';
+
+// Divider pages (e.g. "---", "===", "• • •") are a common Figma convention
+// for visually separating groups of pages in the pages list - they're not
+// real content, so we skip listing and scanning them.
+var DIVIDER_PAGE_PATTERN = /^[\s\-_=~*.•·▔─━∙⸻–—]+$/;
+function isDividerPage(name) {
+  return DIVIDER_PAGE_PATTERN.test(name);
+}
+function realPages() {
+  return figma.root.children.filter(function(p) { return !isDividerPage(p.name); });
+}
 
 // Initialize the plugin
-figma.showUI(__html__, { width: 450, height: 600 });
+figma.showUI(__html__, { width: 820, height: 620, themeColors: true });
 
-// Load selected collections first, then scan for variables
+loadIgnoredNames();
 loadSelectedCollections().then(function() {
   scanForSpacingVariables();
 });
+sendPagesSnapshot();
+watchPage(figma.currentPage);
+figma.on('currentpagechange', function() {
+  watchPage(figma.currentPage);
+  figma.ui.postMessage({ type: 'page-changed', pageId: figma.currentPage.id, pageName: figma.currentPage.name });
+});
+
+// ---------------------------------------------------------------------------
+// Generation-based cancellation (a boolean can't tell "cancelled" from
+// "superseded by a newer scan", and would falsely report stale results)
+// ---------------------------------------------------------------------------
+function nextTick() {
+  return new Promise(function(resolve) { setTimeout(resolve, 0); });
+}
+
+function beginRun() {
+  currentGen++;
+  return currentGen;
+}
+
+function isStale(gen) {
+  return gen !== currentGen;
+}
+
+function cancelScan() {
+  currentGen++;
+  figma.ui.postMessage({ type: 'scan-cancelled' });
+}
+
+// ---------------------------------------------------------------------------
+// Per-page scan index — persisted on the document itself (figma.root plugin
+// data) so it travels with the file instead of being scoped to this machine.
+// Only counts are persisted; full per-layer reports stay in memory for this
+// session (pageReports) so re-opening a page you already scanned is instant.
+// ---------------------------------------------------------------------------
+function readIndex() {
+  try {
+    var raw = figma.root.getPluginData(INDEX_KEY);
+    if (!raw) return { pages: {} };
+    var parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return { pages: {} };
+    if (!parsed.pages) parsed.pages = {};
+    return parsed;
+  } catch (e) {
+    console.log('Error reading scan index:', e.message);
+    return { pages: {} };
+  }
+}
+
+function writeIndex(index) {
+  try {
+    figma.root.setPluginData(INDEX_KEY, JSON.stringify(index));
+  } catch (e) {
+    console.log('Error writing scan index:', e.message);
+  }
+}
+
+function setIndexEntry(pageId, entry) {
+  var index = readIndex();
+  index.pages[pageId] = entry;
+  writeIndex(index);
+  return entry;
+}
+
+// Captures the settings that affect scan results. If ignored names or the
+// selected collections change, any cached entry stops matching this key and
+// is treated as stale automatically - no manual invalidation needed.
+function computeParamsKey() {
+  var names = ignoredLayerNames.slice().sort().join(',');
+  var colls = selectedCollectionIds.join(','); // order matters here (preference rank)
+  return names + '||' + colls;
+}
+
+function entryFromLayers(pageName, layers) {
+  var fixable = 0, noMatch = 0, alreadyFixed = 0, componentFixable = 0;
+  for (var i = 0; i < layers.length; i++) {
+    if (layers[i].issueType === 'missing_variable') {
+      fixable++;
+      if (layers[i].type === 'COMPONENT') componentFixable++;
+    } else if (layers[i].issueType === 'no_matching_variable') noMatch++;
+    else if (layers[i].issueType === 'has_variable') alreadyFixed++;
+  }
+  return {
+    name: pageName,
+    total: layers.length,
+    fixable: fixable,
+    componentFixable: componentFixable,
+    noMatch: noMatch,
+    alreadyFixed: alreadyFixed,
+    problems: fixable + noMatch,
+    scannedAt: Date.now(),
+    dirty: false,
+    paramsKey: computeParamsKey()
+  };
+}
+
+// Attach a nodechange listener to a loaded page exactly once. In dynamic-page
+// documents there's no single document-wide change event, so each page we
+// touch needs its own listener to know when it's been edited since we scanned
+// it. A stored index entry from a previous session is only ever trusted once
+// this session has actually scanned (and therefore is watching) that page.
+function watchPage(page) {
+  if (!page || watchedPageIds[page.id]) return;
+  watchedPageIds[page.id] = true;
+  try {
+    page.on('nodechange', function() {
+      if (isApplying) return; // our own fixes shouldn't mark the page dirty
+      markPageDirty(page.id);
+    });
+  } catch (e) {
+    console.log('Error attaching nodechange listener:', e.message);
+  }
+}
+
+function markPageDirty(pageId) {
+  dirtyPages[pageId] = true;
+  var index = readIndex();
+  if (index.pages[pageId] && !index.pages[pageId].dirty) {
+    index.pages[pageId].dirty = true;
+    writeIndex(index);
+  }
+  figma.ui.postMessage({ type: 'page-dirty', pageId: pageId });
+}
+
+// Page stubs (id/name) are available without loading a page's contents in
+// dynamic-page documents, so the sidebar can list every page - and show
+// last-known badges from the persisted index - before anything is scanned.
+function sendPagesSnapshot() {
+  var index = readIndex();
+  var pages = realPages().map(function(p) {
+    pageNames[p.id] = p.name;
+    var entry = index.pages[p.id];
+    return {
+      id: p.id,
+      name: p.name,
+      total: entry ? entry.total : null,
+      fixable: entry ? entry.fixable : null,
+      componentFixable: entry ? entry.componentFixable : null,
+      noMatch: entry ? entry.noMatch : null,
+      alreadyFixed: entry ? entry.alreadyFixed : null,
+      problems: entry ? entry.problems : null,
+      scannedAt: entry ? entry.scannedAt : null,
+      dirty: entry ? entry.dirty : false
+    };
+  });
+  figma.ui.postMessage({ type: 'pages-found', pages: pages, currentPageId: figma.currentPage.id });
+}
 
 // Helper function to resolve variable value (handles aliases/references)
 async function resolveVariableValue(variable, modeId) {
@@ -56,9 +226,6 @@ async function scanForSpacingVariables() {
   variableCollections = [];
 
   try {
-    // Wait for the document to be ready for dynamic pages
-    await figma.loadAllPagesAsync();
-
     // Get all local variable collections first
     var allCollections = await figma.variables.getLocalVariableCollectionsAsync();
     var collectionMap = {};
@@ -159,25 +326,12 @@ async function scanForSpacingVariables() {
     for (var i = 0; i < localVariables.length; i++) {
       var variable = localVariables[i];
 
-      // Debug: log variables with spacing-related names
-      var nameLower = variable.name.toLowerCase();
-      if (nameLower.indexOf('xl') !== -1 || nameLower.indexOf('lg') !== -1 ||
-          nameLower.indexOf('md') !== -1 || nameLower.indexOf('sm') !== -1 ||
-          nameLower.indexOf('spacing') !== -1 || nameLower.indexOf('gap') !== -1) {
-        console.log('DEBUG spacing-named variable:', variable.name, 'scopes:', variable.scopes, 'resolvedType:', variable.resolvedType);
-      }
-
       // Check for GAP, WIDTH_HEIGHT, or ALL_SCOPES (default when designer hasn't set specific scopes)
       var hasGap = variable.scopes && variable.scopes.indexOf('GAP') !== -1;
       var hasWidthHeight = variable.scopes && variable.scopes.indexOf('WIDTH_HEIGHT') !== -1;
       var hasAllScopes = variable.scopes && variable.scopes.indexOf('ALL_SCOPES') !== -1;
 
       if (!variable.scopes || (!hasGap && !hasWidthHeight && !hasAllScopes)) {
-        // Log why this variable is being skipped
-        if (nameLower.indexOf('xl') !== -1 || nameLower.indexOf('lg') !== -1 ||
-            nameLower.indexOf('md') !== -1 || nameLower.indexOf('spacing') !== -1) {
-          console.log('SKIPPING variable (wrong scope):', variable.name, 'scopes:', variable.scopes);
-        }
         continue;
       }
 
@@ -228,9 +382,6 @@ async function scanForSpacingVariables() {
     });
 
     console.log('Found', spacingVariables.length, 'spacing variables with values');
-    spacingVariables.forEach(function(v) {
-      console.log('Variable:', v.name, '=', v.value + 'px', 'collection:', v.collectionName);
-    });
 
     figma.ui.postMessage({
       type: 'variables-found',
@@ -299,61 +450,33 @@ function findMatchingVariable(spacingValue, propertyType) {
   return candidates[0].variable;
 }
 
-// Check if node has any spacing bound variables
-function hasSpacingVariable(node) {
-  try {
-    if (!node.boundVariables) return false;
-    
-    var spacingProperties = ['itemSpacing', 'counterAxisSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
-    
-    for (var i = 0; i < spacingProperties.length; i++) {
-      var prop = spacingProperties[i];
-      try {
-        if (node.boundVariables[prop]) {
-          console.log('Found bound variable for', prop, 'on node', node.name);
-          return true;
-        }
-      } catch (e) {
-        console.log('Error checking bound variable for', prop + ':', e.message);
-      }
-    }
-    
-    return false;
-  } catch (e) {
-    console.log('Error checking for spacing variables on node', node.name + ':', e.message);
-    return false;
-  }
-}
-
 // Get detailed spacing information from a node
 function getDetailedSpacingInfo(node) {
-  console.log('Getting detailed spacing info for node:', node.name);
-  
   // Helper function to safely get numeric value or return null for symbols
   function getNumericValue(value) {
     if (value === undefined || value === null) {
       return null;
     }
-    
+
     // Check if it's a symbol (bound variable)
     if (typeof value === 'symbol') {
       return 'variable';
     }
-    
+
     // Check if it's already a number
     if (typeof value === 'number') {
       return value;
     }
-    
+
     // Try to convert to number if it's a string
     if (typeof value === 'string') {
       var num = parseFloat(value);
       return !isNaN(num) ? num : null;
     }
-    
+
     return null;
   }
-  
+
   var spacingInfo = {
     itemSpacing: getNumericValue(node.itemSpacing),
     counterAxisSpacing: getNumericValue(node.counterAxisSpacing),
@@ -365,12 +488,12 @@ function getDetailedSpacingInfo(node) {
     hasVariables: false,
     primaryLayoutMode: node.primaryAxisAlignItems ? 'auto-layout' : 'none'
   };
-  
+
   // Check if using individual padding values
   var individualPadding = [spacingInfo.paddingTop, spacingInfo.paddingRight, spacingInfo.paddingBottom, spacingInfo.paddingLeft];
   var hasNonZeroIndividual = false;
   var hasVariableIndividual = false;
-  
+
   for (var i = 0; i < individualPadding.length; i++) {
     if (individualPadding[i] === 'variable') {
       hasVariableIndividual = true;
@@ -379,520 +502,533 @@ function getDetailedSpacingInfo(node) {
       hasNonZeroIndividual = true;
     }
   }
-  
-  // Note: horizontalPadding and verticalPadding are deprecated, using individual padding only"
-  
+
   // Check if gap has variable
   if (spacingInfo.itemSpacing === 'variable' || spacingInfo.counterAxisSpacing === 'variable') {
     spacingInfo.hasVariables = true;
   }
-  
+
   spacingInfo.hasIndividualPadding = hasNonZeroIndividual || hasVariableIndividual;
-  
-  console.log('Detailed spacing info:', spacingInfo);
+
   return spacingInfo;
 }
 
-// Recursively find layers with spacing issues
-function findLayersWithSpacingIssues(node, results, ignoredNames) {
-  results = results || [];
-  ignoredNames = ignoredNames || [];
+// ---------------------------------------------------------------------------
+// Node scanning - iterative (not recursive) so it can yield to the UI thread
+// periodically on very large pages/selections instead of freezing Figma.
+// ---------------------------------------------------------------------------
+function shouldSkipNode(node) {
+  // Always ignore COMPONENT_SET layers (component variants) themselves,
+  // but their children are still traversed (handled by the caller).
+  if (node.type === 'COMPONENT_SET') return true;
 
+  for (var k = 0; k < ignoredLayerNames.length; k++) {
+    if (node.name === ignoredLayerNames[k]) return true;
+  }
+  return false;
+}
+
+function processNode(node, results) {
   try {
-    console.log('Checking node:', node.name, 'type:', node.type);
-
-    // Always ignore COMPONENT_SET layers (component variants)
-    if (node.type === 'COMPONENT_SET') {
-      console.log('Ignoring COMPONENT_SET:', node.name);
-      // Still check children but don't include this node
-      if ('children' in node) {
-        try {
-          for (var j = 0; j < node.children.length; j++) {
-            findLayersWithSpacingIssues(node.children[j], results, ignoredNames);
-          }
-        } catch (e) {
-          console.log('Error processing children of COMPONENT_SET', node.name + ':', e.message);
-        }
-      }
-      return results;
-    }
-
-    // Check if this layer should be ignored (exact match)
-    for (var k = 0; k < ignoredNames.length; k++) {
-      if (node.name === ignoredNames[k]) {
-        console.log('Ignoring node:', node.name, 'matches exact ignore pattern:', ignoredNames[k]);
-        // Still check children but don't include this node
-        if ('children' in node) {
-          try {
-            for (var j = 0; j < node.children.length; j++) {
-              findLayersWithSpacingIssues(node.children[j], results, ignoredNames);
-            }
-          } catch (e) {
-            console.log('Error processing children of ignored node', node.name + ':', e.message);
-          }
-        }
-        return results;
-      }
-    }
-
-    // Check if node has spacing properties (auto-layout with gap or padding)
     var hasCounterAxisSpacing = node.layoutWrap === 'WRAP' && node.counterAxisSpacing !== undefined;
-    var hasAutoLayoutSpacing = (node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL') && 
+    var hasAutoLayoutSpacing = (node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL') &&
                                (node.itemSpacing !== undefined || hasCounterAxisSpacing);
-    var hasPadding = node.paddingTop !== undefined || 
-                     node.paddingRight !== undefined || 
-                     node.paddingBottom !== undefined || 
+    var hasPadding = node.paddingTop !== undefined ||
+                     node.paddingRight !== undefined ||
+                     node.paddingBottom !== undefined ||
                      node.paddingLeft !== undefined;
-    
-    if (hasAutoLayoutSpacing || hasPadding) {
-      
-      try {
-        var spacingInfo = getDetailedSpacingInfo(node);
-        var hasVariable = hasSpacingVariable(node);
-        
-        console.log('Node:', node.name, 'spacingInfo:', spacingInfo, 'hasVariable:', hasVariable);
-        
-        // Collect all spacing values that need checking
-        var spacingIssues = [];
-        
-        // Check gap/itemSpacing - but skip if using auto-spacing (SPACE_BETWEEN)
-        var isAutoSpaced = node.primaryAxisAlignItems === 'SPACE_BETWEEN';
-        
-        console.log('Node:', node.name, 'layoutMode:', node.layoutMode, 'layoutWrap:', node.layoutWrap, 'primaryAxisAlignItems:', node.primaryAxisAlignItems, 'itemSpacing:', node.itemSpacing, 'counterAxisSpacing:', node.counterAxisSpacing, 'children:', node.children ? node.children.length : 0, 'isAutoSpaced:', isAutoSpaced);
-        
-        if (isAutoSpaced) {
-          console.log('Skipping gap check for', node.name, '- using auto spacing (SPACE_BETWEEN)');
+
+    if (!hasAutoLayoutSpacing && !hasPadding) return;
+
+    var spacingInfo = getDetailedSpacingInfo(node);
+    var spacingIssues = [];
+
+    // Skip gap check if using auto-spacing (SPACE_BETWEEN)
+    var isAutoSpaced = node.primaryAxisAlignItems === 'SPACE_BETWEEN';
+    var hasAutoLayout = node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL';
+
+    if (hasAutoLayout && !isAutoSpaced && spacingInfo.itemSpacing !== null && spacingInfo.itemSpacing !== 'variable' && spacingInfo.itemSpacing > 0) {
+      spacingIssues.push({ type: 'gap', value: spacingInfo.itemSpacing, property: 'itemSpacing' });
+    }
+
+    // counterAxisSpacing (cross-axis gap for wrapped auto-layout); null means it syncs with itemSpacing
+    if (hasAutoLayout && node.layoutWrap === 'WRAP' && spacingInfo.counterAxisSpacing !== null && spacingInfo.counterAxisSpacing !== 'variable' && spacingInfo.counterAxisSpacing > 0) {
+      spacingIssues.push({ type: 'gap', value: spacingInfo.counterAxisSpacing, property: 'counterAxisSpacing' });
+    }
+
+    if (spacingInfo.hasIndividualPadding) {
+      var paddingProps = [
+        { prop: 'paddingTop', value: spacingInfo.paddingTop },
+        { prop: 'paddingRight', value: spacingInfo.paddingRight },
+        { prop: 'paddingBottom', value: spacingInfo.paddingBottom },
+        { prop: 'paddingLeft', value: spacingInfo.paddingLeft }
+      ];
+
+      for (var p = 0; p < paddingProps.length; p++) {
+        if (paddingProps[p].value !== null && paddingProps[p].value !== 'variable' && paddingProps[p].value > 0) {
+          spacingIssues.push({ type: 'padding', value: paddingProps[p].value, property: paddingProps[p].prop });
         }
-        
-        // Only check for gaps if auto-layout is actually enabled
-        var hasAutoLayout = node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL';
-        
-        if (hasAutoLayout && !isAutoSpaced && spacingInfo.itemSpacing !== null && spacingInfo.itemSpacing !== 'variable' && spacingInfo.itemSpacing > 0) {
-          spacingIssues.push({
-            type: 'gap',
-            value: spacingInfo.itemSpacing,
-            property: 'itemSpacing'
-          });
-        }
-        
-        // Check counterAxisSpacing (cross-axis gap for wrapped auto-layout)
-        // Only applies when layoutWrap is "WRAP" AND auto-layout is enabled
-        // When counterAxisSpacing is null, it syncs with itemSpacing, so we skip it
-        if (hasAutoLayout && node.layoutWrap === 'WRAP' && spacingInfo.counterAxisSpacing !== null && spacingInfo.counterAxisSpacing !== 'variable' && spacingInfo.counterAxisSpacing > 0) {
-          spacingIssues.push({
-            type: 'gap',
-            value: spacingInfo.counterAxisSpacing,
-            property: 'counterAxisSpacing'
-          });
-        }
-        
-        // Check padding values - but avoid double-tracking since horizontalPadding/verticalPadding 
-        // are deprecated and we apply to individual padding properties anyway
-        if (spacingInfo.hasIndividualPadding) {
-          // Check individual padding values only
-          var paddingProps = [
-            {prop: 'paddingTop', value: spacingInfo.paddingTop},
-            {prop: 'paddingRight', value: spacingInfo.paddingRight},
-            {prop: 'paddingBottom', value: spacingInfo.paddingBottom},
-            {prop: 'paddingLeft', value: spacingInfo.paddingLeft}
-          ];
-          
-          for (var p = 0; p < paddingProps.length; p++) {
-            if (paddingProps[p].value !== null && paddingProps[p].value !== 'variable' && paddingProps[p].value > 0) {
-              spacingIssues.push({
-                type: 'padding',
-                value: paddingProps[p].value,
-                property: paddingProps[p].prop
-              });
-            }
-          }
-        }
-        
-        // Process each spacing issue found
-        for (var s = 0; s < spacingIssues.length; s++) {
-          var issue = spacingIssues[s];
-          var matchingVariable = findMatchingVariable(issue.value, issue.type);
-          var issueType = null;
-          var suggestion = null;
-          
-          // Check if THIS specific property has a variable bound
-          var hasPropertyVariable = false;
-          try {
-            if (node.boundVariables && node.boundVariables[issue.property]) {
-              hasPropertyVariable = true;
-              console.log('Found bound variable for', issue.property, 'on node', node.name);
-            }
-          } catch (e) {
-            console.log('Error checking bound variable for', issue.property + ':', e.message);
-          }
-          
-          // Determine issue type and suggestion based on THIS property's variable state
-          if (!hasPropertyVariable && matchingVariable) {
-            issueType = 'missing_variable';
-            suggestion = {
-              type: 'apply_variable',
-              variable: matchingVariable,
-              message: 'Apply ' + matchingVariable.name + ' (' + matchingVariable.value + 'px) to ' + issue.property,
-              property: issue.property,
-              propertyType: issue.type
-            };
-          } else if (!hasPropertyVariable && !matchingVariable) {
-            issueType = 'no_matching_variable';
-            suggestion = {
-              type: 'no_suggestion',
-              message: 'No matching variable for ' + issue.value + 'px in ' + issue.property,
-              property: issue.property,
-              propertyType: issue.type
-            };
-          } else if (hasPropertyVariable) {
-            issueType = 'has_variable';
-            suggestion = {
-              type: 'already_fixed',
-              message: 'Already using variable for ' + issue.property
-            };
-          }
-          
-          // Add the issue regardless of variable state (for tracking purposes)
-          if (issueType) {
-            results.push({
-              id: node.id,
-              name: node.name,
-              type: node.type,
-              spacingValue: issue.value,
-              spacingProperty: issue.property,
-              propertyType: issue.type,
-              hasVariable: hasPropertyVariable,
-              issueType: issueType,
-              matchingVariable: matchingVariable,
-              suggestion: suggestion,
-              spacingInfo: spacingInfo
-            });
-          }
-        }
-        
-        // Note: Individual properties with variables are now tracked in the loop above
-      } catch (e) {
-        console.log('Error processing node', node.name + ':', e.message);
-        console.log('Error details:', e);
-        // Continue processing other nodes
       }
     }
 
-    // Recursively search children
-    if ('children' in node) {
+    for (var s = 0; s < spacingIssues.length; s++) {
+      var issue = spacingIssues[s];
+      var matchingVariable = findMatchingVariable(issue.value, issue.type);
+      var issueType = null;
+      var suggestion = null;
+
+      var hasPropertyVariable = false;
       try {
-        for (var i = 0; i < node.children.length; i++) {
-          findLayersWithSpacingIssues(node.children[i], results, ignoredNames);
+        if (node.boundVariables && node.boundVariables[issue.property]) {
+          hasPropertyVariable = true;
         }
       } catch (e) {
-        console.log('Error processing children of', node.name + ':', e.message);
+        console.log('Error checking bound variable for', issue.property + ':', e.message);
+      }
+
+      if (!hasPropertyVariable && matchingVariable) {
+        issueType = 'missing_variable';
+        suggestion = {
+          type: 'apply_variable',
+          variable: matchingVariable,
+          message: 'Apply ' + matchingVariable.name + ' (' + matchingVariable.value + 'px) to ' + issue.property,
+          property: issue.property,
+          propertyType: issue.type
+        };
+      } else if (!hasPropertyVariable && !matchingVariable) {
+        issueType = 'no_matching_variable';
+        suggestion = {
+          type: 'no_suggestion',
+          message: 'No matching variable for ' + issue.value + 'px in ' + issue.property,
+          property: issue.property,
+          propertyType: issue.type
+        };
+      } else if (hasPropertyVariable) {
+        issueType = 'has_variable';
+        suggestion = {
+          type: 'already_fixed',
+          message: 'Already using variable for ' + issue.property
+        };
+      }
+
+      if (issueType) {
+        results.push({
+          id: node.id,
+          name: node.name,
+          type: node.type,
+          spacingValue: issue.value,
+          spacingProperty: issue.property,
+          propertyType: issue.type,
+          hasVariable: hasPropertyVariable,
+          issueType: issueType,
+          matchingVariable: matchingVariable,
+          suggestion: suggestion,
+          spacingInfo: spacingInfo
+        });
       }
     }
-
   } catch (e) {
-    console.log('Error in findLayersWithSpacingIssues for node:', node.name || 'unknown', e.message);
-    console.log('Error details:', e);
+    console.log('Error processing node', node.name + ':', e.message);
   }
-
-  return results;
 }
 
-// Start scanning process
-function startScan(ignoredNames, scanEntirePage) {
-  if (isScanning) return;
+// Iterative (stack-based) traversal so we can yield control back to Figma's
+// UI thread every so often instead of doing one giant synchronous walk -
+// this is what keeps the plugin responsive on very large pages/selections.
+async function scanNodesAsync(rootNodes, gen) {
+  var results = [];
+  var stack = [];
+  for (var i = rootNodes.length - 1; i >= 0; i--) stack.push(rootNodes[i]);
 
-  console.log('Starting scan, scanEntirePage:', scanEntirePage);
-  isScanning = true;
-  layersWithIssues = [];
-  currentIndex = -1;
+  var visited = 0;
+  while (stack.length > 0) {
+    if (isStale(gen)) return { results: results, cancelled: true };
 
-  figma.ui.postMessage({
-    type: 'scan-started'
-  });
+    var node = stack.pop();
+    visited++;
 
-  var nodesToScan = [];
-
-  if (scanEntirePage) {
-    nodesToScan = figma.currentPage.children;
-  } else {
-    var selection = figma.currentPage.selection;
-    if (selection.length === 0) {
-      figma.ui.postMessage({
-        type: 'error',
-        message: 'Please select one or more layers to scan'
-      });
-      isScanning = false;
-      return;
+    var skip = false;
+    try { skip = shouldSkipNode(node); } catch (e) {}
+    if (!skip) {
+      processNode(node, results);
     }
-    nodesToScan = selection;
+
+    try {
+      if ('children' in node) {
+        var children = node.children;
+        for (var c = children.length - 1; c >= 0; c--) stack.push(children[c]);
+      }
+    } catch (e) {
+      console.log('Error reading children of', node.name || 'unknown', ':', e.message);
+    }
+
+    if (visited % 400 === 0) {
+      await nextTick();
+    }
   }
 
-  for (var i = 0; i < nodesToScan.length; i++) {
-    findLayersWithSpacingIssues(nodesToScan[i], layersWithIssues, ignoredNames);
-  }
-
-  console.log('Scan complete. Found', layersWithIssues.length, 'layers with spacing values');
-
-  figma.ui.postMessage({
-    type: 'scan-complete',
-    totalLayers: layersWithIssues.length,
-    layers: layersWithIssues.map(function(layer) {
-      return {
-        id: layer.id,
-        name: layer.name,
-        type: layer.type,
-        spacingValue: layer.spacingValue,
-        spacingProperty: layer.spacingProperty,
-        hasVariable: layer.hasVariable,
-        issueType: layer.issueType,
-        suggestion: layer.suggestion
-      };
-    })
-  });
-
-  isScanning = false;
+  return { results: results, cancelled: false };
 }
 
-// Navigate to specific layer
-async function navigateToLayer(layerId) {
-  console.log('Navigating to layer:', layerId);
-  
-  // Find the layer in our issues list
-  var layerInfo = null;
-  for (var i = 0; i < layersWithIssues.length; i++) {
-    if (layersWithIssues[i].id === layerId) {
-      layerInfo = layersWithIssues[i];
-      currentIndex = i;
-      break;
-    }
-  }
-  
-  if (!layerInfo) {
-    console.log('Layer not found in issues list');
+function mapLayerForUI(layer) {
+  return {
+    id: layer.id,
+    name: layer.name,
+    type: layer.type,
+    spacingValue: layer.spacingValue,
+    spacingProperty: layer.spacingProperty,
+    hasVariable: layer.hasVariable,
+    issueType: layer.issueType,
+    suggestion: layer.suggestion
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Scan entry points
+// ---------------------------------------------------------------------------
+async function scanSelection() {
+  var gen = beginRun();
+  figma.ui.postMessage({ type: 'scan-started', scope: 'selection' });
+
+  var selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    figma.ui.postMessage({ type: 'error', message: 'Please select one or more layers to scan' });
     return;
   }
 
-  var node = await figma.getNodeByIdAsync(layerId);
-  if (node) {
-    figma.viewport.scrollAndZoomIntoView([node]);
-    figma.currentPage.selection = [node];
+  var scan = await scanNodesAsync(selection, gen);
+  if (isStale(gen)) return;
 
-    figma.ui.postMessage({
-      type: 'layer-selected',
-      layer: {
-        id: layerInfo.id,
-        name: layerInfo.name,
-        type: layerInfo.type,
-        spacingValue: layerInfo.spacingValue,
-        spacingProperty: layerInfo.spacingProperty,
-        hasVariable: layerInfo.hasVariable,
-        issueType: layerInfo.issueType,
-        suggestion: layerInfo.suggestion
-      }
-    });
-  } else {
-    figma.ui.postMessage({
-      type: 'error',
-      message: 'Layer no longer exists'
-    });
+  currentView = { kind: 'selection', pageId: null };
+  currentViewLayers = scan.results;
+
+  figma.ui.postMessage({
+    type: 'selection-report',
+    layers: scan.results.map(mapLayerForUI),
+    totalLayers: scan.results.length
+  });
+}
+
+function findPageStub(pageId) {
+  var pages = figma.root.children;
+  for (var i = 0; i < pages.length; i++) {
+    if (pages[i].id === pageId) return pages[i];
+  }
+  return null;
+}
+
+// Scans a single page, reusing the cached report when nothing that would
+// affect the result has changed since we last scanned it THIS session.
+async function scanPage(pageId, force) {
+  var gen = beginRun();
+  var page = findPageStub(pageId);
+  if (!page) {
+    figma.ui.postMessage({ type: 'error', message: 'Page no longer exists' });
+    return;
+  }
+
+  figma.ui.postMessage({ type: 'scan-started', scope: 'page', pageId: pageId });
+
+  if (!force && pageReports[pageId] && scannedThisSession[pageId] && !dirtyPages[pageId]) {
+    var idx = readIndex();
+    var existingEntry = idx.pages[pageId];
+    if (existingEntry && existingEntry.paramsKey === computeParamsKey()) {
+      currentView = { kind: 'page', pageId: pageId };
+      currentViewLayers = pageReports[pageId];
+      figma.ui.postMessage({
+        type: 'page-report',
+        pageId: pageId,
+        pageName: page.name,
+        layers: pageReports[pageId].map(mapLayerForUI),
+        totalLayers: pageReports[pageId].length,
+        cached: true,
+        scannedAt: existingEntry.scannedAt
+      });
+      return;
+    }
+  }
+
+  try {
+    await page.loadAsync();
+  } catch (e) {
+    figma.ui.postMessage({ type: 'error', message: 'Failed to load page: ' + e.message });
+    return;
+  }
+  watchPage(page);
+
+  var scan = await scanNodesAsync(page.children, gen);
+  if (isStale(gen)) return;
+
+  pageNames[pageId] = page.name;
+  pageReports[pageId] = scan.results;
+  scannedThisSession[pageId] = true;
+  dirtyPages[pageId] = false;
+
+  var entry = entryFromLayers(page.name, scan.results);
+  setIndexEntry(pageId, entry);
+
+  currentView = { kind: 'page', pageId: pageId };
+  currentViewLayers = scan.results;
+
+  figma.ui.postMessage({ type: 'page-scanned', pageId: pageId, entry: entry });
+  figma.ui.postMessage({
+    type: 'page-report',
+    pageId: pageId,
+    pageName: page.name,
+    layers: scan.results.map(mapLayerForUI),
+    totalLayers: scan.results.length,
+    cached: false,
+    scannedAt: entry.scannedAt
+  });
+}
+
+// Navigates the canvas to a page and shows its scan results (sidebar click).
+async function selectPage(pageId, force) {
+  try {
+    var page = findPageStub(pageId);
+    if (page && figma.currentPage.id !== pageId) {
+      await figma.setCurrentPageAsync(page); // triggers 'currentpagechange', which notifies the UI
+    }
+  } catch (e) {
+    figma.ui.postMessage({ type: 'error', message: 'Failed to switch page: ' + e.message });
+    return;
+  }
+  await scanPage(pageId, force);
+}
+
+// Scans every page in the file. Pages that were already scanned THIS session,
+// aren't dirty, and were scanned under the same settings are skipped entirely
+// (not even loaded) - this is what makes re-running "Scan Entire File" fast
+// after the first pass, since only pages you actually touched get rescanned.
+async function scanAll(force) {
+  var gen = beginRun();
+  figma.ui.postMessage({ type: 'scan-started', scope: 'all' });
+
+  var pages = realPages();
+  var key = computeParamsKey();
+  var index = readIndex();
+
+  var queue = [];
+  var skipped = 0;
+  for (var i = 0; i < pages.length; i++) {
+    var p = pages[i];
+    var entry = index.pages[p.id];
+    var isClean = !force && scannedThisSession[p.id] && !dirtyPages[p.id] && entry && entry.paramsKey === key;
+    if (isClean) skipped++;
+    else queue.push(p);
+  }
+
+  figma.ui.postMessage({ type: 'scan-all-started', total: queue.length, skipped: skipped });
+
+  for (var q = 0; q < queue.length; q++) {
+    if (isStale(gen)) return;
+
+    var page = queue[q];
+    try {
+      await page.loadAsync();
+    } catch (e) {
+      console.log('Error loading page', page.name, ':', e.message);
+      continue;
+    }
+    watchPage(page);
+
+    var scan = await scanNodesAsync(page.children, gen);
+    if (isStale(gen)) return;
+
+    pageNames[page.id] = page.name;
+    pageReports[page.id] = scan.results;
+    scannedThisSession[page.id] = true;
+    dirtyPages[page.id] = false;
+
+    var pageEntry = entryFromLayers(page.name, scan.results);
+    setIndexEntry(page.id, pageEntry);
+
+    figma.ui.postMessage({ type: 'page-scanned', pageId: page.id, entry: pageEntry });
+    figma.ui.postMessage({ type: 'scan-all-progress', current: q + 1, total: queue.length, pageName: page.name });
+  }
+
+  if (isStale(gen)) return;
+
+  var finalIndex = readIndex();
+  var pageResults = pages.map(function(p) {
+    var e = finalIndex.pages[p.id];
+    if (e) {
+      return { id: p.id, name: p.name, total: e.total, fixable: e.fixable, componentFixable: e.componentFixable, noMatch: e.noMatch, alreadyFixed: e.alreadyFixed, problems: e.problems, scannedAt: e.scannedAt, dirty: e.dirty };
+    }
+    return { id: p.id, name: p.name, total: 0, fixable: 0, componentFixable: 0, noMatch: 0, alreadyFixed: 0, problems: 0, scannedAt: null, dirty: false };
+  });
+  pageResults.sort(function(a, b) { return b.problems - a.problems; });
+
+  figma.ui.postMessage({ type: 'scan-all-complete', pages: pageResults, scannedAt: Date.now(), skipped: skipped });
+}
+
+async function clearFileScan() {
+  writeIndex({ pages: {} });
+  pageReports = {};
+  scannedThisSession = {};
+  dirtyPages = {};
+  sendPagesSnapshot();
+}
+
+// ---------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------
+async function navigateToLayer(layerId) {
+  var layerInfo = null;
+  for (var i = 0; i < currentViewLayers.length; i++) {
+    if (currentViewLayers[i].id === layerId) {
+      layerInfo = currentViewLayers[i];
+      break;
+    }
+  }
+  if (!layerInfo) return;
+
+  var node = await figma.getNodeByIdAsync(layerId);
+  if (!node) {
+    figma.ui.postMessage({ type: 'error', message: 'Layer no longer exists' });
+    return;
+  }
+
+  if (currentView.kind === 'page' && currentView.pageId && figma.currentPage.id !== currentView.pageId) {
+    try {
+      var targetPage = findPageStub(currentView.pageId);
+      if (targetPage) await figma.setCurrentPageAsync(targetPage);
+    } catch (e) {
+      console.log('Error switching to layer\'s page:', e.message);
+    }
+  }
+
+  figma.viewport.scrollAndZoomIntoView([node]);
+  figma.currentPage.selection = [node];
+
+  figma.ui.postMessage({ type: 'layer-selected', layer: mapLayerForUI(layerInfo) });
+}
+
+// ---------------------------------------------------------------------------
+// Applying variables
+// ---------------------------------------------------------------------------
+function applyVariableToProperty(node, variable, propertyName) {
+  if (propertyName === 'itemSpacing') {
+    node.setBoundVariable('itemSpacing', variable);
+  } else if (propertyName === 'counterAxisSpacing') {
+    node.setBoundVariable('counterAxisSpacing', variable);
+  } else if (propertyName === 'horizontalPadding') {
+    node.setBoundVariable('paddingLeft', variable);
+    node.setBoundVariable('paddingRight', variable);
+  } else if (propertyName === 'verticalPadding') {
+    node.setBoundVariable('paddingTop', variable);
+    node.setBoundVariable('paddingBottom', variable);
+  } else if (propertyName === 'paddingTop' || propertyName === 'paddingRight' || propertyName === 'paddingBottom' || propertyName === 'paddingLeft') {
+    node.setBoundVariable(propertyName, variable);
   }
 }
 
-// Apply variable to specific layer
-async function applyVariableToLayer(layerId, variableId, applyMode, propertyName) {
-  console.log('Applying variable', variableId, 'to layer', layerId, 'mode:', applyMode, 'property:', propertyName);
-  
+function updateLayerInCurrentView(layerId) {
+  for (var i = 0; i < currentViewLayers.length; i++) {
+    if (currentViewLayers[i].id === layerId) {
+      currentViewLayers[i].hasVariable = true;
+      currentViewLayers[i].issueType = 'has_variable';
+      currentViewLayers[i].suggestion = { type: 'already_fixed', message: 'Already using variable' };
+      break;
+    }
+  }
+}
+
+// Recomputes and persists the page-level badge counts after fixes are applied,
+// so the sidebar reflects progress without requiring a full rescan.
+function persistCurrentPageCounts() {
+  if (currentView.kind !== 'page' || !currentView.pageId) return;
+  var pageId = currentView.pageId;
+  var layers = pageReports[pageId];
+  if (!layers) return;
+  var entry = entryFromLayers(pageNames[pageId] || 'Page', layers);
+  setIndexEntry(pageId, entry);
+  figma.ui.postMessage({ type: 'page-scanned', pageId: pageId, entry: entry });
+}
+
+async function applyVariableToLayer(layerId, variableId, propertyName) {
   var node = await figma.getNodeByIdAsync(layerId);
   if (!node) {
-    figma.ui.postMessage({
-      type: 'error',
-      message: 'Layer no longer exists'
-    });
+    figma.ui.postMessage({ type: 'error', message: 'Layer no longer exists' });
     return;
   }
 
   try {
     var variable = await figma.variables.getVariableByIdAsync(variableId);
     if (!variable) {
-      figma.ui.postMessage({
-        type: 'error',
-        message: 'Variable no longer exists'
-      });
+      figma.ui.postMessage({ type: 'error', message: 'Variable no longer exists' });
       return;
     }
 
-    // Apply variable based on the property name or mode
-    if (propertyName) {
-      // Direct property application
-      if (propertyName === 'itemSpacing') {
-        node.setBoundVariable('itemSpacing', variable);
-      } else if (propertyName === 'counterAxisSpacing') {
-        node.setBoundVariable('counterAxisSpacing', variable);
-      } else if (propertyName === 'horizontalPadding') {
-        // Apply to left and right padding for horizontal
-        node.setBoundVariable('paddingLeft', variable);
-        node.setBoundVariable('paddingRight', variable);
-      } else if (propertyName === 'verticalPadding') {
-        // Apply to top and bottom padding for vertical
-        node.setBoundVariable('paddingTop', variable);
-        node.setBoundVariable('paddingBottom', variable);
-      } else if (propertyName === 'paddingTop') {
-        node.setBoundVariable('paddingTop', variable);
-      } else if (propertyName === 'paddingRight') {
-        node.setBoundVariable('paddingRight', variable);
-      } else if (propertyName === 'paddingBottom') {
-        node.setBoundVariable('paddingBottom', variable);
-      } else if (propertyName === 'paddingLeft') {
-        node.setBoundVariable('paddingLeft', variable);
-      }
-    } else if (applyMode) {
-      // Apply based on mode for padding
-      if (applyMode === 'allPadding') {
-        // Apply to all padding values
-        node.setBoundVariable('paddingTop', variable);
-        node.setBoundVariable('paddingRight', variable);
-        node.setBoundVariable('paddingBottom', variable);
-        node.setBoundVariable('paddingLeft', variable);
-      } else if (applyMode === 'horizontalOnly') {
-        // Apply to horizontal padding
-        node.setBoundVariable('paddingLeft', variable);
-        node.setBoundVariable('paddingRight', variable);
-      } else if (applyMode === 'verticalOnly') {
-        // Apply to vertical padding
-        node.setBoundVariable('paddingTop', variable);
-        node.setBoundVariable('paddingBottom', variable);
-      } else if (applyMode === 'uniformPadding') {
-        // Apply to uniform padding if available
-        if (node.horizontalPadding !== undefined) {
-          node.setBoundVariable('horizontalPadding', variable);
-        }
-        if (node.verticalPadding !== undefined) {
-          node.setBoundVariable('verticalPadding', variable);
-        }
-      }
-    }
-    
-    // Update our layer info
-    for (var i = 0; i < layersWithIssues.length; i++) {
-      if (layersWithIssues[i].id === layerId) {
-        layersWithIssues[i].hasVariable = true;
-        layersWithIssues[i].issueType = 'has_variable';
-        layersWithIssues[i].suggestion = {
-          type: 'already_fixed',
-          message: 'Already using variable'
-        };
-        break;
-      }
+    isApplying = true;
+    try {
+      applyVariableToProperty(node, variable, propertyName);
+    } finally {
+      await nextTick();
+      isApplying = false;
     }
 
-    var modeMessage = '';
-    if (propertyName) {
-      if (propertyName === 'horizontalPadding') {
-        modeMessage = ' to horizontal padding (left & right)';
-      } else if (propertyName === 'verticalPadding') {
-        modeMessage = ' to vertical padding (top & bottom)';
-      } else {
-        modeMessage = ' to ' + propertyName;
-      }
-    } else if (applyMode) {
-      switch (applyMode) {
-        case 'allPadding': modeMessage = ' (all padding)'; break;
-        case 'horizontalOnly': modeMessage = ' (horizontal padding)'; break;
-        case 'verticalOnly': modeMessage = ' (vertical padding)'; break;
-        case 'uniformPadding': modeMessage = ' (uniform padding)'; break;
-        default: modeMessage = ''; break;
-      }
-    }
+    updateLayerInCurrentView(layerId);
+    persistCurrentPageCounts();
 
     figma.ui.postMessage({
       type: 'variable-applied',
-      variableName: variable.name + modeMessage,
+      variableName: variable.name + (propertyName ? ' to ' + propertyName : ''),
       layerName: node.name,
       layerId: layerId
     });
 
   } catch (e) {
-    figma.ui.postMessage({
-      type: 'error',
-      message: 'Failed to apply variable: ' + e.message
-    });
+    figma.ui.postMessage({ type: 'error', message: 'Failed to apply variable: ' + e.message });
   }
 }
 
-// Apply variables to all fixable layers at once
+// Applies variables to every fixable layer in the currently displayed view
+// (selection or single page).
 async function autofixAllLayers() {
-  console.log('Starting autofix for all layers...');
-  
-  // Get current layers with issues
-  var currentLayers = layersWithIssues.slice(); // Create a copy to avoid modification issues
+  var currentLayers = currentViewLayers.slice();
   var fixedLayers = [];
   var failedLayers = [];
-  
-  for (var i = 0; i < currentLayers.length; i++) {
-    var layer = currentLayers[i];
-    
-    // Only attempt to fix layers that have actionable suggestions
-    if (layer.issueType === 'missing_variable' && 
-        layer.suggestion && 
-        layer.suggestion.type === 'apply_variable') {
-      
+
+  isApplying = true;
+  try {
+    for (var i = 0; i < currentLayers.length; i++) {
+      var layer = currentLayers[i];
+
+      if (layer.issueType !== 'missing_variable' || !layer.suggestion || layer.suggestion.type !== 'apply_variable') {
+        continue;
+      }
+
       try {
         var node = await figma.getNodeByIdAsync(layer.id);
         if (!node) {
-          failedLayers.push({
-            layerName: layer.name,
-            reason: 'Layer not found'
-          });
+          failedLayers.push({ layerName: layer.name, reason: 'Layer not found' });
           continue;
         }
-        
+
         var variable = await figma.variables.getVariableByIdAsync(layer.suggestion.variable.id);
         if (!variable) {
-          failedLayers.push({
-            layerName: layer.name,
-            reason: 'Variable not found'
-          });
+          failedLayers.push({ layerName: layer.name, reason: 'Variable not found' });
           continue;
         }
-        
+
         var propertyName = layer.suggestion.property || layer.spacingProperty;
-        
-        // Apply the variable
-        if (propertyName === 'itemSpacing') {
-          node.setBoundVariable('itemSpacing', variable);
-        } else if (propertyName === 'counterAxisSpacing') {
-          node.setBoundVariable('counterAxisSpacing', variable);
-        } else if (propertyName === 'horizontalPadding') {
-          // Apply to left and right padding for horizontal
-          node.setBoundVariable('paddingLeft', variable);
-          node.setBoundVariable('paddingRight', variable);
-        } else if (propertyName === 'verticalPadding') {
-          // Apply to top and bottom padding for vertical
-          node.setBoundVariable('paddingTop', variable);
-          node.setBoundVariable('paddingBottom', variable);
-        } else if (['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'].indexOf(propertyName) !== -1) {
-          node.setBoundVariable(propertyName, variable);
-        }
-        
-        fixedLayers.push({
-          layerName: layer.name,
-          variableName: variable.name,
-          property: propertyName
-        });
-        
-        console.log('Fixed layer:', layer.name, 'with variable:', variable.name);
-        
+        applyVariableToProperty(node, variable, propertyName);
+        updateLayerInCurrentView(layer.id);
+
+        fixedLayers.push({ layerName: layer.name, variableName: variable.name, property: propertyName });
       } catch (error) {
         console.error('Error fixing layer:', layer.name, error);
-        failedLayers.push({
-          layerName: layer.name,
-          reason: error.message
-        });
+        failedLayers.push({ layerName: layer.name, reason: error.message });
       }
     }
+  } finally {
+    await nextTick();
+    isApplying = false;
   }
-  
-  // Send results back to UI
+
+  persistCurrentPageCounts();
+
   figma.ui.postMessage({
     type: 'autofix-complete',
     fixedLayers: fixedLayers,
@@ -900,113 +1036,260 @@ async function autofixAllLayers() {
     totalFixed: fixedLayers.length,
     totalFailed: failedLayers.length
   });
-  
-  // Rescan to update the UI
-  setTimeout(async function() {
-    await scanForSpacingVariables();
-  }, 100);
 }
 
-// Load ignored names from clientStorage on startup
+// Pages whose name starts with "Pro blocks" (e.g. "Pro blocks - Applications")
+// are large pre-assembled example compositions built from instances of the
+// kit's components - as opposed to a component's own page, which mixes the
+// actual component definitions with small "local" usage-example instances
+// sitting right beside them. Harmless no-op on files without any such pages
+// (everything just falls into the 'local' pass).
+var PRO_BLOCKS_PAGE_PATTERN = /^pro\s*blocks\b/i;
+function isProBlocksPage(name) {
+  return PRO_BLOCKS_PAGE_PATTERN.test(name || '');
+}
+
+// Gathers every currently-fixable layer across all in-memory page reports
+// that matches `predicate(layer, pageId)`. Called fresh at the start of each
+// pass (not once upfront) so later passes see the results of earlier ones.
+function collectFixableJobs(predicate) {
+  var jobs = [];
+  var pageIds = Object.keys(pageReports);
+  for (var pi = 0; pi < pageIds.length; pi++) {
+    var pageId = pageIds[pi];
+    var layers = pageReports[pageId];
+    if (!layers) continue;
+    for (var i = 0; i < layers.length; i++) {
+      var layer = layers[i];
+      if (layer.issueType !== 'missing_variable' || !layer.suggestion || layer.suggestion.type !== 'apply_variable') continue;
+      if (predicate(layer, pageId)) jobs.push({ pageId: pageId, layer: layer });
+    }
+  }
+  return jobs;
+}
+
+async function applyFixJobs(jobs, onProgress) {
+  var touchedPages = {};
+  var fixed = 0;
+  var failed = [];
+
+  for (var j = 0; j < jobs.length; j++) {
+    var job = jobs[j];
+    var layer = job.layer;
+
+    try {
+      var node = await figma.getNodeByIdAsync(layer.id);
+      if (!node) {
+        failed.push({ layerName: layer.name, reason: 'Layer not found' });
+        continue;
+      }
+
+      var variable = await figma.variables.getVariableByIdAsync(layer.suggestion.variable.id);
+      if (!variable) {
+        failed.push({ layerName: layer.name, reason: 'Variable not found' });
+        continue;
+      }
+
+      var propertyName = layer.suggestion.property || layer.spacingProperty;
+      applyVariableToProperty(node, variable, propertyName);
+
+      layer.hasVariable = true;
+      layer.issueType = 'has_variable';
+      layer.suggestion = { type: 'already_fixed', message: 'Already using variable' };
+
+      touchedPages[job.pageId] = true;
+      fixed++;
+    } catch (e) {
+      console.error('Error fixing layer:', layer.name, e);
+      failed.push({ layerName: layer.name, reason: e.message });
+    }
+
+    if (onProgress && (j % 20 === 0 || j === jobs.length - 1)) {
+      onProgress(j + 1, jobs.length);
+    }
+  }
+
+  return { touchedPages: touchedPages, fixed: fixed, failed: failed };
+}
+
+// Re-walks specific pages right after fixing them, before the next pass
+// reads from pageReports again. Fixing a component can change what an
+// unrelated, not-yet-processed instance now reads as (whether it still
+// needs its own fix at all) in ways this plugin doesn't control - rescanning
+// keeps every later pass working from ground truth instead of a pre-fix
+// snapshot, and keeps sidebar badges accurate as we go.
+async function rescanPages(pageIds, gen) {
+  for (var i = 0; i < pageIds.length; i++) {
+    var pageId = pageIds[i];
+    var page = findPageStub(pageId);
+    if (!page) continue;
+
+    try {
+      await page.loadAsync();
+    } catch (e) {
+      continue;
+    }
+
+    var scan = await scanNodesAsync(page.children, gen);
+    if (isStale(gen)) return;
+
+    pageReports[pageId] = scan.results;
+    var entry = entryFromLayers(page.name, scan.results);
+    setIndexEntry(pageId, entry);
+    figma.ui.postMessage({ type: 'page-scanned', pageId: pageId, entry: entry });
+  }
+}
+
+// Applies every fixable suggestion across every page that's been scanned
+// (in memory this session), in three safe passes, rescanning touched pages
+// between each so the next pass always works from current data:
+//   1. Components - fixing a component benefits every instance of it, so
+//      this is the highest-leverage, lowest-risk pass. Component-set
+//      variants are individually typed 'COMPONENT' in Figma's API (the
+//      COMPONENT_SET wrapper itself never shows up as a result), so they're
+//      naturally included here alongside standalone components.
+//   2. Everything else "local" to a component's own page (e.g. small
+//      usage-example instances sitting beside the component definition) -
+//      still low blast-radius, and most likely to have already inherited
+//      cleanly from pass 1.
+//   3. "Pro Blocks" pages - large example compositions assembled from many
+//      component instances; by far the biggest blast radius, so these run
+//      last, after everything they're built from is already fixed.
+async function autofixFile() {
+  if (Object.keys(pageReports).length === 0) {
+    figma.ui.postMessage({ type: 'error', message: 'Scan the whole file first, then Fix All.' });
+    return;
+  }
+
+  var gen = beginRun();
+
+  var upfrontTotal = collectFixableJobs(function() { return true; }).length;
+  if (upfrontTotal === 0) {
+    figma.ui.postMessage({ type: 'error', message: 'Nothing to fix.' });
+    return;
+  }
+
+  var scannedPageCount = Object.keys(pageReports).length;
+
+  // Snapshot the file's version history before making bulk changes, so
+  // there's an explicit restore point beyond Figma's regular undo stack -
+  // useful since undo history can get lost if the tab/file is closed.
+  var snapshotOk = false;
+  var snapshotError = null;
+  try {
+    await figma.saveVersionHistoryAsync(
+      'Before spacing autofix',
+      'Saved automatically by Obra Spacing Variable Fixer before applying up to ' + upfrontTotal + ' spacing fix' + (upfrontTotal === 1 ? '' : 'es') + ' across ' + scannedPageCount + ' page' + (scannedPageCount === 1 ? '' : 's') + '.'
+    );
+    snapshotOk = true;
+  } catch (e) {
+    snapshotError = e.message;
+    console.log('Error saving version history snapshot:', e.message);
+  }
+
+  figma.ui.postMessage({ type: 'autofix-file-started', total: upfrontTotal, snapshotOk: snapshotOk, snapshotError: snapshotError });
+
+  var passes = [
+    { phase: 'components', predicate: function(layer) { return layer.type === 'COMPONENT'; } },
+    { phase: 'local', predicate: function(layer, pageId) { return layer.type !== 'COMPONENT' && !isProBlocksPage(pageNames[pageId]); } },
+    { phase: 'pro-blocks', predicate: function(layer, pageId) { return layer.type !== 'COMPONENT' && isProBlocksPage(pageNames[pageId]); } }
+  ];
+
+  var totalFixed = 0;
+  var failedLayers = [];
+  var touchedPages = {};
+
+  isApplying = true;
+  try {
+    for (var p = 0; p < passes.length; p++) {
+      if (isStale(gen)) break;
+
+      var pass = passes[p];
+      var jobs = collectFixableJobs(pass.predicate);
+      if (jobs.length === 0) continue;
+
+      figma.ui.postMessage({ type: 'autofix-file-pass-started', phase: pass.phase, total: jobs.length });
+
+      var result = await applyFixJobs(jobs, (function(phase) {
+        return function(current, total) {
+          figma.ui.postMessage({ type: 'autofix-file-progress', phase: phase, current: current, total: total });
+        };
+      })(pass.phase));
+
+      totalFixed += result.fixed;
+      failedLayers = failedLayers.concat(result.failed);
+
+      var touchedThisPass = Object.keys(result.touchedPages);
+      for (var tp = 0; tp < touchedThisPass.length; tp++) touchedPages[touchedThisPass[tp]] = true;
+
+      if (isStale(gen)) break;
+
+      if (touchedThisPass.length > 0) {
+        figma.ui.postMessage({ type: 'autofix-file-rescanning', phase: pass.phase, pageCount: touchedThisPass.length });
+        await rescanPages(touchedThisPass, gen);
+      }
+    }
+  } finally {
+    await nextTick();
+    isApplying = false;
+  }
+
+  var touchedPageIds = Object.keys(touchedPages);
+
+  // If the currently-open page view was touched, refresh it in place so the
+  // user sees the fixes without having to manually rescan.
+  if (currentView.kind === 'page' && currentView.pageId && touchedPages[currentView.pageId]) {
+    var currentReport = pageReports[currentView.pageId];
+    figma.ui.postMessage({
+      type: 'page-report',
+      pageId: currentView.pageId,
+      pageName: pageNames[currentView.pageId] || '',
+      layers: currentReport.map(mapLayerForUI),
+      totalLayers: currentReport.length,
+      cached: true,
+      scannedAt: Date.now()
+    });
+  }
+
+  figma.ui.postMessage({
+    type: 'autofix-file-complete',
+    totalFixed: totalFixed,
+    totalFailed: failedLayers.length,
+    totalPages: touchedPageIds.length,
+    failedLayers: failedLayers
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Ignored layer names (persisted per-user via clientStorage)
+// ---------------------------------------------------------------------------
 async function loadIgnoredNames() {
   try {
     var savedNames = await figma.clientStorage.getAsync('spacingChecker_ignoredNames');
     if (savedNames) {
-      figma.ui.postMessage({
-        type: 'ignored-names-loaded',
-        ignoredNames: savedNames
-      });
+      ignoredLayerNames = savedNames;
     } else {
-      // Set default ignored names if nothing saved
-      var defaultNames = ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
-      await figma.clientStorage.setAsync('spacingChecker_ignoredNames', defaultNames);
-      figma.ui.postMessage({
-        type: 'ignored-names-loaded',
-        ignoredNames: defaultNames
-      });
+      ignoredLayerNames = ['Labels', 'Label', 'Bracket', 'Instances', 'Instance'];
+      await figma.clientStorage.setAsync('spacingChecker_ignoredNames', ignoredLayerNames);
     }
   } catch (e) {
     console.log('Error loading ignored names:', e);
-    figma.ui.postMessage({
-      type: 'ignored-names-loaded',
-      ignoredNames: ['Labels', 'Label', 'Bracket', 'Instances', 'Instance']
-    });
   }
+  figma.ui.postMessage({ type: 'ignored-names-loaded', ignoredNames: ignoredLayerNames });
 }
 
-// Save ignored names to clientStorage
 async function saveIgnoredNames(names) {
+  ignoredLayerNames = names || [];
   try {
-    await figma.clientStorage.setAsync('spacingChecker_ignoredNames', names);
-    console.log('Saved ignored names to clientStorage:', names);
+    await figma.clientStorage.setAsync('spacingChecker_ignoredNames', ignoredLayerNames);
   } catch (e) {
     console.log('Error saving ignored names:', e);
   }
 }
 
-// Load ignored names on startup
-loadIgnoredNames();
-
-// Handle messages from UI
-figma.ui.onmessage = async function(msg) {
-  console.log('Received message:', msg.type);
-
-  switch (msg.type) {
-    case 'start-scan':
-      startScan(msg.ignoredNames || [], false);
-      break;
-
-    case 'scan-page':
-      startScan(msg.ignoredNames || [], true);
-      break;
-
-    case 'scan-file':
-      await scanEntireFile(msg.ignoredNames || []);
-      break;
-
-    case 'go-to-page':
-      await goToPage(msg.pageId);
-      break;
-
-    case 'clear-file-scan':
-      await clearLastFileScan();
-      break;
-
-    case 'navigate-to-layer':
-      await navigateToLayer(msg.layerId);
-      break;
-
-    case 'apply-variable':
-      await applyVariableToLayer(msg.layerId, msg.variableId, msg.applyMode, msg.propertyName);
-      break;
-
-    case 'rescan-variables':
-      await scanForSpacingVariables();
-      break;
-
-    case 'save-ignored-names':
-      await saveIgnoredNames(msg.ignoredNames);
-      break;
-
-    case 'load-ignored-names':
-      await loadIgnoredNames();
-      break;
-
-    case 'autofix_all':
-      await autofixAllLayers();
-      break;
-
-    case 'select-collections':
-      setSelectedCollections(msg.collectionIds);
-      break;
-
-    case 'close':
-      figma.closePlugin();
-      break;
-  }
-};
-
-// Load selected collections from clientStorage
+// ---------------------------------------------------------------------------
+// Variable collections (persisted per-user via clientStorage)
+// ---------------------------------------------------------------------------
 async function loadSelectedCollections() {
   try {
     var savedCollections = await figma.clientStorage.getAsync('spacingChecker_selectedCollections');
@@ -1058,114 +1341,71 @@ function sendCollectionsToUI() {
   });
 }
 
-// Storage key scoped to this Figma file
-function getFileScanStorageKey() {
-  var fileId = (figma.fileKey || (figma.root && figma.root.id) || 'unknown');
-  return 'spacingChecker_lastFileScan_' + fileId;
-}
+// ---------------------------------------------------------------------------
+// Messages from UI
+// ---------------------------------------------------------------------------
+figma.ui.onmessage = async function(msg) {
+  console.log('Received message:', msg.type);
 
-async function scanEntireFile(ignoredNames) {
-  ignoredNames = ignoredNames || [];
-  figma.ui.postMessage({ type: 'file-scan-started' });
+  switch (msg.type) {
+    case 'scan-selection':
+      await scanSelection();
+      break;
 
-  try {
-    await figma.loadAllPagesAsync();
-  } catch (e) {
-    figma.ui.postMessage({ type: 'error', message: 'Failed to load all pages: ' + e.message });
-    return;
+    case 'select-page':
+      await selectPage(msg.pageId, !!msg.force);
+      break;
+
+    case 'scan-page':
+      await scanPage(msg.pageId || figma.currentPage.id, !!msg.force);
+      break;
+
+    case 'scan-all':
+      await scanAll(!!msg.force);
+      break;
+
+    case 'cancel-scan':
+      cancelScan();
+      break;
+
+    case 'navigate-to-layer':
+      await navigateToLayer(msg.layerId);
+      break;
+
+    case 'apply-variable':
+      await applyVariableToLayer(msg.layerId, msg.variableId, msg.propertyName);
+      break;
+
+    case 'autofix-all':
+      await autofixAllLayers();
+      break;
+
+    case 'autofix-file':
+      await autofixFile();
+      break;
+
+    case 'rescan-variables':
+      await scanForSpacingVariables();
+      break;
+
+    case 'select-collections':
+      setSelectedCollections(msg.collectionIds);
+      break;
+
+    case 'save-ignored-names':
+      await saveIgnoredNames(msg.ignoredNames);
+      break;
+
+    case 'load-ignored-names':
+      await loadIgnoredNames();
+      break;
+
+    case 'clear-file-scan':
+      await clearFileScan();
+      break;
+
+    case 'close':
+      figma.closePlugin();
+      break;
   }
-
-  var pages = figma.root.children;
-  var pageResults = [];
-
-  for (var p = 0; p < pages.length; p++) {
-    var page = pages[p];
-    var issues = [];
-    try {
-      for (var c = 0; c < page.children.length; c++) {
-        findLayersWithSpacingIssues(page.children[c], issues, ignoredNames);
-      }
-    } catch (e) {
-      console.log('Error scanning page', page.name + ':', e.message);
-    }
-
-    var fixable = 0, noMatch = 0, alreadyFixed = 0;
-    for (var i = 0; i < issues.length; i++) {
-      if (issues[i].issueType === 'missing_variable') fixable++;
-      else if (issues[i].issueType === 'no_matching_variable') noMatch++;
-      else if (issues[i].issueType === 'has_variable') alreadyFixed++;
-    }
-
-    pageResults.push({
-      id: page.id,
-      name: page.name,
-      total: issues.length,
-      fixable: fixable,
-      noMatch: noMatch,
-      alreadyFixed: alreadyFixed,
-      problems: fixable + noMatch
-    });
-
-    figma.ui.postMessage({
-      type: 'file-scan-progress',
-      current: p + 1,
-      total: pages.length,
-      pageName: page.name
-    });
-
-    await new Promise(function(resolve) { setTimeout(resolve, 0); });
-  }
-
-  pageResults.sort(function(a, b) { return b.problems - a.problems; });
-
-  var payload = { pages: pageResults, scannedAt: Date.now() };
-
-  try {
-    await figma.clientStorage.setAsync(getFileScanStorageKey(), payload);
-  } catch (e) {
-    console.log('Error saving file scan results:', e.message);
-  }
-
-  figma.ui.postMessage({
-    type: 'file-scan-complete',
-    pages: pageResults,
-    scannedAt: payload.scannedAt
-  });
-}
-
-async function loadLastFileScan() {
-  try {
-    var saved = await figma.clientStorage.getAsync(getFileScanStorageKey());
-    if (saved && saved.pages) {
-      figma.ui.postMessage({
-        type: 'file-scan-restored',
-        pages: saved.pages,
-        scannedAt: saved.scannedAt
-      });
-    }
-  } catch (e) {
-    console.log('Error loading saved file scan:', e.message);
-  }
-}
-
-async function clearLastFileScan() {
-  try {
-    await figma.clientStorage.deleteAsync(getFileScanStorageKey());
-  } catch (e) {
-    console.log('Error clearing saved file scan:', e.message);
-  }
-}
-
-async function goToPage(pageId) {
-  try {
-    var page = await figma.getNodeByIdAsync(pageId);
-    if (page && page.type === 'PAGE') {
-      await figma.setCurrentPageAsync(page);
-      figma.ui.postMessage({ type: 'page-changed', pageId: pageId, pageName: page.name });
-    }
-  } catch (e) {
-    figma.ui.postMessage({ type: 'error', message: 'Failed to switch page: ' + e.message });
-  }
-}
-
-loadLastFileScan();
+};
