@@ -1,1031 +1,2834 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #ffffff;
-            font-size: 11px;
-            color: #1e1e1e;
-            line-height: 1.4;
-        }
-        
-        .plugin-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid #e5e5e5;
-            background: #ffffff;
-        }
-        
-        .plugin-title {
-            margin: 0;
-            font-size: 13px;
-            font-weight: 500;
-            color: #1e1e1e;
-            letter-spacing: -0.2px;
-        }
-        
-        .plugin-content {
-            padding: 16px;
-        }
-        
-        .page-info {
-            color: #8c8c8c;
-            font-size: 10px;
-            margin-bottom: 16px;
-            padding: 8px 12px;
-            background: #f7f7f7;
-            border-radius: 6px;
-            border-left: 3px solid #0066ff;
-        }
-        
-        .scan-section {
-            margin-bottom: 16px;
-            display: flex;
-            gap: 8px;
-        }
-        
-        .scan-button {
-            background: #1e1e1e;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            flex: 1;
-            transition: all 0.15s ease;
-            min-height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .scan-button:hover {
-            background: #333333;
-            transform: translateY(-1px);
-        }
-        
-        .scan-button:active {
-            background: #000000;
-            transform: translateY(0);
-        }
-        
-        .scan-button:disabled {
-            background: #b3b3b3;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .fix-section {
-            margin-bottom: 16px;
-            padding: 12px;
-            background: #f7f7f7;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
-        }
-        
-        .section-title {
-            font-size: 12px;
-            font-weight: 500;
-            color: #1e1e1e;
-            margin-bottom: 4px;
-            letter-spacing: -0.1px;
-        }
-        
-        .fix-description {
-            font-size: 10px;
-            color: #8c8c8c;
-            margin-bottom: 12px;
-        }
-        
-        .fix-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .fix-button {
-            background: #0066ff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 7px 12px;
-            font-size: 10px;
-            font-weight: 500;
-            cursor: pointer;
-            flex: 1;
-            transition: all 0.15s ease;
-            min-height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .fix-button.secondary {
-            background: #ffffff;
-            color: #0066ff;
-            border: 1px solid #e5e5e5;
-        }
-        
-        .fix-button:hover {
-            background: #0052cc;
-            transform: translateY(-1px);
-        }
-        
-        .fix-button.secondary:hover {
-            background: #f7f7f7;
-            transform: translateY(-1px);
-        }
-        
-        .fix-button:active {
-            background: #0041a3;
-            transform: translateY(0);
-        }
-        
-        .fix-button.secondary:active {
-            background: #efefef;
-            transform: translateY(0);
-        }
-        
-        .fix-button:disabled {
-            background: #b3b3b3;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .fix-button.secondary:disabled {
-            background: #f5f5f5;
-            color: #b3b3b3;
-            border-color: #e5e5e5;
-            transform: none;
-        }
-        
-        .results-section {
-            margin-top: 24px;
-        }
-        
-        .results-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #000;
-            margin-bottom: 16px;
-        }
-        
-        .library-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            overflow: hidden;
-        }
-        
-        .library-header {
-            padding: 12px 16px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .library-header:hover {
-            background: #f0f0f0;
-        }
-        
-        .library-header.collapsed {
-            border-bottom: none;
-        }
-        
-        .library-title {
-            display: flex;
-            align-items: center;
-            flex: 1;
-        }
-        
-        .library-name {
-            font-weight: 600;
-            color: #000;
-            font-size: 13px;
-            margin-right: 8px;
-        }
-        
-        .element-count {
-            color: #666;
-            font-size: 11px;
-            font-weight: normal;
-        }
-        
-        .library-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .expand-icon {
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #666;
-            font-size: 12px;
-            transition: transform 0.2s;
-        }
-        
-        .expand-icon.expanded {
-            transform: rotate(90deg);
-        }
-        
-        .library-type {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .library-type.local {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-        
-        .library-type.remote {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-        
-        .library-elements {
-            padding: 0;
-            display: block;
-            transition: max-height 0.3s ease-out;
-            overflow: hidden;
-        }
-        
-        .library-elements.collapsed {
-            display: none;
-        }
-        
-        .element-item {
-            padding: 8px 16px;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            align-items: center;
-        }
-        
-        .element-item:last-child {
-            border-bottom: none;
-        }
-        
-        .element-content {
-            display: flex;
-            align-items: center;
-            flex: 1;
-        }
-        
-        .element-type {
-            background: #f5f5f5;
-            color: #666;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 500;
-            margin-right: 8px;
-            min-width: 60px;
-            text-align: center;
-        }
-        
-        .element-type.variable {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-        
-        .element-type.component {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-        
-        .element-type.style {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-        
-        .element-info {
-            flex: 1;
-        }
-        
-        .element-name {
-            color: #333;
-            font-size: 11px;
-            font-weight: 500;
-            margin-bottom: 2px;
-        }
-        
-        .node-name {
-            color: #666;
-            font-size: 10px;
-            font-style: italic;
-        }
-        
-        .inspect-button {
-            background: #1e1e1e;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 9px;
-            font-weight: 500;
-            cursor: pointer;
-            margin-left: 8px;
-            transition: all 0.15s ease;
-            min-height: 20px;
-        }
-        
-        .inspect-button:hover {
-            background: #333333;
-            transform: translateY(-1px);
-        }
-        
-        .inspect-button:active {
-            background: #000000;
-            transform: translateY(0);
-        }
-        
-        .fix-individual-button {
-            background: #0066ff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 9px;
-            font-weight: 500;
-            cursor: pointer;
-            margin-left: 4px;
-            transition: all 0.15s ease;
-            min-height: 20px;
-        }
-        
-        .fix-individual-button:hover {
-            background: #0052cc;
-            transform: translateY(-1px);
-        }
-        
-        .fix-individual-button:active {
-            background: #0041a3;
-            transform: translateY(0);
-        }
-        
-        .fix-individual-button:disabled {
-            background: #b3b3b3;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .element-actions {
-            display: flex;
-            gap: 4px;
-        }
-        
-        
-        .message {
-            padding: 12px;
-            border-radius: 6px;
-            margin: 16px 0;
-            font-size: 12px;
-        }
-        
-        .message.success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
-        }
-        
-        .message.error {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-        
-        .message.info {
-            background: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #bbdefb;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 32px 16px;
-            color: #999;
-            font-style: italic;
-            border: 2px dashed #e0e0e0;
-            border-radius: 8px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 24px 16px;
-            color: #666;
-        }
-        
-        .close-button {
-            background: #f0f0f0;
-            color: #666;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            font-size: 11px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 24px;
-        }
-        
-        .close-button:hover {
-            background: #e0e0e0;
-        }
-        
-        .cancel-button {
-            background: #ff5252;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            margin-top: 12px;
-            width: 100%;
-            transition: background 0.2s;
-        }
-        
-        .cancel-button:hover {
-            background: #e53935;
-        }
-        
-        .cancel-button:active {
-            background: #c62828;
-        }
-        
-        .stats {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            font-size: 11px;
-            color: #666;
-        }
-        
-        .accordion-controls {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        
-        .accordion-control {
-            background: #f0f0f0;
-            color: #666;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 10px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .accordion-control:hover {
-            background: #e0e0e0;
-        }
+<style>
+  /* Theme tokens alias Figma's own --figma-color-* set, which the sandbox injects
+     because code.js passes themeColors: true. The second argument of each var()
+     is the light-mode fallback, so the panel still looks right if the variables
+     are ever absent. This tracks the user's FIGMA theme, not the OS theme — a
+     user on a light OS with Figma in dark mode gets a dark panel. */
+  :root {
+    --bg: var(--figma-color-bg, #ffffff);
+    --bg-subtle: var(--figma-color-bg-secondary, #f5f5f5);
+    --bg-muted: var(--figma-color-bg-tertiary, #eeeeee);
+    --bg-hover: var(--figma-color-bg-hover, #f0f0f0);
+    --bg-selected: var(--figma-color-bg-selected, #e3f0ff);
+    --border: var(--figma-color-border, #e6e6e6);
+    --border-strong: var(--figma-color-border-strong, #cccccc);
+    --text: var(--figma-color-text, #1e1e1e);
+    --text-secondary: var(--figma-color-text-secondary, #6b6b6b);
+    --text-tertiary: var(--figma-color-text-tertiary, #8c8c8c);
+    --text-ondanger: var(--figma-color-text-ondanger, #ffffff);
+    --brand: var(--figma-color-bg-brand, #0d99ff);
+    --brand-hover: var(--figma-color-bg-brand-hover, #0b87e3);
+    --on-brand: var(--figma-color-text-onbrand, #ffffff);
+    --danger: var(--figma-color-bg-danger, #f24822);
+    --danger-tint: var(--figma-color-bg-danger-tertiary, #ffe0d9);
+    --danger-text: var(--figma-color-text-danger, #b3200a);
+    --success: var(--figma-color-bg-success, #14ae5c);
+    --success-tint: var(--figma-color-bg-success-tertiary, #d6f5e3);
+    --success-text: var(--figma-color-text-success, #0d7a41);
+    --warning-tint: var(--figma-color-bg-warning-tertiary, #fff1cc);
+    --warning-text: var(--figma-color-text-warning, #8a5300);
+  }
 
-        .cache-section {
-            margin: 16px 0;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  body { display: flex; flex-direction: column; }
 
-        .cache-status {
-            margin-top: 8px;
-            font-size: 11px;
-            color: #666;
-            line-height: 1.4;
-        }
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
+  .btn {
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    min-height: 26px;
+    white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { background: var(--bg-hover); }
+  .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+  .btn.primary:hover:not(:disabled) { background: var(--brand-hover); }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: var(--text-ondanger); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn.mini { padding: 2px 7px; min-height: 20px; border-radius: 4px; font-size: 10px; }
+  .btn.icon { width: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 
-        .cache-status.ready {
-            color: #2e7d32;
-        }
+  /* ── Top bar ──────────────────────────────────────────────────────────── */
+  .topbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar .title { font-size: 12px; font-weight: 600; margin-right: auto; }
+  .topbar .file { color: var(--text-tertiary); font-weight: 400; margin-left: 6px; }
 
-        .cache-status.stale {
-            color: #b26a00;
-        }
-    </style>
+  /* ── Body ─────────────────────────────────────────────────────────────── */
+  .body { flex: 1 1 auto; display: flex; min-height: 0; }
+
+  .sidebar {
+    flex: 0 0 244px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    background: var(--bg-subtle);
+  }
+  .summary {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-head { font-weight: 600; font-size: 11px; }
+  .summary-sub { color: var(--text-secondary); font-size: 10px; margin-top: 1px; }
+  .summary-track {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--bg-muted);
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .summary-fill {
+    height: 100%;
+    width: 0;
+    background: var(--brand);
+    transition: width 0.15s linear;
+  }
+  .sidebar-scroll { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+  .section-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 6px 12px;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-head .spacer { margin-left: auto; }
+  .section-head label { display: inline-flex; align-items: center; gap: 4px; text-transform: none; letter-spacing: 0; font-weight: 500; cursor: pointer; }
+  .section-head input { margin: 0; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .row:hover { background: var(--bg-hover); }
+  .row.active { background: var(--bg-selected); }
+  .row.multi { box-shadow: inset 2px 0 0 var(--brand); }
+  .row.lead { font-weight: 600; }
+  .row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+  .row .name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .row.ignored .name { text-decoration: line-through; color: var(--text-tertiary); }
+  .row.current .name::after {
+    content: 'open';
+    margin-left: 6px;
+    font-size: 8px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .row .sub { font-size: 9px; color: var(--text-tertiary); }
+
+  .badge {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 17px;
+    padding: 0 6px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+  }
+  .badge.has { background: var(--danger-tint); color: var(--danger-text); }
+  .badge.clean { background: var(--success-tint); color: var(--success-text); }
+  .badge.unknown { background: transparent; color: var(--text-tertiary); font-weight: 400; }
+  .badge.queued { background: transparent; color: var(--text-tertiary); font-weight: 400; }
+  .stale-dot {
+    flex: 0 0 auto;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--warning-text);
+  }
+
+  .spinner {
+    flex: 0 0 auto;
+    width: 11px; height: 11px;
+    border: 2px solid var(--brand);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.65s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Main pane ────────────────────────────────────────────────────────── */
+  .main { flex: 1 1 auto; overflow-y: auto; min-height: 0; padding: 14px 16px 20px; }
+
+  .detail-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
+  .detail-title { font-size: 14px; font-weight: 600; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .detail-meta { font-size: 10px; color: var(--text-secondary); margin-bottom: 10px; }
+  .detail-meta .warn { color: var(--warning-text); font-weight: 500; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+
+  .kindbar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  .chip b { font-size: 11px; color: var(--text); }
+  .chip.hot { background: var(--danger-tint); border-color: transparent; color: var(--danger-text); }
+  .chip.hot b { color: var(--danger-text); }
+
+  .empty {
+    padding: 34px 18px;
+    text-align: center;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+  }
+  .empty .icon { color: var(--text-tertiary); margin-bottom: 8px; display: block; }
+  .empty h3 { margin: 0 0 4px; font-size: 12px; color: var(--text); }
+  .empty p { margin: 0 0 12px; font-size: 11px; }
+  .empty.ok { border-style: solid; border-color: var(--success); }
+
+  /* ── Groups ───────────────────────────────────────────────────────────── */
+  .group { border: 1px solid var(--border); border-radius: 7px; margin-bottom: 8px; overflow: hidden; }
+  .group.picked { border-color: var(--brand); box-shadow: inset 2px 0 0 var(--brand); }
+  .group-check { flex: 0 0 auto; margin: 0; cursor: pointer; }
+
+  .batchbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--brand);
+    border-radius: 7px;
+    background: var(--bg-selected);
+  }
+  .batchbar .count { flex: 1 1 auto; min-width: 0; font-weight: 500; }
+  .batchbar .sub { font-weight: 400; color: var(--text-secondary); }
+  .selectall {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 2px 8px;
+    font-size: 10px; color: var(--text-secondary);
+  }
+  .selectall input { margin: 0; cursor: pointer; }
+  .group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg-subtle);
+    cursor: pointer;
+  }
+  .group-head:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+  .caret { flex: 0 0 auto; width: 8px; color: var(--text-tertiary); transition: transform 0.12s; }
+  .group.open .caret { transform: rotate(90deg); }
+  .kind-tag {
+    flex: 0 0 auto;
+    min-width: 62px;
+    text-align: center;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 600;
+  }
+  .kind-tag.component { background: var(--warning-tint); color: var(--warning-text); }
+  .kind-tag.variable { background: var(--success-tint); color: var(--success-text); }
+  .group-body { flex: 1 1 auto; min-width: 0; }
+  .group-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Chips live outside the truncating name, or a long token name pushes them
+     under the buttons instead of shortening itself. */
+  .group-tags { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; }
+  .group-src { font-size: 9px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-count { flex: 0 0 auto; font-size: 10px; color: var(--text-secondary); }
+  .group-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+
+  .arrow { color: var(--text-tertiary); margin: 0 4px; }
+  .target { color: var(--text); }
+  .conf {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 0 5px;
+    border-radius: 7px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .conf.exact, .conf.strong { background: var(--success-tint); color: var(--success-text); }
+  .conf.weak { background: var(--warning-tint); color: var(--warning-text); }
+  .conf.risky { background: var(--danger-tint); color: var(--danger-text); }
+  .conf.none { background: var(--bg-muted); color: var(--text-secondary); }
+
+  .occ {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px 5px 28px;
+    border-top: 1px solid var(--border);
+  }
+  .occ.fixing { opacity: 0.5; pointer-events: none; }
+  .occ.stale { opacity: 0.5; }
+  .occ.fixed { background: var(--success-tint); }
+  .occ-info { flex: 1 1 auto; min-width: 0; }
+  .occ-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .occ-detail { font-size: 9px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .occ-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+  .trunc-note { padding: 5px 10px 5px 28px; border-top: 1px solid var(--border); font-size: 9px; color: var(--text-tertiary); }
+
+  .banner {
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 10px;
+  }
+  .banner.warn { background: var(--warning-tint); color: var(--warning-text); }
+  .banner.err { background: var(--danger-tint); color: var(--danger-text); }
+
+  /* ── Progress strip ───────────────────────────────────────────────────── */
+  .progress {
+    flex: 0 0 auto;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-subtle);
+  }
+  .progress.visible { display: flex; }
+  .progress-top { display: flex; align-items: center; gap: 8px; font-size: 10px; }
+  .progress-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+  .progress-stats { flex: 0 0 auto; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .progress-track { height: 4px; border-radius: 2px; background: var(--bg-muted); overflow: hidden; }
+  .progress-fill { height: 100%; width: 0; background: var(--brand); transition: width 0.12s linear; }
+  .progress.indeterminate .progress-fill {
+    width: 34% !important;
+    animation: slide 1.1s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0% { margin-left: -34%; }
+    100% { margin-left: 100%; }
+  }
+  .progress-bottom { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-secondary); }
+  .progress-item { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Overlays ─────────────────────────────────────────────────────────── */
+  .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.32); display: none; z-index: 100; }
+  .backdrop.open { display: block; }
+
+  .modal {
+    position: fixed;
+    top: 6%; left: 50%;
+    transform: translateX(-50%);
+    width: 540px;
+    max-height: 84vh;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    box-shadow: 0 14px 44px rgba(0,0,0,0.24);
+    display: none;
+    flex-direction: column;
+    z-index: 101;
+    overflow: hidden;
+  }
+  .modal.open { display: flex; }
+  .modal-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .modal-title { flex: 1 1 auto; font-size: 12px; font-weight: 600; }
+  .modal-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; min-height: 0; }
+  .modal-foot { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .modal-foot .spacer { margin-left: auto; }
+
+  .search {
+    width: 100%;
+    padding: 6px 9px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    margin-bottom: 8px;
+  }
+  .search:focus { outline: none; border-color: var(--brand); }
+  .cand-list { border: 1px solid var(--border); border-radius: 6px; max-height: 320px; overflow-y: auto; }
+  .cand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 9px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .cand:last-child { border-bottom: none; }
+  .cand:hover, .cand.sel { background: var(--bg-selected); }
+  .cand-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cand-flag { flex: 0 0 auto; font-size: 9px; font-weight: 600; padding: 0 5px; border-radius: 7px; }
+  .cand-flag.best { background: var(--success-tint); color: var(--success-text); }
+  .cand-flag.risky { background: var(--danger-tint); color: var(--danger-text); }
+
+  .plan-section { margin-bottom: 14px; }
+  .plan-section:last-child { margin-bottom: 0; }
+  .plan-head { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 6px; }
+  .plan-desc { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
+  .plan-list { border: 1px solid var(--border); border-radius: 6px; max-height: 190px; overflow-y: auto; }
+  .plan-row { display: flex; align-items: center; gap: 7px; padding: 4px 9px; border-bottom: 1px solid var(--border); }
+  .plan-row:last-child { border-bottom: none; }
+  .plan-row .from { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-row .to { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+  .plan-empty { padding: 12px; text-align: center; color: var(--text-tertiary); font-size: 10px; }
+
+  .drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 320px;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    box-shadow: -6px 0 22px rgba(0,0,0,0.14);
+    transform: translateX(100%);
+    transition: transform 0.18s ease;
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer h4 {
+    margin: 16px 0 6px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .drawer h4:first-child { margin-top: 0; }
+  .drawer .desc { font-size: 10px; color: var(--text-secondary); margin-bottom: 7px; }
+  .opt { display: flex; gap: 7px; padding: 5px 0; align-items: flex-start; cursor: pointer; }
+  .opt input { margin: 2px 0 0; flex: 0 0 auto; }
+  .opt .opt-text b { display: block; font-weight: 500; }
+  .opt .opt-text span { font-size: 10px; color: var(--text-secondary); }
+  .pagelist { border: 1px solid var(--border); border-radius: 6px; max-height: 180px; overflow-y: auto; }
+  .pagelist label { display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .pagelist label:last-child { border-bottom: none; }
+  .counts { font-size: 10px; color: var(--text-secondary); margin-top: 6px; }
+
+  .ctx {
+    position: fixed;
+    z-index: 120;
+    min-width: 168px;
+    padding: 4px 0;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+  }
+  .ctx div { padding: 5px 11px; cursor: pointer; }
+  .ctx div:hover { background: var(--bg-hover); }
+
+  .toast {
+    position: fixed;
+    bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    max-width: 76%;
+    padding: 7px 13px;
+    border-radius: 6px;
+    background: var(--text);
+    color: var(--bg);
+    font-size: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; }
+  .toast.error { background: var(--danger); color: var(--text-ondanger); }
+  .toast.success { background: var(--success); color: var(--text-ondanger); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+</style>
 </head>
 <body>
-    <div class="plugin-header">
-        <h1 class="plugin-title">Library Scanner</h1>
-    </div>
-    
-    <div class="plugin-content">
-        <div id="pageInfo" class="page-info" style="display: none;"></div>
-    
-    <div class="scan-section">
-        <button id="scanCurrentButton" class="scan-button" onclick="scanCurrentPage()">
-            Current Page
-        </button>
-        <button id="scanAllButton" class="scan-button" onclick="scanAllPages()">
-            All Pages
-        </button>
-        <button id="scanSelectionButton" class="scan-button" onclick="scanSelection()">
-            Selection
-        </button>
-    </div>
+  <div class="topbar">
+    <span class="title">Obra remote libraries<span class="file" id="fileName"></span></span>
+    <button class="btn primary" id="scanAllBtn">Scan file</button>
+    <button class="btn" id="fixAllBtn" title="Review and apply fixes across every scanned page">Fix file</button>
+    <button class="btn" id="scanSelBtn">Scan selection</button>
+    <button class="btn icon" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+  </div>
 
-    <div class="cache-section">
-        <div class="section-title">Local Index</div>
-        <div class="fix-description">Catalog of every local component, variable and style across all pages. Used by Fix to find swap targets. Build once, then fix per-frame.</div>
-        <button id="refreshCacheButton" class="scan-button" onclick="refreshCache()">
-            Refresh Local Index
-        </button>
-        <div id="cacheStatus" class="cache-status">Not built — fix will trigger an on-demand build</div>
-    </div>
-    
-    <div class="fix-section" id="fixSection" style="display: none;">
-        <div class="section-title">Auto-Fix Remote Styles</div>
-        <div class="fix-description">Replace remote styles with matching local styles</div>
-        <div class="fix-buttons" id="fixButtons">
-            <button id="fixCurrentButton" class="fix-button" onclick="fixCurrentPage()">
-                Fix Current Page
-            </button>
-            <button id="fixAllButton" class="fix-button secondary" onclick="fixAllPages()">
-                Fix All Pages
-            </button>
+  <div class="body">
+    <aside class="sidebar">
+      <div class="summary" id="summary"></div>
+      <div class="sidebar-scroll">
+        <div class="section-head">Whole file</div>
+        <div id="specialRows"></div>
+        <div class="section-head">
+          <span id="pagesHeadLabel">Pages</span>
+          <span class="spacer"></span>
+          <label title="Hide pages with no remote references"><input type="checkbox" id="filterRemote" />remote only</label>
         </div>
+        <div id="pageRows"></div>
+      </div>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+
+  <div class="progress" id="progress">
+    <div class="progress-top">
+      <span class="progress-label" id="progLabel">Scanning…</span>
+      <span class="progress-stats" id="progStats"></span>
     </div>
-    
-    <div id="message"></div>
-    
-    <div class="results-section">
-        <div id="results" style="display: none;">
-            <div class="results-title">Libraries Found</div>
-            <div id="stats" class="stats" style="display: none;"></div>
-            <div class="accordion-controls" id="accordionControls" style="display: none;">
-                <button class="accordion-control" onclick="expandAll()">Expand All</button>
-                <button class="accordion-control" onclick="collapseAll()">Collapse All</button>
-            </div>
-            <div id="libraryList"></div>
-        </div>
+    <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+    <div class="progress-bottom">
+      <span class="spinner"></span>
+      <span class="progress-item" id="progItem"></span>
+      <span id="progFound"></span>
+      <button class="btn mini danger" id="progStop">Stop</button>
     </div>
-    
+  </div>
 
-    <script>
-        let scanResults = [];
-        let expandedLibraries = new Set(); // Track which libraries are expanded
-        let currentScanType = null; // Track the current scan type
+  <div aria-live="polite" class="sr-only" id="live"></div>
+  <div class="toast" id="toast"></div>
 
-        function refreshCache() {
-            const btn = document.getElementById('refreshCacheButton');
-            btn.disabled = true;
-            btn.textContent = 'Building index…';
-            document.getElementById('cacheStatus').textContent = 'Loading all pages and indexing…';
-            document.getElementById('cacheStatus').className = 'cache-status';
-            parent.postMessage({ pluginMessage: { type: 'refresh-local-cache' } }, '*');
+  <div class="backdrop" id="backdrop"></div>
+
+  <div class="modal" id="planModal" role="dialog" aria-modal="true" aria-labelledby="planTitle">
+    <div class="modal-head">
+      <span class="modal-title" id="planTitle">Review fixes</span>
+      <button class="btn mini" id="planClose">Close</button>
+    </div>
+    <div class="modal-body" id="planBody"></div>
+    <div class="modal-foot">
+      <span id="planSummary" style="font-size:10px;color:var(--text-secondary)"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="planCancel">Cancel</button>
+      <button class="btn primary" id="planApply">Apply</button>
+    </div>
+  </div>
+
+  <div class="modal" id="remapModal" role="dialog" aria-modal="true" aria-labelledby="remapTitle">
+    <div class="modal-head">
+      <span class="modal-title" id="remapTitle">Remap</span>
+      <button class="btn mini" id="remapClose">Close</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:8px" id="remapCurrent"></div>
+      <input class="search" id="remapSearch" placeholder="Filter local names…" autocomplete="off" />
+      <div class="cand-list" id="remapList"><div class="plan-empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal-head">
+      <span class="modal-title">Settings</span>
+      <button class="btn mini" id="drawerClose">Close</button>
+    </div>
+    <div class="modal-body">
+      <h4>Auto-fix safety</h4>
+      <div class="desc">Which name matches "Fix" is allowed to apply without asking. Anything weaker is listed for review instead of being applied.</div>
+      <label class="opt">
+        <input type="radio" name="autoApply" value="strong" />
+        <span class="opt-text"><b>Exact names only</b><span>Identical names, or the same name with a library prefix, different casing or separators. Recommended.</span></span>
+      </label>
+      <label class="opt">
+        <input type="radio" name="autoApply" value="weak" />
+        <span class="opt-text"><b>Also allow partial paths</b><span>Accepts a matching last two segments, e.g. <code>Lib/color/red/500</code> → <code>brand/red/500</code>.</span></span>
+      </label>
+
+      <h4>Instance depth</h4>
+      <div class="desc">How far into component instances to look. At every depth, layers that are
+        <b>hidden inside an instance</b> are skipped — that is what makes traversal several times
+        faster, and hidden instance content comes from the main component anyway.</div>
+      <label class="opt">
+        <input type="radio" name="depth" value="shallow" />
+        <span class="opt-text"><b>Instance only</b><span>Fastest. Reports each instance once; ignores anything inside it.</span></span>
+      </label>
+      <label class="opt">
+        <input type="radio" name="depth" value="overrides" />
+        <span class="opt-text"><b>Instance + overrides</b><span>Also checks layers the file genuinely overrode. Recommended — inherited content belongs to the main component, not to this file.</span></span>
+      </label>
+      <label class="opt">
+        <input type="radio" name="depth" value="deep" />
+        <span class="opt-text"><b>Every nested layer</b><span>Slow on large files, and most findings will be inherited content you cannot fix here.</span></span>
+      </label>
+
+      <h4>Ignored pages</h4>
+      <div class="desc">Skipped by "Scan file". Saved on the document, so the whole team shares it.</div>
+      <div class="pagelist" id="ignoreList"></div>
+
+      <h4>Caches</h4>
+      <div class="desc">Per-page counts live on the document. The local index is the catalog of local components, styles and variables used to find rebind targets.</div>
+      <button class="btn" id="rescanAllBtn">Rescan every page</button>
+      <button class="btn" id="rebuildBtn">Rebuild local index</button>
+      <button class="btn" id="clearIndexBtn">Clear scan index</button>
+      <div class="counts" id="localCounts">Local index not built yet.</div>
+    </div>
+  </aside>
+
+<script>
+  // ── State ────────────────────────────────────────────────────────────────
+  var state = {
+    pages: [],            // [{id, name, ignored, entry, hasDetails}]
+    pageById: {},
+    currentPageId: null,
+    settings: { depth: 'overrides', autoApply: 'strong', showLocal: false },
+    localCounts: null,
+    view: { kind: 'page', pageId: null },  // 'page' | 'selection' | 'document'
+    reports: {},          // pageId -> report
+    selectionReport: null,
+    docReport: null,
+    componentReport: null,
+    selectionCount: 0,
+    scanning: false,
+    scanningPageId: null,
+    queuedPageIds: {},
+    scanQueueTotal: 0,
+    scanQueueDone: 0,
+    openGroups: {},       // groupKey -> true
+    filterRemoteOnly: false,
+    plan: null,
+    planScopes: null,
+    fixAllPending: 0,
+    lastFix: null,          // grouped outcome of the most recent apply
+    pendingReconcile: null, // {pageId, before, applied} checked against the rescan
+    selectedGroups: {},     // groupKey -> true, for batch actions
+    selectedGroupScope: null, // which report the selection belongs to
+    groupAnchor: null,      // shift-range origin within the group list
+    remap: null,
+    errorByPage: {},
+    bootScanned: false,
+    selectedPageIds: [],   // multi-select, in visible order
+    anchorPageId: null,    // shift-range origin
+    // Pages the SANDBOX holds references for this session. Not the same as
+    // having the rows on this side: a whole-file scan deliberately ships counts
+    // only, but those pages are still fixable.
+    hasRefs: {}
+  };
+
+  function send(type, extra) {
+    var msg = { type: type };
+    if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) msg[k] = extra[k];
+    parent.postMessage({ pluginMessage: msg }, '*');
+  }
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function relTime(ts) {
+    if (!ts) return 'never scanned';
+    var diff = Date.now() - ts;
+    if (diff < 10000) return 'just now';
+    if (diff < 60000) return Math.floor(diff / 1000) + 's ago';
+    if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return Math.floor(diff / 86400000) + 'd ago';
+  }
+
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+  // The rows actually on screen. A shift-range has to span what the user can see,
+  // not the underlying page order — otherwise filtering to "remote only" and
+  // shift-clicking silently pulls in hidden pages.
+  function visiblePages() {
+    if (!state.filterRemoteOnly) return state.pages;
+    return state.pages.filter(function (page) {
+      var entry = page.entry;
+      return state.scanningPageId === page.id ||
+        (entry && entry.scannedAt && entry.remoteTotal > 0);
+    });
+  }
+
+  function selectedPages() {
+    return state.selectedPageIds
+      .map(function (id) { return state.pageById[id]; })
+      .filter(Boolean);
+  }
+
+  function isSelected(pageId) {
+    return state.selectedPageIds.indexOf(pageId) !== -1;
+  }
+
+  // One entry point for every click shape, so the anchor and the view stay in
+  // step no matter which modifier was held.
+  function selectPage(pageId, modifiers) {
+    var mods = modifiers || {};
+    var visible = visiblePages();
+    var ids = visible.map(function (p) { return p.id; });
+
+    if (mods.shift && state.anchorPageId && isVisibleId(ids, state.anchorPageId)) {
+      var from = ids.indexOf(state.anchorPageId);
+      var to = ids.indexOf(pageId);
+      if (from !== -1 && to !== -1) {
+        var lo = Math.min(from, to), hi = Math.max(from, to);
+        state.selectedPageIds = ids.slice(lo, hi + 1);
+      }
+    } else if (mods.toggle) {
+      var at = state.selectedPageIds.indexOf(pageId);
+      if (at === -1) state.selectedPageIds = state.selectedPageIds.concat([pageId]);
+      else if (state.selectedPageIds.length > 1) {
+        state.selectedPageIds = state.selectedPageIds.filter(function (id) { return id !== pageId; });
+      }
+      state.anchorPageId = pageId;
+    } else {
+      state.selectedPageIds = [pageId];
+      state.anchorPageId = pageId;
+    }
+
+    // Keep the list in document order so "pages 3-7" reads as it looks.
+    var order = {};
+    state.pages.forEach(function (p, i) { order[p.id] = i; });
+    state.selectedPageIds.sort(function (a, b) { return order[a] - order[b]; });
+
+    if (state.selectedPageIds.length > 1) {
+      state.view = { kind: 'pages' };
+      renderSidebar();
+      renderMain();
+    } else {
+      setView({ kind: 'page', pageId: state.selectedPageIds[0] });
+    }
+  }
+
+  function isVisibleId(ids, id) { return ids.indexOf(id) !== -1; }
+
+  var ICON = {
+    search: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 20 20"/></svg>',
+    check: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>',
+    layers: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4l8 4-8 4-8-4 8-4z"/><path d="M4 12l8 4 8-4"/></svg>',
+    warn: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4l8 15H4l8-15z"/><path d="M12 10v4"/><path d="M12 16.5v.5"/></svg>'
+  };
+
+  // ── Summary ──────────────────────────────────────────────────────────────
+  function renderSummary() {
+    var scanned = 0, remote = 0, pending = 0, dirty = 0, active = 0;
+    for (var i = 0; i < state.pages.length; i++) {
+      var page = state.pages[i];
+      if (page.ignored) continue;
+      active++;
+      if (page.entry && page.entry.scannedAt) {
+        scanned++;
+        remote += page.entry.remoteTotal;
+        if (page.entry.dirty) dirty++;
+      } else {
+        pending++;
+      }
+    }
+
+    var head, sub;
+    if (state.scanning && state.scanQueueTotal) {
+      head = 'Scanning page ' + Math.min(state.scanQueueDone + 1, state.scanQueueTotal) + ' of ' + state.scanQueueTotal;
+      sub = plural(remote, 'remote reference') + ' found so far';
+    } else if (!scanned) {
+      head = 'Not scanned yet';
+      sub = plural(active, 'page') + ' to check';
+    } else {
+      head = remote === 0
+        ? (pending ? 'No remote references yet' : 'No remote references')
+        : plural(remote, 'remote reference');
+      var bits = [scanned + ' of ' + active + ' pages scanned'];
+      if (pending) bits.push(plural(pending, 'page') + ' left');
+      if (dirty) bits.push(dirty + ' changed since scan');
+      sub = bits.join(' · ');
+    }
+
+    var pct = active ? Math.round((scanned / active) * 100) : 0;
+    document.getElementById('summary').innerHTML =
+      '<div class="summary-head">' + esc(head) + '</div>' +
+      '<div class="summary-sub">' + esc(sub) + '</div>' +
+      '<div class="summary-track"><div class="summary-fill" style="width:' + pct + '%"></div></div>';
+  }
+
+  // ── Sidebar ──────────────────────────────────────────────────────────────
+  function badgeFor(page) {
+    if (state.scanningPageId === page.id) return '<span class="spinner"></span>';
+    if (state.queuedPageIds[page.id]) return '<span class="badge queued" title="Queued">…</span>';
+    if (page.ignored) return '<span class="badge unknown" title="Ignored">—</span>';
+    var entry = page.entry;
+    if (!entry || !entry.scannedAt) return '<span class="badge unknown" title="Not scanned yet">–</span>';
+    if (entry.remoteTotal > 0) {
+      return '<span class="badge has" title="' + esc(plural(entry.remoteTotal, 'remote reference')) + '">' + entry.remoteTotal + '</span>';
+    }
+    return '<span class="badge clean" title="No remote references">0</span>';
+  }
+
+  function renderSpecialRows() {
+    var rows = [];
+
+    // First in the list on purpose: a reference inside a main component is the
+    // upstream cause of the same reference on every instance of it.
+    var cr = state.componentReport;
+    var compBadge = !cr
+      ? '<span class="badge unknown" title="Not analysed yet">–</span>'
+      : (cr.totalComponents > 0
+        ? '<span class="badge has">' + cr.totalComponents + '</span>'
+        : '<span class="badge clean">0</span>');
+    rows.push(
+      '<div class="row' + (state.view.kind === 'components' ? ' active' : '') + '" data-act="components" tabindex="0" role="button">' +
+        '<span class="name"><b>Components first</b><span class="sub"> · fix the source</span></span>' + compBadge +
+      '</div>'
+    );
+
+    var docCount = state.docReport ? state.docReport.total : null;
+    var docBadge = docCount === null
+      ? '<span class="badge unknown" title="Not checked yet">–</span>'
+      : (docCount > 0
+        ? '<span class="badge has">' + docCount + '</span>'
+        : '<span class="badge clean">0</span>');
+    rows.push(
+      '<div class="row' + (state.view.kind === 'document' ? ' active' : '') + '" data-act="document" tabindex="0" role="button">' +
+        '<span class="name"><b>Local tokens</b><span class="sub"> · variables &amp; styles</span></span>' + docBadge +
+      '</div>'
+    );
+
+    var selBadge = state.selectionReport
+      ? (state.selectionReport.remoteTotal > 0
+        ? '<span class="badge has">' + state.selectionReport.remoteTotal + '</span>'
+        : '<span class="badge clean">0</span>')
+      : '<span class="badge unknown">–</span>';
+    rows.push(
+      '<div class="row' + (state.view.kind === 'selection' ? ' active' : '') + '" data-act="selection" tabindex="0" role="button">' +
+        '<span class="name"><b>Selection</b><span class="sub"> · ' + esc(plural(state.selectionCount, 'layer')) + '</span></span>' + selBadge +
+      '</div>'
+    );
+
+    document.getElementById('specialRows').innerHTML = rows.join('');
+  }
+
+  function renderPageRows() {
+    var frag = document.createDocumentFragment();
+    var shown = 0;
+    for (var i = 0; i < state.pages.length; i++) {
+      var page = state.pages[i];
+      if (state.filterRemoteOnly) {
+        var entry = page.entry;
+        var interesting = state.scanningPageId === page.id ||
+          (entry && entry.scannedAt && entry.remoteTotal > 0);
+        if (!interesting) continue;
+      }
+      shown++;
+      var classes = ['row'];
+      if (page.ignored) classes.push('ignored');
+      if (isSelected(page.id) && (state.view.kind === 'page' || state.view.kind === 'pages')) {
+        classes.push('active');
+        if (state.view.kind === 'pages') {
+          classes.push('multi');
+          if (page.id === state.anchorPageId) classes.push('lead');
+        }
+      }
+      if (page.id === state.currentPageId) classes.push('current');
+
+      var stale = (page.entry && page.entry.dirty && page.entry.scannedAt)
+        ? '<span class="stale-dot" title="Changed since the last scan"></span>' : '';
+
+      var el = document.createElement('div');
+      el.className = classes.join(' ');
+      el.setAttribute('data-page-id', page.id);
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'button');
+      el.innerHTML = '<span class="name" title="' + esc(page.name) + '">' + esc(page.name) + '</span>' +
+        stale + badgeFor(page);
+      frag.appendChild(el);
+    }
+    var host = document.getElementById('pageRows');
+    host.innerHTML = '';
+    if (!shown) {
+      var note = document.createElement('div');
+      note.style.cssText = 'padding:10px 12px;font-size:10px;color:var(--text-tertiary)';
+      note.textContent = state.filterRemoteOnly
+        ? 'No scanned page has remote references.'
+        : 'This document has no pages.';
+      host.appendChild(note);
+    } else {
+      host.appendChild(frag);
+    }
+  }
+
+  function renderSidebar() {
+    renderSummary();
+    renderSpecialRows();
+    renderPageRows();
+    refreshFixAllButton();
+    var head = document.getElementById('pagesHeadLabel');
+    if (head) {
+      head.textContent = state.selectedPageIds.length > 1
+        ? state.selectedPageIds.length + ' pages selected'
+        : 'Pages';
+    }
+  }
+
+  // ── Main pane ────────────────────────────────────────────────────────────
+  function renderMain() {
+    var host = document.getElementById('main');
+    syncGroupSelectionScope();
+    if (state.view.kind === 'selection') return renderSelectionView(host);
+    if (state.view.kind === 'document') return renderDocumentView(host);
+    if (state.view.kind === 'components') return renderComponentsView(host);
+    if (state.view.kind === 'pages') return renderPagesView(host);
+    return renderPageView(host);
+  }
+
+  function emptyState(icon, title, body, ctaId, ctaLabel, ok) {
+    return '<div class="empty' + (ok ? ' ok' : '') + '">' + icon +
+      '<h3>' + esc(title) + '</h3><p>' + body + '</p>' +
+      (ctaId ? '<button class="btn primary" id="' + ctaId + '">' + esc(ctaLabel) + '</button>' : '') +
+      '</div>';
+  }
+
+  function kindBar(report) {
+    var local = report.localCounts || { component: 0, style: 0, variable: 0 };
+    var localTotal = local.component + local.style + local.variable;
+    return '<div class="kindbar">' +
+      chip('components', report.byKind.component) +
+      chip('styles', report.byKind.style) +
+      chip('variables', report.byKind.variable) +
+      '<span class="chip"><b>' + localTotal + '</b> local, already fine</span>' +
+      '</div>';
+  }
+
+  function chip(label, count) {
+    return '<span class="chip' + (count > 0 ? ' hot' : '') + '"><b>' + count + '</b> remote ' + label + '</span>';
+  }
+
+  function renderPageView(host) {
+    var pageId = state.view.pageId;
+    var page = pageId ? state.pageById[pageId] : null;
+    if (!page) {
+      host.innerHTML = emptyState(ICON.layers, 'Pick a page',
+        'Choose a page on the left, or scan the whole file to fill in every count.<br>' +
+        'Shift-click a second page to select a range, ' +
+        (navigator.platform.indexOf('Mac') === 0 ? '\u2318' : 'Ctrl') +
+        '-click to add one, then fix them together.',
+        'ctaScanAll', 'Scan file');
+      wire(host);
+      return;
+    }
+
+    var entry = page.entry;
+    var report = state.reports[pageId];
+    var err = state.errorByPage[pageId];
+
+    var metaBits = [];
+    if (page.ignored) metaBits.push('<span class="warn">Ignored — "Scan file" skips this page.</span>');
+    else if (entry && entry.scannedAt) {
+      metaBits.push('Scanned ' + esc(relTime(entry.scannedAt)));
+      metaBits.push(plural(entry.remoteTotal, 'remote reference'));
+      if (entry.nodeCount) metaBits.push(entry.nodeCount.toLocaleString() + ' layers');
+      if (entry.dirty) metaBits.push('<span class="warn">changed since — rescan to be sure</span>');
+    } else {
+      metaBits.push('Never scanned');
+    }
+
+    var remote = entry ? entry.remoteTotal : 0;
+    // Fixing needs the references themselves, which only exist after a scan in
+    // this session. A count restored from the document is not enough — offering
+    // Fix on it opens a plan that can only say "nothing to change".
+    var autoCount = autoFixableCount(report, state.settings.autoApply);
+    var canFixPage = remote > 0 && !page.ignored && !!state.hasRefs[page.id] &&
+      (autoCount === null || autoCount > 0);
+    var fixLabel = page.ignored ? 'Page ignored'
+      : remote === 0 ? 'Nothing to fix'
+      : !state.hasRefs[page.id] ? 'Scan page first'
+      : autoCount === null ? 'Review fixes (' + remote + ')'
+      : autoCount === 0 ? 'All ' + remote + ' need review'
+      : 'Fix ' + autoCount + ' of ' + remote;
+    // Exact-only is the conservative pass: identical names, nothing inferred.
+    // Worth its own button because it is the one people are willing to run
+    // unattended across a whole file.
+    var exactGroups = exactGroupsOf(report);
+    var exactRefs = countRefs(exactGroups);
+
+    // Per-kind passes. Component swaps are the ones that restructure a file, so
+    // being able to take the variables and leave the components alone is a
+    // genuinely different appetite for risk, not just a filter.
+    var KINDS = [
+      { key: 'variable',  one: 'variable',  many: 'variables' },
+      { key: 'style',     one: 'style',     many: 'styles' },
+      { key: 'component', one: 'component', many: 'components' }
+    ];
+    var kindButtons = '';
+    if (report) {
+      var present = KINDS.map(function (k) {
+        return { k: k, groups: autoFixableGroups(report, state.settings.autoApply, k.key) };
+      }).filter(function (x) { return x.groups.length > 0; });
+      // With only one kind on the page the main button already says the same
+      // thing, so there is nothing to separate out.
+      if (present.length > 1) {
+        kindButtons = present.map(function (x) {
+          var n = countRefs(x.groups);
+          return '<button class="btn" data-act="fix-kind" data-kind="' + x.k.key + '">Fix ' + n + ' ' +
+            (n === 1 ? x.k.one : x.k.many) + '</button>';
+        }).join('');
+      }
+    }
+
+    var actions = '<div class="actions">' +
+      '<button class="btn" id="gotoBtn">Go to page</button>' +
+      '<button class="btn" id="rescanBtn">' + (report ? 'Rescan page' : 'Scan page') + '</button>' +
+      '<button class="btn primary" id="fixBtn"' + (canFixPage ? '' : ' disabled') + '>' +
+        esc(fixLabel) + '</button>' +
+      // Only worth a button when it is genuinely more conservative than the main
+      // one. At the default threshold the two differ by casing, separators and
+      // library prefixes, so on many pages they are the same number — and a
+      // second button that does the identical thing is just noise.
+      (exactRefs && autoCount !== null && exactRefs < autoCount
+        ? '<button class="btn" data-act="fix-exact" title="Rebind only references whose name matches a local one exactly — nothing inferred">' +
+          'Fix ' + exactRefs + ' exact</button>'
+        : '') +
+      kindButtons +
+      '</div>';
+
+    var reviewNote = '';
+    if (report && autoCount !== null && autoCount < remote) {
+      var rest = remote - autoCount;
+      var stripCount = report.unfixableVariableCount || 0;
+      reviewNote = '<div class="banner warn">' + rest + ' of these ' +
+        (rest === 1 ? 'is' : 'are') + ' too uncertain to rebind automatically — the name does not ' +
+        'match closely enough, several local candidates share it, or the reference cannot be ' +
+        'rewritten through the API. Use <b>Fix</b> or <b>Remap…</b> on a row to decide each one, ' +
+        'or loosen the threshold in Settings.' +
+        (stripCount
+          ? '<br><br><b>' + stripCount + '</b> ' + (stripCount === 1 ? 'is a variable' : 'are variables') +
+            ' with no local equivalent at all. Those can be unbound instead: the layer keeps the ' +
+            'value it shows now and stops pointing at a token that no longer exists. ' +
+            '<button class="btn mini" data-act="unbind-page" style="margin-left:4px">Unbind ' +
+            stripCount + '</button>'
+          : '') +
+        '</div>';
+    }
+
+    var head = '<div class="detail-head"><span class="detail-title" title="' + esc(page.name) + '">' +
+      esc(page.name) + '</span></div>' +
+      '<div class="detail-meta">' + metaBits.join(' · ') + '</div>' + actions +
+      lastFixBanner() + reviewNote;
+
+    var bodyHtml;
+    if (err) {
+      bodyHtml = '<div class="banner err">' + esc(err) + '</div>' +
+        emptyState(ICON.warn, 'Scan failed', 'Try scanning this page again.', 'ctaRescan', 'Scan page');
+    } else if (state.scanningPageId === pageId) {
+      bodyHtml = emptyState(ICON.search, 'Scanning…', 'Progress is shown at the bottom of the panel.');
+    } else if (page.ignored) {
+      bodyHtml = emptyState(ICON.layers, 'Page is ignored',
+        'Un-ignore it in Settings, or right-click the page in the list.');
+    } else if (!report) {
+      if (entry && entry.scannedAt && entry.remoteTotal === 0) {
+        bodyHtml = emptyState(ICON.check, 'No remote references',
+          'From the cached count, taken ' + esc(relTime(entry.scannedAt)) + '. Scan again to re-verify.',
+          'ctaRescan', 'Scan page', true);
+      } else if (entry && entry.scannedAt) {
+        bodyHtml = emptyState(ICON.search, plural(entry.remoteTotal, 'remote reference') + ' cached',
+          'Counts are stored on the document, but the details are not. Scan the page to list them.',
+          'ctaRescan', 'Scan page');
+      } else {
+        bodyHtml = emptyState(ICON.search, 'Not scanned yet',
+          'Scan this page to list every remote reference on it.',
+          'ctaRescan', 'Scan page');
+      }
+    } else if (!report.groups.length) {
+      bodyHtml = emptyState(ICON.check, 'No remote references',
+        'Everything on this page resolves to local components, styles and variables.',
+        null, null, true);
+    } else {
+      bodyHtml = kindBar(report) + groupsHtml(report);
+    }
+
+    host.innerHTML = head + bodyHtml;
+    wire(host);
+  }
+
+  // Aggregate view for a multi-page selection. It deliberately does NOT merge the
+  // per-page findings into one list: identical remote references on different
+  // pages are different layers needing different fixes, and flattening them would
+  // hide which page a row belongs to.
+  function renderPagesView(host) {
+    var pages = selectedPages();
+    if (pages.length < 2) { renderPageView(host); return; }
+
+    var stats = { remote: 0, scanned: 0, unscanned: 0, ignored: 0, withReport: 0, stale: 0 };
+    pages.forEach(function (page) {
+      if (page.ignored) { stats.ignored++; return; }
+      var entry = page.entry;
+      if (entry && entry.scannedAt) {
+        stats.scanned++;
+        stats.remote += entry.remoteTotal;
+        if (entry.dirty) stats.stale++;
+      } else {
+        stats.unscanned++;
+      }
+      if (state.reports[page.id]) stats.withReport++;
+    });
+
+    // Fixing needs the references, which only exist for pages scanned in this
+    // session. Pages that only carry a count restored from the document have to
+    // be scanned first, and the button says so rather than silently doing less.
+    var fixablePages = pages.filter(function (page) {
+      return !page.ignored && state.hasRefs[page.id] &&
+        page.entry && page.entry.remoteTotal > 0;
+    });
+    var needScan = pages.filter(function (page) {
+      return !page.ignored && !state.hasRefs[page.id];
+    });
+    var fixableRemote = fixablePages.reduce(function (sum, page) {
+      return sum + page.entry.remoteTotal;
+    }, 0);
+
+    var metaBits = [plural(pages.length, 'page') + ' selected'];
+    if (stats.scanned) metaBits.push(plural(stats.remote, 'remote reference'));
+    if (stats.unscanned) metaBits.push(stats.unscanned + ' not scanned');
+    if (stats.ignored) metaBits.push(stats.ignored + ' ignored');
+    if (stats.stale) metaBits.push('<span class="warn">' + stats.stale + ' changed since scan</span>');
+
+    var actions = '<div class="actions">' +
+      '<button class="btn" id="scanSelectedBtn"' + (needScan.length || stats.scanned ? '' : ' disabled') + '>' +
+        (needScan.length ? 'Scan ' + needScan.length + ' unscanned' : 'Rescan ' + plural(pages.length, 'page')) +
+      '</button>' +
+      '<button class="btn primary" id="fixSelectedBtn"' + (fixableRemote > 0 ? '' : ' disabled') + '>' +
+        (fixableRemote > 0
+          ? 'Review &amp; fix ' + fixableRemote + ' across ' + plural(fixablePages.length, 'page')
+          : (needScan.length ? 'Scan them first' : 'Nothing to fix')) +
+      '</button>' +
+      '<button class="btn" id="clearSelBtn">Clear selection</button>' +
+      '</div>';
+
+    var rows = pages.map(function (page) {
+      var entry = page.entry;
+      var detail;
+      if (page.ignored) detail = 'ignored';
+      else if (!entry || !entry.scannedAt) detail = 'not scanned';
+      else detail = plural(entry.remoteTotal, 'remote ref') + ' · scanned ' + relTime(entry.scannedAt) +
+        (entry.dirty ? ' · changed since' : '') +
+        (state.hasRefs[page.id] ? '' : ' · scan to fix');
+      var badge = page.ignored ? '<span class="badge unknown">—</span>'
+        : (!entry || !entry.scannedAt) ? '<span class="badge unknown">–</span>'
+        : entry.remoteTotal > 0 ? '<span class="badge has">' + entry.remoteTotal + '</span>'
+        : '<span class="badge clean">0</span>';
+      return '<div class="occ" style="padding-left:10px" data-goto-page="' + esc(page.id) + '">' +
+        '<span class="occ-info"><span class="occ-name">' + esc(page.name) + '</span>' +
+        '<span class="occ-detail">' + detail + '</span></span>' + badge + '</div>';
+    }).join('');
+
+    host.innerHTML =
+      '<div class="detail-head"><span class="detail-title">' + plural(pages.length, 'page') + ' selected</span></div>' +
+      '<div class="detail-meta">' + metaBits.join(' · ') + '</div>' + actions +
+      (needScan.length && fixableRemote > 0
+        ? '<div class="banner warn">' + plural(needScan.length, 'selected page') +
+          ' still only ' + (needScan.length === 1 ? 'has' : 'have') +
+          ' a stored count. The fix below covers the ' + fixablePages.length +
+          ' page' + (fixablePages.length === 1 ? '' : 's') + ' already scanned this session.</div>'
+        : '') +
+      '<div class="group"><div class="group-head" style="cursor:default">' +
+      '<span class="group-body"><span class="group-name">Selected pages</span></span></div>' +
+      rows + '</div>';
+
+    bind(host, 'scanSelectedBtn', function () { scanSelectedPages(needScan.length === 0); });
+    bind(host, 'fixSelectedBtn', function () { openPlan(selectedScopeKeys()); });
+    bind(host, 'clearSelBtn', function () {
+      selectPage(state.selectedPageIds[0], {});
+    });
+    host.querySelectorAll('[data-goto-page]').forEach(function (row) {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', function () {
+        selectPage(row.getAttribute('data-goto-page'), {});
+      });
+    });
+  }
+
+  // Only pages whose references are actually loaded contribute a scope.
+  // Every page whose references this session actually holds. Pages that only
+  // carry a count restored from the document have nothing to fix yet.
+  function allPageScopeKeys() {
+    return state.pages
+      .filter(function (p) { return !p.ignored && state.hasRefs[p.id]; })
+      .map(function (p) { return 'page:' + p.id; });
+  }
+
+  function pagesNeedingScan() {
+    return state.pages.filter(function (p) {
+      return !p.ignored && !state.hasRefs[p.id] &&
+        (!p.entry || !p.entry.scannedAt || p.entry.remoteTotal > 0);
+    }).length;
+  }
+
+  function refreshFixAllButton() {
+    var btn = document.getElementById('fixAllBtn');
+    if (!btn) return;
+    var scopes = allPageScopeKeys();
+    btn.disabled = scopes.length === 0 || state.scanning;
+    btn.textContent = scopes.length ? 'Fix file (' + scopes.length + ' pages)' : 'Fix file';
+    btn.title = scopes.length
+      ? 'Review and apply fixes across ' + plural(scopes.length, 'scanned page')
+      : 'Scan the file first — fixing needs the references, not just the counts';
+  }
+
+  function selectedScopeKeys() {
+    return selectedPages()
+      .filter(function (page) { return !page.ignored && state.reports[page.id]; })
+      .map(function (page) { return 'page:' + page.id; });
+  }
+
+  function scanSelectedPages(force) {
+    var ids = selectedPages()
+      .filter(function (page) { return !page.ignored; })
+      .map(function (page) { return page.id; });
+    if (!ids.length) return;
+    state.scanning = true;
+    state.scanQueueDone = 0;
+    document.getElementById('scanAllBtn').disabled = true;
+    document.getElementById('scanAllBtn').textContent = 'Scanning…';
+    showProgress('Scanning ' + plural(ids.length, 'page') + '…');
+    send('scan-all', { force: !!force, pageIds: ids });
+  }
+
+  // What the most recent apply actually did, including anything that claimed to
+  // succeed but did not survive the rescan.
+  function lastFixBanner() {
+    var f = state.lastFix;
+    if (!f) return '';
+    var bits = [];
+    if (f.applied) bits.push('<b>' + f.applied + '</b> ' + (f.mode === 'unbind' ? 'unbound' : 'rebound'));
+    if (f.review) bits.push(f.review + ' needed confirming');
+    if (f.failed) bits.push(f.failed + ' could not be rebound');
+    if (f.warnings) bits.push(f.warnings + ' need a visual check');
+    if (!bits.length) return '';
+
+    var body = (f.mode === 'unbind' ? 'Last unbind: ' : 'Last fix: ') + bits.join(' · ') + '.' +
+      (f.mode === 'unbind' && f.applied ? ' Values were kept; Figma undo reverses this.' : '');
+    if (f.didNotStick) {
+      body += ' <b>' + f.didNotStick + ' reported success but the rescan still finds them</b> — ' +
+        'those layers are most likely inside an instance, where the binding belongs to the main component.';
+    }
+    if (f.reasons && f.reasons.length) {
+      body += '<br>' + f.reasons.map(function (r) {
+        return '<b>' + r.count + '×</b> ' + esc(r.reason);
+      }).join('<br>');
+    }
+    return '<div class="banner ' + (f.didNotStick || f.failed ? 'err' : 'warn') + '">' + body +
+      ' <a href="#" data-act="dismiss-lastfix" style="color:inherit">Dismiss</a></div>';
+  }
+
+  function renderSelectionView(host) {
+    var report = state.selectionReport;
+    var head = '<div class="detail-head"><span class="detail-title">Selection</span></div>';
+
+    if (!report) {
+      host.innerHTML = head +
+        '<div class="detail-meta">' + esc(plural(state.selectionCount, 'layer')) + ' selected in Figma</div>' +
+        '<div class="actions"><button class="btn primary" id="scanSelAgain">Scan selection</button></div>' +
+        emptyState(ICON.search, 'Nothing scanned yet',
+          'Select layers on the canvas, then scan them. Useful for checking one frame before committing to the whole page.');
+      wire(host);
+      return;
+    }
+
+    var meta = 'Scanned ' + esc(relTime(report.scannedAt)) + ' · ' +
+      esc(plural(report.selectionCount || 0, 'layer')) + ' · ' +
+      esc(plural(report.remoteTotal, 'remote reference'));
+    var actions = '<div class="actions">' +
+      '<button class="btn" id="scanSelAgain">Rescan selection</button>' +
+      '<button class="btn primary" id="fixSelBtn"' + (report.remoteTotal > 0 ? '' : ' disabled') + '>' +
+        (report.remoteTotal > 0 ? 'Fix selection (' + report.remoteTotal + ')' : 'Nothing to fix') + '</button>' +
+      '</div>';
+
+    var body = report.groups.length
+      ? kindBar(report) + groupsHtml(report)
+      : emptyState(ICON.check, 'No remote references', 'This selection is entirely local.', null, null, true);
+
+    host.innerHTML = head + '<div class="detail-meta">' + meta + '</div>' + actions + body;
+    wire(host);
+  }
+
+  function renderComponentsView(host) {
+    var report = state.componentReport;
+    var head = '<div class="detail-head"><span class="detail-title">Components first</span></div>' +
+      '<div class="detail-meta">Main components carrying remote references, ordered by how much ' +
+      'fixing each one is worth. A reference inside a main is inherited by every instance of it, so ' +
+      'one edit here removes it everywhere — and inherited content cannot be rebound on an instance ' +
+      'at all, which makes this the only place some of these are fixable.</div>';
+
+    if (!report) {
+      host.innerHTML = head +
+        '<div class="actions"><button class="btn primary" data-act="component-scan">Analyse components</button></div>' +
+        emptyState(ICON.layers, 'Not analysed yet',
+          'Groups every reference found so far by the main component that owns it, then counts how ' +
+          'many instances each of those has across the file.');
+      wire(host);
+      return;
+    }
+
+    var coverage = report.scannedPages + ' of ' + report.totalPages + ' pages scanned';
+    var meta = 'Analysed ' + esc(relTime(report.scannedAt)) + ' · ' + esc(coverage) +
+      ' · ' + plural(report.totalComponents, 'component') + ' carrying ' +
+      plural(report.totalRefs, 'reference');
+
+    var warn = report.scannedPages < report.totalPages
+      ? '<div class="banner warn">Only ' + esc(coverage) + '. A component\u2019s references live on its ' +
+        'own page, so anything on an unscanned page is missing from this list. Run <b>Scan file</b> ' +
+        'for the complete picture.</div>'
+      : '';
+
+    var actions = '<div class="actions">' +
+      '<button class="btn" data-act="component-scan">Re-analyse</button>' +
+      (report.components.length
+        ? '<button class="btn primary" data-act="fix-top-components">Fix the top ' +
+          Math.min(10, report.components.length) + '</button>'
+        : '') +
+      '</div>';
+
+    if (!report.components.length) {
+      host.innerHTML = head + '<div class="detail-meta">' + meta + '</div>' + warn + actions +
+        emptyState(ICON.check, 'No main component carries a remote reference',
+          report.orphanRefs
+            ? plural(report.orphanRefs, 'reference') + ' remain, but all of them sit on ordinary ' +
+              'layers rather than inside a component — fix those page by page.'
+            : 'Nothing left upstream.', null, null, true);
+      wire(host);
+      return;
+    }
+
+    var rows = report.components.map(function (c, i) {
+      var inherited = c.refCount * c.instanceCount;
+      var detail = plural(c.refCount, 'reference') +
+        ' · ' + plural(c.instanceCount, 'instance') +
+        (inherited ? ' · ' + inherited + ' inherited downstream' : ' · not used anywhere yet') +
+        (c.pageName ? ' · on ' + c.pageName : '');
+      var fixable = c.fixable
+        ? '<button class="btn mini primary" data-act="fix-component" data-owner="' + esc(c.ownerId) + '">Fix ' + c.fixable + '</button>'
+        : '<span style="font-size:9px;color:var(--text-tertiary)">none rebindable</span>';
+      return '<div class="occ" style="padding-left:10px">' +
+        '<span style="flex:0 0 auto;width:20px;color:var(--text-tertiary);font-size:10px">' + (i + 1) + '</span>' +
+        '<span class="kind-tag component">' + (c.isSet ? 'set' : 'component') + '</span>' +
+        '<span class="occ-info"><span class="occ-name">' + esc(c.name) + '</span>' +
+        '<span class="occ-detail">' + esc(detail) + '</span></span>' +
+        '<span class="occ-actions">' +
+          '<button class="btn mini" data-act="goto-component" data-owner="' + esc(c.ownerId) + '">Select</button>' +
+          fixable +
+        '</span></div>';
+    }).join('');
+
+    host.innerHTML = head + '<div class="detail-meta">' + meta + '</div>' + warn + actions +
+      lastFixBanner() +
+      '<div class="group"><div class="group-head" style="cursor:default">' +
+      '<span class="group-body"><span class="group-name">Ordered by reach</span>' +
+      '<span class="group-src">references in the main × instances that inherit them</span></span></div>' +
+      rows +
+      (report.truncated ? '<div class="trunc-note">Showing the first 300.</div>' : '') +
+      '</div>' +
+      (report.orphanRefs
+        ? '<div class="banner warn">' + plural(report.orphanRefs, 'reference') + ' sit on ordinary ' +
+          'layers rather than inside a component. Those have no downstream reach and are fixed page ' +
+          'by page.</div>'
+        : '');
+    wire(host);
+  }
+
+  function renderDocumentView(host) {
+    var report = state.docReport;
+    var head = '<div class="detail-head"><span class="detail-title">Local tokens</span></div>' +
+      '<div class="detail-meta">Local variables and styles that still point at a library. ' +
+      'These do not appear on any page, and they are what keeps a file tethered after every page looks clean.</div>';
+
+    if (!report) {
+      host.innerHTML = head +
+        '<div class="actions"><button class="btn primary" id="auditBtn">Check local tokens</button></div>' +
+        emptyState(ICON.search, 'Not checked yet',
+          'Reads every local variable mode and every local style binding, looking for aliases into a remote library.');
+      wire(host);
+      return;
+    }
+
+    var meta = 'Checked ' + esc(relTime(report.scannedAt)) + ' · ' +
+      report.variableCount + ' local variables · ' + report.styleCount + ' local styles';
+    var actions = '<div class="actions"><button class="btn" id="auditBtn">Check again</button></div>';
+
+    if (!report.findings.length) {
+      host.innerHTML = head + '<div class="detail-meta">' + meta + '</div>' + actions +
+        emptyState(ICON.check, 'All local tokens are self-contained',
+          'No local variable mode or style binding points at a remote library.', null, null, true);
+      wire(host);
+      return;
+    }
+
+    var rows = report.findings.slice(0, 400).map(function (finding) {
+      var conf = finding.match
+        ? '<span class="conf ' + finding.match.confidence + '">' + finding.match.confidence + '</span>'
+        : '<span class="conf none">no local match</span>';
+      var target = finding.match
+        ? '<span class="arrow">→</span><span class="target">' + esc(finding.match.targetName) + '</span>'
+        : '';
+      return '<div class="occ" style="padding-left:10px">' +
+        '<span class="kind-tag">' + esc(finding.kind) + '</span>' +
+        '<span class="occ-info"><span class="occ-name">' + esc(finding.owner) + '</span>' +
+        '<span class="occ-detail">' + esc(finding.detail) +
+        (finding.broken ? ' — ' + esc(finding.broken) : '') + '</span></span>' +
+        target + conf +
+        '</div>';
+    }).join('');
+
+    host.innerHTML = head + '<div class="detail-meta">' + meta + '</div>' + actions +
+      '<div class="banner warn">Local tokens have to be repointed in Figma\u2019s Variables panel — ' +
+      'the plugin API cannot rewrite a variable\u2019s mode value or a style\u2019s binding safely. ' +
+      'The suggested local target is shown so you know what to pick.</div>' +
+      '<div class="group"><div class="group-head" style="cursor:default">' +
+      '<span class="group-body"><span class="group-name">' + plural(report.findings.length, 'tethered token') + '</span></span></div>' +
+      rows + (report.findings.length > 400 ? '<div class="trunc-note">Showing the first 400.</div>' : '') +
+      '</div>';
+    wire(host);
+  }
+
+  function groupsHtml(report) {
+    var out = [];
+
+    var picked = selectedGroupsOf(report);
+    if (picked.length) {
+      var t = batchTally(picked);
+      out.push('<div class="batchbar">' +
+        '<span class="count">' + plural(t.groups, 'group') + ' selected' +
+          '<span class="sub"> · ' + plural(t.refs, 'reference') + '</span></span>' +
+        (t.fixRefs
+          ? '<button class="btn mini primary" data-act="batch-fix">Fix ' + t.fixRefs + '</button>'
+          : '') +
+        (t.unbindRefs
+          ? '<button class="btn mini" data-act="batch-unbind">Unbind ' + t.unbindRefs + '</button>'
+          : '') +
+        '<button class="btn mini" data-act="batch-clear">Clear</button>' +
+        '</div>');
+    }
+
+    var selectable = report.groups.filter(function (g) { return groupCanFix(g) || groupCanUnbind(g); });
+    if (selectable.length > 1) {
+      var allPicked = picked.length >= selectable.length;
+      out.push('<label class="selectall">' +
+        '<input type="checkbox" data-act="select-all-groups"' + (allPicked ? ' checked' : '') + ' />' +
+        (allPicked ? 'Deselect all' : 'Select all ' + selectable.length + ' actionable groups') +
+        ' <span style="color:var(--text-tertiary)">— shift-click a checkbox to select a range</span>' +
+        '</label>');
+    }
+
+    if (report.truncatedGroups) {
+      out.push('<div class="banner warn">Showing ' + report.groups.length + ' of ' + report.groupCount +
+        ' distinct references. Fix these, then rescan to see the rest.</div>');
+    }
+    for (var i = 0; i < report.groups.length; i++) {
+      out.push(groupHtml(report.groups[i]));
+    }
+    return out.join('');
+  }
+
+  var CONF_RANK = { exact: 4, strong: 3, weak: 2, risky: 1 };
+
+  // What "Fix page" would actually apply, using the same rule the sandbox uses.
+  // The old label showed the TOTAL number of remote references, which read as a
+  // promise to fix all of them — so fixing 11 of 71 looked like a failure rather
+  // than the review step working as designed.
+  function kindBucketOf(group) {
+    return group.kind === 'component' ? 'component'
+      : (group.kind === 'variable' ? 'variable' : 'style');
+  }
+
+  // The groups the current threshold would apply, optionally narrowed to one
+  // kind. Every fix button is a slice of this one set, so "Fix 212 variables" is
+  // always literally part of "Fix 232 of 250" rather than a different rule that
+  // happens to produce a similar number.
+  function autoFixableGroups(report, threshold, kind) {
+    if (!report) return [];
+    var min = threshold === 'weak' ? CONF_RANK.weak : CONF_RANK.strong;
+    return report.groups.filter(function (g) {
+      if (g.unfixable || g.manualOnly || !g.match || g.match.ambiguous) return false;
+      if ((CONF_RANK[g.match.confidence] || 0) < min) return false;
+      if (kind && kindBucketOf(g) !== kind) return false;
+      return true;
+    });
+  }
+
+  function countRefs(groups) {
+    return groups.reduce(function (n, g) { return n + g.total; }, 0);
+  }
+
+  function autoFixableCount(report, threshold) {
+    if (!report) return null;
+    return countRefs(autoFixableGroups(report, threshold, null));
+  }
+
+  function groupCanFix(group) {
+    return !group.unfixable && !group.manualOnly && !!group.match &&
+      group.match.confidence !== 'risky' && !group.match.ambiguous;
+  }
+
+  // Where rebinding is impossible, dropping the binding and keeping the value is
+  // still an improvement: it renders identically and unties the file from a
+  // library that no longer has the token.
+  // The selection belongs to one report. Switching page or rescanning produces a
+  // different set of groups, so a stale selection would silently act on the wrong
+  // things.
+  function syncGroupSelectionScope() {
+    var report = currentReport();
+    var scope = (currentScopeKey() || (state.view.kind === 'document' ? 'document' : 'none')) +
+      '@' + (report ? report.scannedAt : 0);
+    if (state.selectedGroupScope !== scope) {
+      state.selectedGroupScope = scope;
+      state.selectedGroups = {};
+      state.groupAnchor = null;
+    }
+  }
+
+  function selectedGroupsOf(report) {
+    if (!report) return [];
+    return report.groups.filter(function (g) { return state.selectedGroups[g.key]; });
+  }
+
+  function toggleGroupSelection(key, shift) {
+    var report = currentReport();
+    if (!report) return;
+    var keys = report.groups.map(function (g) { return g.key; });
+
+    if (shift && state.groupAnchor && keys.indexOf(state.groupAnchor) !== -1) {
+      var from = keys.indexOf(state.groupAnchor);
+      var to = keys.indexOf(key);
+      if (from !== -1 && to !== -1) {
+        var lo = Math.min(from, to), hi = Math.max(from, to);
+        for (var i = lo; i <= hi; i++) state.selectedGroups[keys[i]] = true;
+      }
+    } else {
+      if (state.selectedGroups[key]) delete state.selectedGroups[key];
+      else state.selectedGroups[key] = true;
+      state.groupAnchor = key;
+    }
+    renderMain();
+  }
+
+  // Fixable and unbindable are counted separately: a mixed selection should offer
+  // both, each acting only on the part of the selection it applies to.
+  function batchTally(groups) {
+    var t = { groups: groups.length, refs: 0, fixGroups: [], fixRefs: 0, unbindGroups: [], unbindRefs: 0 };
+    groups.forEach(function (g) {
+      t.refs += g.total;
+      if (groupCanFix(g)) { t.fixGroups.push(g); t.fixRefs += g.total; }
+      else if (groupCanUnbind(g)) { t.unbindGroups.push(g); t.unbindRefs += g.total; }
+    });
+    return t;
+  }
+
+  function targetsFor(groups) {
+    var map = {};
+    groups.forEach(function (g) { if (g.match) map[g.key] = g.match.targetId; });
+    return map;
+  }
+
+  function sendGroupBatch(groups, mode) {
+    var scope = currentScopeKey();
+    if (!scope || !groups.length) return;
+    var keys = groups.map(function (g) { return g.key; });
+    var refs = groups.reduce(function (n, g) { return n + g.total; }, 0);
+    send('apply-fixes', {
+      scopeKeys: [scope],
+      groupKeys: keys,
+      groupTargets: mode === 'unbind' ? null : targetsFor(groups),
+      mode: mode || undefined
+    });
+    showProgress((mode === 'unbind' ? 'Unbinding ' : 'Rebinding ') + refs + ' reference' +
+      (refs === 1 ? '' : 's') + ' in ' + plural(keys.length, 'group') + '…');
+    state.selectedGroups = {};
+    state.groupAnchor = null;
+  }
+
+  function exactGroupsOf(report) {
+    if (!report) return [];
+    return report.groups.filter(function (g) {
+      return groupCanFix(g) && g.match.confidence === 'exact';
+    });
+  }
+
+  function groupCanUnbind(group) {
+    return group.kind === 'variable' && !group.manualOnly && !group.unfixable && !groupCanFix(group);
+  }
+
+  function groupHtml(group) {
+    var open = !!state.openGroups[group.key];
+    var tagClass = group.kind === 'component' ? 'component' : (group.kind === 'variable' ? 'variable' : 'style');
+
+    // Split deliberately: the name half can truncate, the chip half must not.
+    // Keeping the chips inside the truncating element made a long token name
+    // shove them under the buttons instead of shortening itself.
+    var matchNameHtml = '';
+    var matchTagHtml = '';
+    var arrowTo = function (m) {
+      return '<span class="arrow">\u2192</span><span class="target">' + esc(m.targetName) + '</span>' +
+        (m.targetPageName
+          ? '<span class="group-src" style="display:inline;margin-left:5px">on ' + esc(m.targetPageName) + '</span>'
+          : '');
+    };
+    var confChip = function (m) {
+      return '<span class="conf ' + m.confidence + '" title="' + esc(m.how) +
+        (m.ambiguous ? ' (several local candidates share this name)' : '') + '">' + m.confidence + '</span>';
+    };
+
+    if (group.unfixable) {
+      matchTagHtml = '<span class="conf risky">unresolvable</span>';
+    } else if (group.broken && group.match) {
+      // Broken, but a local of that name exists — which is the repair, not a
+      // reason to refuse.
+      matchNameHtml = arrowTo(group.match);
+      matchTagHtml = '<span class="conf risky" title="' + esc(group.broken) + '">broken</span>' + confChip(group.match);
+    } else if (group.broken) {
+      matchTagHtml = '<span class="conf risky" title="' + esc(group.broken) + '">broken</span>' +
+        '<span class="conf none">no local match</span>';
+    } else if (group.partiallyBroken) {
+      if (group.match) matchNameHtml = arrowTo(group.match);
+      matchTagHtml = '<span class="conf weak" title="Some layers in this group have a broken reference and will be skipped.">partly broken</span>';
+    } else if (group.manualOnly) {
+      matchTagHtml = '<span class="conf none">manual only</span>';
+    } else if (group.match) {
+      matchNameHtml = arrowTo(group.match);
+      matchTagHtml = confChip(group.match);
+    } else {
+      matchTagHtml = '<span class="conf none">no local match</span>';
+    }
+
+    var canFix = groupCanFix(group);
+    var remapTitle = canFix ? 'Choose a different local target'
+      : (group.match ? 'Too uncertain to apply in bulk — pick the target yourself'
+        : 'No local match was found — pick the target yourself');
+    var canUnbind = groupCanUnbind(group);
+    var actions = '<div class="group-actions">' +
+      (canFix ? '<button class="btn mini primary" data-act="fix-group" data-key="' + esc(group.key) + '">Fix ' + group.total + '</button>' : '') +
+      (canUnbind
+        ? '<button class="btn mini" data-act="unbind-group" data-key="' + esc(group.key) +
+          '" title="Drop the binding on ' + group.total + ' layer' + (group.total === 1 ? '' : 's') +
+          ' and keep the value each one currently shows">Unbind ' + group.total + '</button>'
+        : '') +
+      '<button class="btn mini" data-act="remap-group" data-key="' + esc(group.key) + '" title="' + esc(remapTitle) + '">Remap…</button>' +
+      '</div>';
+
+    // Say plainly why a group is not automatic, rather than leaving the user to
+    // deduce it from a confidence chip.
+    var reasonHtml = '';
+    if (group.blockedReason) {
+      reasonHtml = '<div class="trunc-note">Not automatic because ' + esc(group.blockedReason) + '.</div>';
+    }
+
+    var nearHtml = '';
+    if (!group.match && group.near && group.near.length) {
+      nearHtml = '<div class="trunc-note">Closest local ' + esc(group.kind) + 's: ' +
+        group.near.map(function (n) {
+          return '<b>' + esc(n.name) + '</b> (' + n.score + '%' +
+            (n.pageName ? ', on ' + esc(n.pageName) : '') + ')';
+        }).join(', ') +
+        ' — use Remap… to pick one.</div>';
+    }
+
+    var upstreamHtml = '';
+    var up = group.upstream;
+    if (up && up.mains.length) {
+      var lead = up.mains[0];
+      var leadLabel = esc(lead.name) + (lead.variantName ? ' <span style="font-weight:400">(' + esc(lead.variantName) + ')</span>' : '');
+      if (up.allFromOne) {
+        upstreamHtml = '<div class="banner warn" style="margin:0;border-radius:0">' +
+          'All ' + group.total + ' of these come from the main component <b>' + leadLabel + '</b>' +
+          (lead.pageName ? ' on <b>' + esc(lead.pageName) + '</b>' : '') + '. ' +
+          (lead.remote
+            ? 'It belongs to a library, so it cannot be edited here — swapping these instances to a local component is the real fix.'
+            : 'Fixing it there fixes every instance at once; fixing it here only creates an override on this one.') +
+          (lead.remote ? '' :
+            ' <button class="btn mini primary" data-act="fix-in-main" data-main="' + esc(lead.id) + '">Fix in ' + esc(lead.name) + '</button>' +
+            ' <button class="btn mini" data-act="goto-main" data-main="' + esc(lead.id) + '">Show it</button>') +
+          '</div>';
+      } else {
+        upstreamHtml = '<div class="banner warn" style="margin:0;border-radius:0">' +
+          up.covered + ' of ' + group.total + ' come from ' + plural(up.distinct, 'main component') +
+          ' — mostly <b>' + leadLabel + '</b> (' + lead.count + '). Fixing those at the source ' +
+          'covers every instance; fixing them here only overrides one at a time.' +
+          (lead.remote ? '' :
+            ' <button class="btn mini primary" data-act="fix-in-main" data-main="' + esc(lead.id) + '">Fix in ' + esc(lead.name) + '</button>') +
+          '</div>';
+      }
+    }
+
+    var body = open ? upstreamHtml + reasonHtml + nearHtml + occurrencesHtml(group) : '';
+
+    var selectable = canFix || canUnbind;
+    var picked = !!state.selectedGroups[group.key];
+    return '<div class="group' + (open ? ' open' : '') + (picked ? ' picked' : '') + '" data-key="' + esc(group.key) + '">' +
+      '<div class="group-head" data-act="toggle" data-key="' + esc(group.key) + '" tabindex="0" role="button" aria-expanded="' + open + '">' +
+        (selectable
+          ? '<input type="checkbox" class="group-check" data-act="pick-group" data-key="' + esc(group.key) + '"' +
+            (picked ? ' checked' : '') + ' title="Select this group for a batch fix" />'
+          : '<span style="flex:0 0 auto;width:13px"></span>') +
+        '<span class="caret">▶</span>' +
+        '<span class="kind-tag ' + tagClass + '">' + esc(group.kind) + '</span>' +
+        '<span class="group-body">' +
+          '<span class="group-name">' + esc(group.sourceName) + matchNameHtml + '</span>' +
+          '<span class="group-src">' + esc(group.libraryLabel) + '</span>' +
+        '</span>' +
+        '<span class="group-tags">' + matchTagHtml +
+          (group.upstream && group.upstream.mains.length
+            ? '<span class="conf weak" title="These come from a main component — fixing it there covers every instance">from main</span>'
+            : '') +
+        '</span>' +
+        '<span class="group-count">' + group.total + '×</span>' +
+        actions +
+      '</div>' + body + '</div>';
+  }
+
+  function occurrencesHtml(group) {
+    var out = [];
+    // The row Fix applies the same target shown on the group header, and is
+    // withheld in the same cases — a row button that refuses what the button
+    // above it accepts is just confusing.
+    var rowTarget = groupCanFix(group) ? group.match.targetId : null;
+    var rowUnbind = groupCanUnbind(group);
+    for (var i = 0; i < group.occurrences.length; i++) {
+      var occ = group.occurrences[i];
+      out.push('<div class="occ" data-ref-id="' + esc(occ.refId) + '">' +
+        '<span class="occ-info">' +
+          '<span class="occ-name">' + esc(occ.nodeName || '(unnamed layer)') + '</span>' +
+          (occ.detail ? '<span class="occ-detail">' + esc(occ.detail) + '</span>' : '') +
+          (occ.fromMainName
+            ? '<span class="occ-detail">inherited from <b>' + esc(occ.fromMainName) + '</b>' +
+              (occ.fromMainVariant ? ' · ' + esc(occ.fromMainVariant) : '') +
+              (occ.fromMainRemote ? ' (library)' : '') + '</span>'
+            : '') +
+        '</span>' +
+        '<span class="occ-actions">' +
+          '<button class="btn mini" data-act="inspect" data-ref-id="' + esc(occ.refId) + '">Select</button>' +
+          (rowTarget
+            ? '<button class="btn mini" data-act="fix-ref" data-ref-id="' + esc(occ.refId) +
+              '" data-target-id="' + esc(rowTarget) + '">Fix</button>'
+            : '') +
+          (rowUnbind
+            ? '<button class="btn mini" data-act="unbind-ref" data-ref-id="' + esc(occ.refId) +
+              '" title="Keep the value, drop the binding">Unbind</button>'
+            : '') +
+          '<button class="btn mini" data-act="remap-ref" data-ref-id="' + esc(occ.refId) + '">Remap…</button>' +
+        '</span></div>');
+    }
+    if (group.truncated) {
+      out.push('<div class="trunc-note">' +
+        (group.occurrences.length
+          ? 'Listing ' + group.occurrences.length + ' of ' + group.total + ' layers.'
+          : 'Too many layers to list individually.') +
+        ' "Fix ' + group.total + '" still covers every one of them.</div>');
+    }
+    return out.join('');
+  }
+
+  // Only the group headers are in the DOM until a group is expanded, so a page
+  // with thousands of references stays cheap to render. No virtualization needed.
+  function wire(root) {
+    root.querySelectorAll('[data-act]').forEach(function (el) {
+      var act = el.getAttribute('data-act');
+      el.addEventListener('click', function (event) {
+        event.stopPropagation();
+        handleAction(act, el, event);
+      });
+      if (el.getAttribute('role') === 'button') {
+        el.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleAction(act, el);
+          }
+        });
+      }
+    });
+
+    bind(root, 'ctaScanAll', function () { startScanAll(false); });
+    bind(root, 'gotoBtn', function () { send('goto-page', { pageId: state.view.pageId }); });
+    bind(root, 'rescanBtn', function () { scanPage(state.view.pageId, true); });
+    bind(root, 'ctaRescan', function () { scanPage(state.view.pageId, true); });
+    bind(root, 'fixBtn', function () { openPlan(['page:' + state.view.pageId]); });
+    bind(root, 'scanSelAgain', function () { send('scan-selection'); showProgress('Scanning selection…'); });
+    bind(root, 'fixSelBtn', function () { openPlan(['selection']); });
+    bind(root, 'auditBtn', function () {
+      state.scanningPageId = null;
+      renderSidebar();
+      send('audit-document');
+      showProgress('Checking local tokens…');
+    });
+  }
+
+  function bind(root, id, fn) {
+    var el = root.querySelector('#' + id);
+    if (el) el.addEventListener('click', fn);
+  }
+
+  function currentReport() {
+    if (state.view.kind === 'selection') return state.selectionReport;
+    if (state.view.kind === 'page') return state.reports[state.view.pageId];
+    return null;
+  }
+
+  function currentScopeKey() {
+    if (state.view.kind === 'selection') return 'selection';
+    if (state.view.kind === 'page' && state.view.pageId) return 'page:' + state.view.pageId;
+    return null;
+  }
+
+  function groupByKey(key) {
+    var report = currentReport();
+    if (!report) return null;
+    for (var i = 0; i < report.groups.length; i++) {
+      if (report.groups[i].key === key) return report.groups[i];
+    }
+    return null;
+  }
+
+  function handleAction(act, el, event) {
+    var key = el.getAttribute('data-key');
+    var refId = el.getAttribute('data-ref-id');
+
+    if (act === 'dismiss-lastfix') { state.lastFix = null; renderMain(); return; }
+
+    if (act === 'pick-group') {
+      toggleGroupSelection(key, !!(event && event.shiftKey));
+      return;
+    }
+    if (act === 'select-all-groups') {
+      var rpt = currentReport();
+      var sel = rpt ? rpt.groups.filter(function (g) { return groupCanFix(g) || groupCanUnbind(g); }) : [];
+      var already = selectedGroupsOf(rpt).length >= sel.length && sel.length > 0;
+      state.selectedGroups = {};
+      if (!already) sel.forEach(function (g) { state.selectedGroups[g.key] = true; });
+      state.groupAnchor = null;
+      renderMain();
+      return;
+    }
+    if (act === 'batch-clear') {
+      state.selectedGroups = {}; state.groupAnchor = null; renderMain(); return;
+    }
+    if (act === 'batch-fix') {
+      var tf = batchTally(selectedGroupsOf(currentReport()));
+      sendGroupBatch(tf.fixGroups, null);
+      return;
+    }
+    if (act === 'batch-unbind') {
+      var tu = batchTally(selectedGroupsOf(currentReport()));
+      sendGroupBatch(tu.unbindGroups, 'unbind');
+      return;
+    }
+    if (act === 'fix-exact') {
+      sendGroupBatch(exactGroupsOf(currentReport()), null);
+      return;
+    }
+    if (act === 'fix-in-main') {
+      send('fix-in-main', { mainId: el.getAttribute('data-main') });
+      showProgress('Fixing at the source…');
+      return;
+    }
+    if (act === 'goto-main') {
+      send('inspect-owner', { ownerId: el.getAttribute('data-main') });
+      return;
+    }
+    if (act === 'component-scan') {
+      send('component-impact');
+      showProgress('Analysing components…');
+      return;
+    }
+    if (act === 'goto-component') {
+      send('inspect-owner', { ownerId: el.getAttribute('data-owner') });
+      return;
+    }
+    if (act === 'fix-component') {
+      send('apply-fixes', { scopeKeys: [], ownerComponentIds: [el.getAttribute('data-owner')] });
+      showProgress('Fixing inside the component…');
+      return;
+    }
+    if (act === 'fix-top-components') {
+      var rep = state.componentReport;
+      if (!rep) return;
+      var top = rep.components.filter(function (c) { return c.fixable > 0; }).slice(0, 10);
+      if (!top.length) { toast('Nothing in the top components can be rebound automatically.', 'error'); return; }
+      send('apply-fixes', {
+        scopeKeys: [],
+        ownerComponentIds: top.map(function (c) { return c.ownerId; })
+      });
+      showProgress('Fixing ' + plural(top.length, 'component') + '…');
+      return;
+    }
+    if (act === 'fix-kind') {
+      sendGroupBatch(
+        autoFixableGroups(currentReport(), state.settings.autoApply, el.getAttribute('data-kind')),
+        null
+      );
+      return;
+    }
+    if (act === 'unbind-page') {
+      var pscope = currentScopeKey();
+      if (!pscope) return;
+      send('apply-fixes', { scopeKeys: [pscope], unfixableOnly: true, mode: 'unbind' });
+      showProgress('Unbinding what cannot be rebound…');
+      return;
+    }
+    if (act === 'components') { setView({ kind: 'components' }); return; }
+    if (act === 'document') { setView({ kind: 'document' }); return; }
+    if (act === 'selection') { setView({ kind: 'selection' }); return; }
+
+    if (act === 'toggle') {
+      if (state.openGroups[key]) delete state.openGroups[key];
+      else state.openGroups[key] = true;
+      renderMain();
+      return;
+    }
+    if (act === 'inspect') { send('inspect-ref', { refId: refId }); return; }
+    if (act === 'fix-ref') {
+      markOcc(refId, 'fixing');
+      send('fix-ref', { refId: refId, targetId: el.getAttribute('data-target-id') || null });
+      return;
+    }
+    if (act === 'unbind-ref') {
+      markOcc(refId, 'fixing');
+      send('apply-fixes', { scopeKeys: [currentScopeKey()], refIds: [refId], mode: 'unbind' });
+      return;
+    }
+    if (act === 'unbind-group') {
+      var ug = groupByKey(key);
+      var uscope = currentScopeKey();
+      if (!ug || !uscope) return;
+      send('apply-fixes', { scopeKeys: [uscope], groupKey: ug.key, mode: 'unbind' });
+      showProgress('Unbinding ' + ug.total + ' × ' + ug.sourceName + '…');
+      return;
+    }
+    if (act === 'remap-ref') { openRemap(refId); return; }
+    if (act === 'remap-group') {
+      var group = groupByKey(key);
+      if (group && group.occurrences.length) openRemap(group.occurrences[0].refId, group.total);
+      return;
+    }
+    if (act === 'fix-group') {
+      var target = groupByKey(key);
+      if (!target || !target.match) return;
+      if (target.match.confidence === 'risky' || target.match.ambiguous) {
+        toast('That match is too uncertain to apply to ' + target.total + ' layers. Use Remap.', 'error');
+        return;
+      }
+      var scope = currentScopeKey();
+      if (!scope) return;
+      // Pass the group key, not the rendered refIds: occurrences beyond the
+      // display cap are not in the UI, and "Fix 340" must mean all 340. The
+      // explicit targetId makes it apply exactly the match shown on the row.
+      send('apply-fixes', {
+        scopeKeys: [scope],
+        groupKey: target.key,
+        targetId: target.match.targetId
+      });
+      showProgress('Rebinding ' + target.total + ' × ' + target.sourceName + '…');
+      return;
+    }
+  }
+
+  function markOcc(refId, cls) {
+    var el = document.querySelector('.occ[data-ref-id="' + cssEscape(refId) + '"]');
+    if (el) el.className = 'occ ' + cls;
+  }
+
+  function cssEscape(value) {
+    return String(value).replace(/["\\]/g, '\\$&');
+  }
+
+  function setView(view) {
+    state.view = view;
+    if (view.kind === 'page' && view.pageId) {
+      // A single-page view IS a one-page selection, so the sidebar highlight and
+      // the selection set never disagree.
+      state.selectedPageIds = [view.pageId];
+      state.anchorPageId = view.pageId;
+    }
+    if (view.kind === 'selection' || view.kind === 'document') {
+      state.selectedPageIds = [];
+    }
+    if (view.kind === 'page' && view.pageId) {
+      var page = state.pageById[view.pageId];
+      // Ask for the details we do not have. If the sandbox already scanned this
+      // page it answers from its own cache instantly; otherwise it scans, which
+      // is now a per-page cost rather than a whole-file one.
+      if (page && !page.ignored && !state.reports[view.pageId] && !state.scanning) {
+        scanPage(view.pageId, false);
+      }
+    }
+    if (view.kind === 'selection' && !state.selectionReport && state.selectionCount > 0) {
+      send('scan-selection');
+      showProgress('Scanning selection…');
+    }
+    renderSidebar();
+    renderMain();
+  }
+
+  function scanPage(pageId, force) {
+    if (!pageId) return;
+    state.scanningPageId = pageId;
+    delete state.errorByPage[pageId];
+    renderSidebar();
+    renderMain();
+    showProgress('Scanning page…');
+    send('scan-page', { pageId: pageId, force: !!force });
+  }
+
+  function startScanAll(force) {
+    state.scanning = true;
+    state.scanQueueDone = 0;
+    document.getElementById('scanAllBtn').disabled = true;
+    document.getElementById('scanAllBtn').textContent = 'Scanning…';
+    showProgress('Preparing…');
+    send('scan-all', { force: !!force });
+  }
+
+  // ── Progress strip ───────────────────────────────────────────────────────
+  function showProgress(label, processed, total) {
+    var strip = document.getElementById('progress');
+    strip.classList.add('visible');
+    document.getElementById('progLabel').textContent = label || 'Working…';
+    setProgressBar(processed, total);
+  }
+
+  function setProgressBar(processed, total) {
+    var strip = document.getElementById('progress');
+    var fill = document.getElementById('progFill');
+    var stats = document.getElementById('progStats');
+    if (total && total > 0) {
+      strip.classList.remove('indeterminate');
+      var pct = Math.max(0, Math.min(100, Math.round((processed / total) * 100)));
+      fill.style.width = pct + '%';
+      stats.textContent = pct + '%';
+    } else {
+      strip.classList.add('indeterminate');
+      fill.style.width = '';
+      stats.textContent = '';
+    }
+  }
+
+  function hideProgress() {
+    var strip = document.getElementById('progress');
+    strip.classList.remove('visible', 'indeterminate');
+    document.getElementById('progFill').style.width = '0';
+    document.getElementById('progItem').textContent = '';
+    document.getElementById('progFound').textContent = '';
+    document.getElementById('progStats').textContent = '';
+  }
+
+  // ── Plan modal ───────────────────────────────────────────────────────────
+  function openPlan(scopeKeys) {
+    var keys = Array.isArray(scopeKeys) ? scopeKeys : [scopeKeys];
+    keys = keys.filter(Boolean);
+    if (!keys.length) {
+      toast('Nothing to fix — scan the selected pages first.', 'error');
+      return;
+    }
+    state.planScopes = keys;
+    state.plan = null;
+    document.getElementById('planTitle').textContent = keys.length > 1
+      ? 'Review fixes across ' + plural(keys.length, 'page')
+      : 'Review fixes';
+    document.getElementById('planBody').innerHTML = '<div class="plan-empty">Working out what would change…</div>';
+    document.getElementById('planSummary').textContent = '';
+    document.getElementById('planApply').disabled = true;
+    openOverlay('planModal');
+    send('plan-fixes', { scopeKeys: keys });
+  }
+
+  function renderPlan(plan, summary) {
+    var body = document.getElementById('planBody');
+    var sections = [];
+
+    sections.push(planSection('Will be applied', plan.apply,
+      'Names match exactly, or differ only by a library prefix, casing or separators.', 'exact'));
+    sections.push(planSection('Needs your confirmation', plan.review,
+      'The closest local name is not a confident match. Nothing here is applied automatically — ' +
+      'use Remap on the row to choose deliberately.', 'weak'));
+    sections.push(planSection('Cannot be fixed here', plan.blocked,
+      'No local equivalent exists, the reference is broken, or Figma offers no API to rebind it.', 'risky'));
+
+    body.innerHTML = sections.join('') +
+      (plan.truncated ? '<div class="plan-desc">Long lists are truncated for display; Apply still covers everything.</div>' : '');
+
+    if (state.fixAllPending) {
+      body.innerHTML = '<div class="banner warn">' + plural(state.fixAllPending, 'page') +
+        ' in this file ' + (state.fixAllPending === 1 ? 'has' : 'have') + ' not been scanned in this ' +
+        'session, so nothing from ' + (state.fixAllPending === 1 ? 'it' : 'them') +
+        ' is included below. Run <b>Scan file</b> first to cover everything.</div>' + body.innerHTML;
+    }
+
+    var bits = [];
+    if (summary.applyCount) bits.push(summary.applyCount + ' to apply');
+    if (summary.reviewCount) bits.push(summary.reviewCount + ' to confirm');
+    if (summary.blockedCount) bits.push(summary.blockedCount + ' blocked');
+    document.getElementById('planSummary').textContent = bits.join(' · ') || 'Nothing to change.';
+    var apply = document.getElementById('planApply');
+    apply.disabled = summary.applyCount === 0;
+    apply.textContent = summary.applyCount ? 'Apply ' + summary.applyCount + ' fix' + (summary.applyCount === 1 ? '' : 'es') : 'Apply';
+  }
+
+  function planSection(title, rows, desc, confClass) {
+    var list = rows.length
+      ? rows.map(function (row) {
+          return '<div class="plan-row">' +
+            '<span class="kind-tag">' + esc(row.kind) + '</span>' +
+            '<span class="from" title="' + esc(row.sourceName) + '">' + esc(row.sourceName) + '</span>' +
+            '<span class="arrow">→</span>' +
+            '<span class="to" title="' + esc(row.reason) + '">' + esc(row.targetName || row.reason) + '</span>' +
+            (row.ambiguous ? '<span class="conf weak" title="Several local items share this name; the first found is used.">ambiguous</span>' : '') +
+            (row.confidence ? '<span class="conf ' + row.confidence + '">' + row.confidence + '</span>' : '') +
+            '</div>';
+        }).join('')
+      : '<div class="plan-empty">None.</div>';
+    return '<div class="plan-section">' +
+      '<div class="plan-head"><span class="conf ' + confClass + '">' + rows.length + '</span>' + esc(title) + '</div>' +
+      '<div class="plan-desc">' + desc + '</div>' +
+      '<div class="plan-list">' + list + '</div></div>';
+  }
+
+  // ── Remap modal ──────────────────────────────────────────────────────────
+  function openRemap(refId, groupTotal) {
+    state.remap = { refId: refId, candidates: null, selected: 0, groupTotal: groupTotal || 1 };
+    document.getElementById('remapTitle').textContent = 'Remap';
+    document.getElementById('remapCurrent').textContent = 'Loading…';
+    document.getElementById('remapSearch').value = '';
+    document.getElementById('remapList').innerHTML = '<div class="plan-empty">Loading local candidates…</div>';
+    openOverlay('remapModal');
+    setTimeout(function () { document.getElementById('remapSearch').focus(); }, 40);
+    send('remap-candidates', { refId: refId });
+  }
+
+  function renderCandidates() {
+    var host = document.getElementById('remapList');
+    if (!state.remap || !state.remap.candidates) return;
+    var filter = document.getElementById('remapSearch').value.toLowerCase().trim();
+    var list = state.remap.candidates.filter(function (candidate) {
+      return !filter || candidate.name.toLowerCase().indexOf(filter) !== -1;
+    });
+    state.remap.filtered = list;
+    if (state.remap.selected >= list.length) state.remap.selected = 0;
+
+    if (!list.length) {
+      host.innerHTML = '<div class="plan-empty">No local match for that filter.</div>';
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    list.slice(0, 300).forEach(function (candidate, i) {
+      var el = document.createElement('div');
+      el.className = 'cand' + (i === state.remap.selected ? ' sel' : '');
+      el.setAttribute('data-target-id', candidate.id);
+      var flag = '';
+      if (candidate.risky) flag = '<span class="cand-flag risky">looks like a sibling token</span>';
+      else if (candidate.onScopePage) flag = '<span class="cand-flag best">on this page</span>';
+      else if (i === 0 && !filter) flag = '<span class="cand-flag best">closest</span>';
+      var where = candidate.pageName
+        ? '<span style="font-size:9px;color:var(--text-tertiary);flex:0 0 auto">' + esc(candidate.pageName) + '</span>'
+        : '';
+      el.innerHTML = '<span class="cand-name" title="' + esc(candidate.name) + '">' + esc(candidate.name) + '</span>' + where + flag;
+      el.addEventListener('click', function () { applyRemap(candidate.id); });
+      frag.appendChild(el);
+    });
+    host.innerHTML = '';
+    host.appendChild(frag);
+  }
+
+  function applyRemap(targetId) {
+    if (!state.remap) return;
+    var refId = state.remap.refId;
+    closeOverlays();
+    markOcc(refId, 'fixing');
+    send('remap-ref', { refId: refId, targetId: targetId });
+  }
+
+  // ── Overlays ─────────────────────────────────────────────────────────────
+  function openOverlay(id) {
+    document.getElementById('backdrop').classList.add('open');
+    document.getElementById(id).classList.add('open');
+  }
+
+  function closeOverlays() {
+    document.getElementById('backdrop').classList.remove('open');
+    ['planModal', 'remapModal', 'drawer'].forEach(function (id) {
+      document.getElementById(id).classList.remove('open');
+    });
+    state.remap = null;
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────────────
+  var toastTimer = null;
+  function toast(message, kind) {
+    var el = document.getElementById('toast');
+    el.textContent = message;
+    el.className = 'toast show' + (kind ? ' ' + kind : '');
+    document.getElementById('live').textContent = message;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3200);
+  }
+
+  // ── Settings drawer ──────────────────────────────────────────────────────
+  function renderDrawer() {
+    document.querySelectorAll('input[name="autoApply"]').forEach(function (input) {
+      input.checked = input.value === state.settings.autoApply;
+    });
+    document.querySelectorAll('input[name="depth"]').forEach(function (input) {
+      input.checked = input.value === state.settings.depth;
+    });
+
+    var host = document.getElementById('ignoreList');
+    host.innerHTML = state.pages.map(function (page) {
+      return '<label><input type="checkbox" data-page-id="' + esc(page.id) + '"' +
+        (page.ignored ? ' checked' : '') + ' /><span>' + esc(page.name) + '</span></label>';
+    }).join('');
+    host.querySelectorAll('input[type="checkbox"]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        send('toggle-ignore-page', { pageId: input.getAttribute('data-page-id') });
+      });
+    });
+
+    var counts = state.localCounts;
+    document.getElementById('localCounts').textContent = counts
+      ? counts.components + ' components · ' + counts.variables + ' variables · ' +
+        (counts.fillStyles + counts.textStyles + counts.effectStyles + counts.gridStyles) + ' styles'
+      : 'Local index not built yet — it is built on demand before the first fix.';
+  }
+
+  // ── Context menu ─────────────────────────────────────────────────────────
+  var ctxEl = null;
+  function showCtx(x, y, pageId) {
+    closeCtx();
+    var page = state.pageById[pageId];
+    if (!page) return;
+    var many = state.selectedPageIds.length > 1 && isSelected(pageId);
+    var count = state.selectedPageIds.length;
+
+    var menu = document.createElement('div');
+    menu.className = 'ctx';
+    menu.style.left = Math.min(x, window.innerWidth - 200) + 'px';
+    menu.style.top = Math.min(y, window.innerHeight - 130) + 'px';
+    menu.innerHTML =
+      (many ? '' : '<div data-c="goto">Go to page</div>') +
+      '<div data-c="scan">' + (many ? 'Scan ' + count + ' pages' : 'Scan page') + '</div>' +
+      (many
+        ? '<div data-c="fix">Review &amp; fix ' + count + ' pages</div>' +
+          '<div data-c="ignore">Ignore ' + count + ' pages</div>'
+        : '<div data-c="ignore">' + (page.ignored ? 'Un-ignore page' : 'Ignore page') + '</div>');
+    document.body.appendChild(menu);
+    menu.addEventListener('click', function (event) {
+      var cmd = event.target.getAttribute('data-c');
+      if (cmd === 'goto') send('goto-page', { pageId: pageId });
+      if (cmd === 'scan') {
+        if (many) scanSelectedPages(true); else scanPage(pageId, true);
+      }
+      if (cmd === 'fix') openPlan(selectedScopeKeys());
+      if (cmd === 'ignore') {
+        // One message per page; the sandbox answers with a fresh init-state each
+        // time and the last one wins, so the list ends up correct either way.
+        (many ? state.selectedPageIds.slice() : [pageId]).forEach(function (id) {
+          send('toggle-ignore-page', { pageId: id });
+        });
+      }
+      closeCtx();
+    });
+    ctxEl = menu;
+  }
+  function closeCtx() {
+    if (ctxEl) { ctxEl.remove(); ctxEl = null; }
+  }
+
+  // ── Wiring ───────────────────────────────────────────────────────────────
+  document.getElementById('scanAllBtn').addEventListener('click', function () { startScanAll(false); });
+  document.getElementById('fixAllBtn').addEventListener('click', function () {
+    var scopes = allPageScopeKeys();
+    if (!scopes.length) {
+      toast('Scan the file first — fixing needs the references, not just the stored counts.', 'error');
+      return;
+    }
+    state.fixAllPending = pagesNeedingScan();
+    openPlan(scopes);
+  });
+
+  document.getElementById('scanSelBtn').addEventListener('click', function () {
+    state.scanningPageId = null;
+    setView({ kind: 'selection' });
+    send('scan-selection');
+    showProgress('Scanning selection…');
+  });
+  document.getElementById('settingsBtn').addEventListener('click', function () {
+    renderDrawer();
+    openOverlay('drawer');
+  });
+  document.getElementById('drawerClose').addEventListener('click', closeOverlays);
+  document.getElementById('backdrop').addEventListener('click', closeOverlays);
+  document.getElementById('planClose').addEventListener('click', closeOverlays);
+  document.getElementById('planCancel').addEventListener('click', closeOverlays);
+  document.getElementById('remapClose').addEventListener('click', closeOverlays);
+  document.getElementById('progStop').addEventListener('click', function () { send('cancel'); });
+
+  document.getElementById('planApply').addEventListener('click', function () {
+    if (!state.planScopes || !state.planScopes.length) return;
+    document.getElementById('planApply').disabled = true;
+    closeOverlays();
+    showProgress('Applying fixes…');
+    send('apply-fixes', { scopeKeys: state.planScopes });
+  });
+
+  document.getElementById('remapSearch').addEventListener('input', function () {
+    if (state.remap) state.remap.selected = 0;
+    renderCandidates();
+  });
+
+  document.getElementById('filterRemote').addEventListener('change', function (event) {
+    state.filterRemoteOnly = event.target.checked;
+    renderPageRows();
+  });
+
+  document.querySelectorAll('input[name="autoApply"]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      if (input.checked) send('set-settings', { patch: { autoApply: input.value } });
+    });
+  });
+  document.querySelectorAll('input[name="depth"]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      if (input.checked) send('set-settings', { patch: { depth: input.value } });
+    });
+  });
+  document.getElementById('rescanAllBtn').addEventListener('click', function () {
+    closeOverlays();
+    state.reports = {};
+    startScanAll(true);
+  });
+  document.getElementById('rebuildBtn').addEventListener('click', function () {
+    send('rebuild-local-index');
+    showProgress('Rebuilding local index…');
+  });
+  document.getElementById('clearIndexBtn').addEventListener('click', function () {
+    send('clear-index');
+    state.reports = {};
+    state.hasRefs = {};
+  });
+
+  var sidebarHost = document.querySelector('.sidebar-scroll');
+  sidebarHost.addEventListener('click', function (event) {
+    var row = event.target.closest('[data-page-id]');
+    if (row && row.classList.contains('row')) {
+      selectPage(row.getAttribute('data-page-id'), {
+        shift: event.shiftKey,
+        toggle: event.metaKey || event.ctrlKey
+      });
+      return;
+    }
+    var special = event.target.closest('[data-act]');
+    if (special) handleAction(special.getAttribute('data-act'), special, event);
+  });
+  sidebarHost.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var row = event.target.closest('[data-page-id]');
+    if (row) {
+      event.preventDefault();
+      selectPage(row.getAttribute('data-page-id'), {
+        shift: event.shiftKey,
+        toggle: event.metaKey || event.ctrlKey
+      });
+      return;
+    }
+    var special = event.target.closest('[data-act]');
+    if (special) {
+      event.preventDefault();
+      handleAction(special.getAttribute('data-act'), special, event);
+    }
+  });
+  sidebarHost.addEventListener('contextmenu', function (event) {
+    var row = event.target.closest('[data-page-id]');
+    if (!row) return;
+    event.preventDefault();
+    var pageId = row.getAttribute('data-page-id');
+    // Right-clicking a row that is part of the current selection acts on all of
+    // it; right-clicking outside the selection re-selects just that row first,
+    // which is what every file manager does.
+    if (!isSelected(pageId)) selectPage(pageId, {});
+    showCtx(event.clientX, event.clientY, pageId);
+  });
+  window.addEventListener('click', closeCtx);
+
+  window.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      var hadOverlay = document.querySelector('.modal.open, .drawer.open') || ctxEl;
+      closeCtx(); closeOverlays();
+      if (!hadOverlay && state.selectedPageIds.length > 1) {
+        selectPage(state.selectedPageIds[0], {});
+      }
+      return;
+    }
+
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    var typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+    // Arrow keys and Enter drive the remap list even while the filter has focus,
+    // because that is the only way to use it from the keyboard.
+    if (state.remap && state.remap.filtered) {
+      var list = state.remap.filtered;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        var delta = event.key === 'ArrowDown' ? 1 : -1;
+        state.remap.selected = Math.max(0, Math.min(list.length - 1, state.remap.selected + delta));
+        renderCandidates();
+        var sel = document.querySelector('.cand.sel');
+        if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (event.key === 'Enter' && list[state.remap.selected]) {
+        event.preventDefault();
+        applyRemap(list[state.remap.selected].id);
+        return;
+      }
+    }
+
+    if (typing) return;
+
+    // Whole-file shortcuts, only when focus is not in a text field.
+    if (event.key === 'r' && state.view.kind === 'page' && state.view.pageId) {
+      scanPage(state.view.pageId, true);
+    }
+  });
+
+  // ── Incoming messages ────────────────────────────────────────────────────
+  window.onmessage = function (event) {
+    var msg = event.data && event.data.pluginMessage;
+    if (!msg) return;
+
+    switch (msg.type) {
+      case 'init-state': {
+        var s = msg.state;
+        state.pages = s.pages;
+        state.pageById = {};
+        for (var i = 0; i < s.pages.length; i++) state.pageById[s.pages[i].id] = s.pages[i];
+        state.currentPageId = s.currentPageId;
+        state.settings = s.settings;
+        state.localCounts = s.localCounts;
+        document.getElementById('fileName').textContent = s.fileName ? ' · ' + s.fileName : '';
+
+        // Drop reports for pages that no longer exist, and for pages that have
+        // become ignored — the sandbox discards their refs, so the rows would
+        // still be on screen with buttons that silently do nothing.
+        for (var pageId in state.reports) {
+          if (!state.pageById[pageId] || state.pageById[pageId].ignored) delete state.reports[pageId];
+        }
+        for (var refPageId in state.hasRefs) {
+          if (!state.pageById[refPageId] || state.pageById[refPageId].ignored) delete state.hasRefs[refPageId];
+        }
+        // Drop selected pages that no longer exist, and fall back to a sane view
+        // if the selection collapses below two.
+        state.selectedPageIds = state.selectedPageIds.filter(function (id) { return !!state.pageById[id]; });
+        if (state.view.kind === 'pages' && state.selectedPageIds.length < 2) {
+          state.view = state.selectedPageIds.length === 1
+            ? { kind: 'page', pageId: state.selectedPageIds[0] }
+            : { kind: 'page', pageId: s.currentPageId };
+        }
+        if (state.view.kind === 'page' && !state.pageById[state.view.pageId]) {
+          state.view = { kind: 'page', pageId: s.currentPageId };
+        }
+        if (state.view.kind === 'page' && !state.view.pageId) {
+          state.view = { kind: 'page', pageId: s.currentPageId };
+        }
+        renderSidebar();
+        renderMain();
+        if (document.getElementById('drawer').classList.contains('open')) renderDrawer();
+
+        // Scan the open page once on launch. It is one page, it is fast, and it
+        // means the plugin says something useful immediately instead of asking
+        // for a whole-file pass before showing anything.
+        if (!state.bootScanned) {
+          state.bootScanned = true;
+          var open = state.pageById[s.currentPageId];
+          if (open && !open.ignored && (!open.entry || !open.entry.scannedAt || open.entry.dirty)) {
+            scanPage(s.currentPageId, true);
+          }
+        }
+        break;
+      }
+
+      case 'settings':
+        state.settings = msg.settings;
+        renderDrawer();
+        toast('Setting saved. Rescan to apply it to existing results.');
+        break;
+
+      case 'local-index':
+        state.localCounts = msg.counts;
+        renderDrawer();
+        hideProgress();
+        toast('Local index rebuilt.', 'success');
+        break;
+
+      case 'current-page':
+        state.currentPageId = msg.pageId;
+        renderSidebar();
+        break;
+
+      case 'selection-changed':
+        state.selectionCount = msg.count;
+        // A changed selection invalidates the selection report — showing the old
+        // one against a new selection is worse than showing nothing.
+        if (state.selectionReport) {
+          state.selectionReport = null;
+          if (state.view.kind === 'selection') renderMain();
+        }
+        renderSpecialRows();
+        break;
+
+      case 'progress': {
+        var strip = document.getElementById('progress');
+        strip.classList.add('visible');
+        document.getElementById('progLabel').textContent = msg.message || 'Working…';
+        document.getElementById('progItem').textContent = msg.pageName
+          ? (typeof msg.pageIndex === 'number'
+            ? 'Page ' + (msg.pageIndex + 1) + ' of ' + msg.pageCount + ' · ' + msg.pageName
+            : msg.pageName)
+          : '';
+        document.getElementById('progFound').textContent =
+          typeof msg.foundSoFar === 'number' ? 'Found ' + msg.foundSoFar : '';
+        document.getElementById('progStop').style.display = msg.cancellable === false ? 'none' : '';
+        setProgressBar(msg.processed, msg.total);
+        break;
+      }
+
+      case 'progress-done':
+        hideProgress();
+        break;
+
+      case 'scan-all-started':
+        state.scanning = true;
+        state.scanQueueTotal = msg.total;
+        state.scanQueueDone = 0;
+        state.queuedPageIds = {};
+        for (var q = 0; q < msg.pageIds.length; q++) state.queuedPageIds[msg.pageIds[q]] = true;
+        if (msg.skipped) {
+          toast(msg.skipped + ' page' + (msg.skipped === 1 ? '' : 's') +
+            ' already scanned in this session with no edits since — skipped.');
+        }
+        if (!msg.total) {
+          // Only reachable now when everything really was scanned since the
+          // plugin opened, which is a state the user can reason about.
+          toast('Every page was already scanned in this session. Settings ▸ Rescan every page forces a fresh pass.');
+        }
+        renderSidebar();
+        break;
+
+      case 'page-scan-started':
+        state.scanningPageId = msg.pageId;
+        delete state.queuedPageIds[msg.pageId];
+        renderSidebar();
+        break;
+
+      case 'page-scanned': {
+        var page = state.pageById[msg.pageId];
+        if (page) { page.entry = msg.entry; page.verifiedThisSession = true; }
+        if (msg.hasRefs) state.hasRefs[msg.pageId] = true;
+
+        // Did the fix actually land? Compare what the rescan found against what
+        // the apply claimed to have changed.
+        var rec = state.pendingReconcile;
+        if (rec && rec.pageId === msg.pageId && msg.entry) {
+          var expected = Math.max(0, rec.before - rec.applied);
+          var actual = msg.entry.remoteTotal;
+          if (actual > expected) {
+            state.lastFix = state.lastFix || {};
+            state.lastFix.didNotStick = actual - expected;
+          }
+          state.pendingReconcile = null;
+        }
+        if (state.scanningPageId === msg.pageId) state.scanningPageId = null;
+        if (state.scanning) state.scanQueueDone++;
+        renderSidebar();
+        if (state.view.kind === 'page' && state.view.pageId === msg.pageId) renderMain();
+        break;
+      }
+
+      case 'page-report':
+        state.scanningPageId = null;
+        if (msg.superseded) {
+          // A newer operation took over. Clear the spinner; keep whatever was
+          // already on screen rather than reporting a failure that did not happen.
+          renderSidebar();
+          if (state.view.kind === 'page' && state.view.pageId === msg.pageId) renderMain();
+          break;
+        }
+        if (msg.error) {
+          state.errorByPage[msg.pageId] = msg.error;
+        } else {
+          delete state.errorByPage[msg.pageId];
+          state.reports[msg.pageId] = msg.report;
+          state.hasRefs[msg.pageId] = true;
+        }
+        renderSidebar();
+        if (state.view.kind === 'page' && state.view.pageId === msg.pageId) renderMain();
+        if (msg.error && !msg.quiet) toast(msg.error, 'error');
+        break;
+
+      case 'page-dirty': {
+        var dirtyPage = state.pageById[msg.pageId];
+        if (dirtyPage && dirtyPage.entry) {
+          dirtyPage.entry.dirty = true;
+          renderSidebar();
+          if (state.view.kind === 'page' && state.view.pageId === msg.pageId) renderMain();
+        }
+        break;
+      }
+
+      case 'scan-all-done':
+        finishScanAll();
+        // The sandbox kept each page's rows rather than shipping all of them
+        // during the pass. Ask for the one being looked at now that it is free.
+        if (state.view.kind === 'page' && state.view.pageId &&
+            !state.reports[state.view.pageId] &&
+            state.pageById[state.view.pageId] &&
+            !state.pageById[state.view.pageId].ignored) {
+          scanPage(state.view.pageId, false);
+        }
+        toast(msg.completed
+          ? 'Scanned ' + plural(msg.completed, 'page') + ' · ' + plural(msg.remoteTotal, 'remote reference') + ' found'
+          : 'Nothing needed scanning.', msg.remoteTotal ? '' : 'success');
+        break;
+
+      case 'scan-cancelled':
+        finishScanAll();
+        state.scanningPageId = null;
+        renderSidebar();
+        renderMain();
+        toast(typeof msg.completed === 'number' && msg.completed
+          ? 'Stopped. ' + plural(msg.completed, 'page') + ' finished and saved.'
+          : 'Stopped.');
+        break;
+
+      case 'selection-report':
+        state.selectionReport = msg.report;
+        if (msg.empty) toast('Nothing is selected in Figma.', 'error');
+        if (msg.error) toast(msg.error, 'error');
+        renderSidebar();
+        if (state.view.kind === 'selection') renderMain();
+        break;
+
+      case 'component-report':
+        state.componentReport = msg.report;
+        if (msg.error) toast(msg.error, 'error');
+        renderSidebar();
+        if (state.view.kind === 'components') renderMain();
+        break;
+
+      case 'doc-report':
+        state.docReport = msg.report;
+        if (msg.error) toast(msg.error, 'error');
+        renderSidebar();
+        if (state.view.kind === 'document') renderMain();
+        break;
+
+      case 'fix-plan':
+        state.plan = msg.plan;
+        renderPlan(msg.plan, msg.summary);
+        break;
+
+      case 'fix-progress':
+        showProgress(msg.message, msg.done, msg.total);
+        break;
+
+      case 'fix-done': {
+        hideProgress();
+        var touched = msg.pageIds || [];
+
+        // Capture the pre-fix count BEFORE the decremented entries land, so the
+        // rescan can be checked against what was claimed. A write that reports
+        // success but does not stick is otherwise invisible.
+        var viewedId = state.view.kind === 'page' ? state.view.pageId : null;
+        if (viewedId && state.pageById[viewedId] && state.pageById[viewedId].entry) {
+          state.pendingReconcile = {
+            pageId: viewedId,
+            before: state.pageById[viewedId].entry.remoteTotal,
+            applied: msg.appliedTotal || 0
+          };
         }
 
-        function renderCacheStatus(counts, fresh) {
-            const el = document.getElementById('cacheStatus');
-            if (!counts || counts.components === null) {
-                el.textContent = 'Not built — fix will trigger an on-demand build';
-                el.className = 'cache-status';
-                return;
-            }
-            const parts = [
-                `${counts.components} components`,
-                `${counts.variables} variables`,
-                `${(counts.fillStyles || 0) + (counts.textStyles || 0) + (counts.effectStyles || 0)} styles`
-            ];
-            el.textContent = (fresh ? 'Indexed: ' : 'Cached: ') + parts.join(' · ');
-            el.className = 'cache-status ' + (fresh ? 'ready' : 'stale');
-        }
-        
-        function scanCurrentPage() {
-            document.getElementById('results').style.display = 'none';
-            document.getElementById('message').innerHTML = '<div class="message">Scanning current page... <button class="cancel-button" onclick="cancelScan()">Cancel</button></div>';
-            disableAllButtons();
-            document.getElementById('scanCurrentButton').textContent = 'Scanning...';
-            currentScanType = 'current';
-            
-            parent.postMessage({ pluginMessage: { type: 'scan-current' } }, '*');
-        }
-        
-        function scanAllPages() {
-            document.getElementById('results').style.display = 'none';
-            document.getElementById('message').innerHTML = '<div class="message">Scanning all pages... <button class="cancel-button" onclick="cancelScan()">Cancel</button></div>';
-            disableAllButtons();
-            document.getElementById('scanAllButton').textContent = 'Scanning...';
-            currentScanType = 'all';
-            
-            parent.postMessage({ pluginMessage: { type: 'scan-all' } }, '*');
-        }
-        
-        function scanSelection() {
-            document.getElementById('results').style.display = 'none';
-            document.getElementById('message').innerHTML = '<div class="message">Scanning selection... <button class="cancel-button" onclick="cancelScan()">Cancel</button></div>';
-            disableAllButtons();
-            document.getElementById('scanSelectionButton').textContent = 'Scanning...';
-            currentScanType = 'selection';
-            
-            parent.postMessage({ pluginMessage: { type: 'scan-selection' } }, '*');
-        }
-        
-        function fixCurrentPage() {
-            document.getElementById('message').innerHTML = '<div class="message">Fixing current page...</div>';
-            disableAllButtons();
-            document.getElementById('fixCurrentButton').textContent = 'Fixing...';
-            
-            parent.postMessage({ pluginMessage: { type: 'fix-current' } }, '*');
-        }
-        
-        function fixSelection() {
-            document.getElementById('message').innerHTML = '<div class="message">Fixing selection...</div>';
-            disableAllButtons();
-            document.getElementById('fixSelectionButton').textContent = 'Fixing...';
-            
-            parent.postMessage({ pluginMessage: { type: 'fix-selection' } }, '*');
-        }
-        
-        function fixAllPages() {
-            document.getElementById('message').innerHTML = '<div class="message">Fixing all pages...</div>';
-            disableAllButtons();
-            document.getElementById('fixAllButton').textContent = 'Fixing...';
-            
-            parent.postMessage({ pluginMessage: { type: 'fix-all' } }, '*');
-        }
-        
-        function disableAllButtons() {
-            document.getElementById('scanCurrentButton').disabled = true;
-            document.getElementById('scanAllButton').disabled = true;
-            document.getElementById('scanSelectionButton').disabled = true;
-            
-            // Disable fix buttons that exist
-            const fixCurrentButton = document.getElementById('fixCurrentButton');
-            const fixAllButton = document.getElementById('fixAllButton');
-            const fixSelectionButton = document.getElementById('fixSelectionButton');
-            
-            if (fixCurrentButton) fixCurrentButton.disabled = true;
-            if (fixAllButton) fixAllButton.disabled = true;
-            if (fixSelectionButton) fixSelectionButton.disabled = true;
-        }
-        
-        function enableAllButtons() {
-            document.getElementById('scanCurrentButton').disabled = false;
-            document.getElementById('scanAllButton').disabled = false;
-            document.getElementById('scanSelectionButton').disabled = false;
-            
-            // Enable fix buttons that exist
-            const fixCurrentButton = document.getElementById('fixCurrentButton');
-            const fixAllButton = document.getElementById('fixAllButton');
-            const fixSelectionButton = document.getElementById('fixSelectionButton');
-            
-            if (fixCurrentButton) fixCurrentButton.disabled = false;
-            if (fixAllButton) fixAllButton.disabled = false;
-            if (fixSelectionButton) fixSelectionButton.disabled = false;
-            
-            // Reset button text
-            document.getElementById('scanCurrentButton').textContent = 'Current Page';
-            document.getElementById('scanAllButton').textContent = 'All Pages';
-            document.getElementById('scanSelectionButton').textContent = 'Selection';
-            
-            if (fixCurrentButton) fixCurrentButton.textContent = 'Fix Current Page';
-            if (fixAllButton) fixAllButton.textContent = 'Fix All Pages';
-            if (fixSelectionButton) fixSelectionButton.textContent = 'Fix Selection';
-        }
-        
-        function toggleLibrary(libraryName) {
-            if (expandedLibraries.has(libraryName)) {
-                expandedLibraries.delete(libraryName);
-            } else {
-                expandedLibraries.add(libraryName);
-            }
-            
-            const elementsDiv = document.querySelector(`[data-library="${libraryName}"] .library-elements`);
-            const iconDiv = document.querySelector(`[data-library="${libraryName}"] .expand-icon`);
-            const headerDiv = document.querySelector(`[data-library="${libraryName}"] .library-header`);
-            
-            if (expandedLibraries.has(libraryName)) {
-                elementsDiv.classList.remove('collapsed');
-                iconDiv.classList.add('expanded');
-                headerDiv.classList.remove('collapsed');
-            } else {
-                elementsDiv.classList.add('collapsed');
-                iconDiv.classList.remove('expanded');
-                headerDiv.classList.add('collapsed');
-            }
-        }
-        
-        function expandAll() {
-            scanResults.forEach(library => {
-                expandedLibraries.add(library.name);
-            });
-            updateAccordionStates();
-        }
-        
-        function collapseAll() {
-            expandedLibraries.clear();
-            updateAccordionStates();
-        }
-        
-        function updateAccordionStates() {
-            scanResults.forEach(library => {
-                const elementsDiv = document.querySelector(`[data-library="${library.name}"] .library-elements`);
-                const iconDiv = document.querySelector(`[data-library="${library.name}"] .expand-icon`);
-                const headerDiv = document.querySelector(`[data-library="${library.name}"] .library-header`);
-                
-                if (elementsDiv && iconDiv && headerDiv) {
-                    if (expandedLibraries.has(library.name)) {
-                        elementsDiv.classList.remove('collapsed');
-                        iconDiv.classList.add('expanded');
-                        headerDiv.classList.remove('collapsed');
-                    } else {
-                        elementsDiv.classList.add('collapsed');
-                        iconDiv.classList.remove('expanded');
-                        headerDiv.classList.add('collapsed');
-                    }
-                }
-            });
-        }
-        
-        function inspectElement(elementId) {
-            parent.postMessage({ 
-                pluginMessage: { 
-                    type: 'inspect-element', 
-                    elementId: elementId 
-                } 
-            }, '*');
-        }
-        
-        function fixIndividualElement(elementId, libraryName) {
-            // Disable the button
-            const button = document.querySelector(`[data-element-id="${elementId}"] .fix-individual-button`);
-            if (button) {
-                button.disabled = true;
-                button.textContent = 'Fixing...';
-            }
-            
-            parent.postMessage({ 
-                pluginMessage: { 
-                    type: 'fix-individual-element', 
-                    elementId: elementId,
-                    libraryName: libraryName
-                } 
-            }, '*');
-        }
-        
-        function closePlugin() {
-            parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
-        }
-        
-        function cancelScan() {
-            parent.postMessage({ pluginMessage: { type: 'cancel-scan' } }, '*');
-            enableAllButtons();
-            document.getElementById('message').innerHTML = '<div class="message info">Scan cancelled</div>';
-        }
-        
-        function updateFixButtons(scanType) {
-            const fixButtonsDiv = document.getElementById('fixButtons');
-            
-            if (scanType === 'selection') {
-                fixButtonsDiv.innerHTML = `
-                    <button id="fixSelectionButton" class="fix-button" onclick="fixSelection()">
-                        Fix Selection
-                    </button>
-                    <button id="fixCurrentButton" class="fix-button secondary" onclick="fixCurrentPage()">
-                        Fix Current Page
-                    </button>
-                `;
-            } else {
-                fixButtonsDiv.innerHTML = `
-                    <button id="fixCurrentButton" class="fix-button" onclick="fixCurrentPage()">
-                        Fix Current Page
-                    </button>
-                    <button id="fixAllButton" class="fix-button secondary" onclick="fixAllPages()">
-                        Fix All Pages
-                    </button>
-                `;
-            }
-        }
-        
-        function showMessage(text, type = 'success') {
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
-        }
-        
-        // Handle messages from plugin code
-        window.onmessage = (event) => {
-            const msg = event.data.pluginMessage;
-            
-            switch (msg.type) {
-                case 'scan-started':
-                    document.getElementById('pageInfo').style.display = 'block';
-                    document.getElementById('pageInfo').textContent = `Scanning: ${msg.pageName}`;
-                    break;
-                    
-                case 'scan-progress':
-                    document.getElementById('pageInfo').textContent = `Scanning: ${msg.currentPage} (${msg.progress}/${msg.total})`;
-                    break;
-                    
-                case 'scan-complete':
-                    scanResults = msg.libraries;
-                    document.getElementById('pageInfo').textContent = `Scanned: ${msg.pageName}`;
-                    renderResults();
-                    if (msg.message) {
-                        showMessage(msg.message, msg.messageType || 'info');
-                    }
-                    
-                    // Show fix section if remote libraries found and update buttons based on scan type
-                    const hasRemoteLibraries = msg.libraries.some(lib => lib.type === 'remote');
-                    if (hasRemoteLibraries) {
-                        document.getElementById('fixSection').style.display = 'block';
-                        updateFixButtons(msg.scanType || currentScanType);
-                    } else {
-                        document.getElementById('fixSection').style.display = 'none';
-                    }
-                    
-                    enableAllButtons();
-                    break;
-                    
-                case 'element-selected':
-                    showMessage(`Selected: ${msg.nodeName}`, 'success');
-                    break;
-                    
-                case 'fix-started':
-                    showMessage('Auto-fixing remote styles...', 'info');
-                    break;
-                    
-                case 'fix-complete':
-                    if (msg.fixCount > 0) {
-                        showMessage(`Fixed ${msg.fixCount} remote style${msg.fixCount !== 1 ? 's' : ''}`, 'success');
-                        // Re-scan to update results
-                        setTimeout(() => {
-                            if (msg.scanType === 'all') {
-                                scanAllPages();
-                            } else {
-                                scanCurrentPage();
-                            }
-                        }, 1000);
-                    } else {
-                        showMessage('No matching local styles found to replace remote ones', 'info');
-                        enableAllButtons();
-                    }
-                    break;
-                    
-                case 'scan-error':
-                    document.getElementById('results').innerHTML = '<div class="empty-state">Scan failed</div>';
-                    showMessage(msg.message, 'error');
-                    enableAllButtons();
-                    break;
-                    
-                case 'scan-cancelled':
-                    showMessage(msg.message, 'info');
-                    enableAllButtons();
-                    break;
-                    
-                case 'scan-warning':
-                    showMessage(msg.message, 'info');
-                    break;
-                    
-                case 'scan-node-progress':
-                    document.getElementById('pageInfo').textContent = `Processing nodes: ${msg.processed}/${msg.total}`;
-                    break;
-                    
-                case 'cache-refresh-started':
-                    document.getElementById('cacheStatus').textContent = 'Indexing all pages (this may take a moment)…';
-                    document.getElementById('cacheStatus').className = 'cache-status';
-                    break;
-
-                case 'cache-status':
-                    renderCacheStatus(msg.counts, msg.fresh);
-                    document.getElementById('refreshCacheButton').disabled = false;
-                    document.getElementById('refreshCacheButton').textContent = 'Refresh Local Index';
-                    if (msg.error) {
-                        showMessage('Index refresh failed: ' + msg.error, 'error');
-                    } else if (msg.fresh) {
-                        showMessage('Local index built', 'success');
-                    }
-                    break;
-
-                case 'individual-fix-complete':
-                    const elementContainer = document.querySelector(`[data-element-id="${msg.elementId}"]`);
-                    if (elementContainer) {
-                        const button = elementContainer.querySelector('.fix-individual-button');
-                        if (button) {
-                            if (msg.success) {
-                                button.textContent = 'Fixed';
-                                button.disabled = true;
-                                button.style.background = '#4caf50';
-                                showMessage(`Fixed: ${msg.elementName}`, 'success');
-                            } else {
-                                button.textContent = 'Fix Failed';
-                                button.disabled = true;
-                                button.style.background = '#f44336';
-                                showMessage(`Failed to fix: ${msg.elementName} - ${msg.error}`, 'error');
-                            }
-                        }
-                    }
-                    break;
-            }
+        // Group the per-reference outcomes by reason, so "45 could not be fixed"
+        // becomes something actionable.
+        var reasons = {};
+        (msg.results || []).forEach(function (r) {
+          if (r.ok) return;
+          var key = (r.message || 'Unknown').replace(/"[^"]*"/g, '"…"');
+          reasons[key] = (reasons[key] || 0) + 1;
+        });
+        var reasonList = Object.keys(reasons)
+          .map(function (k) { return { reason: k, count: reasons[k] }; })
+          .sort(function (a, b) { return b.count - a.count; });
+        state.lastFix = {
+          mode: msg.mode || 'rebind',
+          applied: msg.appliedTotal || 0,
+          failed: msg.failed || 0,
+          review: msg.review || 0,
+          warnings: msg.warnings || 0,
+          reasons: reasonList.slice(0, 6),
+          truncated: msg.truncated
         };
-
-        // Ask for initial cache status (so the indicator reflects any state from prior plugin run)
-        parent.postMessage({ pluginMessage: { type: 'cache-status' } }, '*');
-
-        function renderResults() {
-            const resultsDiv = document.getElementById('results');
-            const statsDiv = document.getElementById('stats');
-            const libraryListDiv = document.getElementById('libraryList');
-            const accordionControlsDiv = document.getElementById('accordionControls');
-            
-            resultsDiv.style.display = 'block';
-            
-            if (scanResults.length === 0) {
-                libraryListDiv.innerHTML = '<div class="empty-state">No libraries found on this page</div>';
-                statsDiv.style.display = 'none';
-                accordionControlsDiv.style.display = 'none';
-                return;
-            }
-            
-            // Show stats
-            const localCount = scanResults.filter(lib => lib.type === 'local').length;
-            const remoteCount = scanResults.filter(lib => lib.type === 'remote').length;
-            const totalElements = scanResults.reduce((sum, lib) => sum + lib.elements.length, 0);
-            
-            statsDiv.innerHTML = `
-                <span>Total Libraries: ${scanResults.length}</span>
-                <span>Local: ${localCount} | Remote: ${remoteCount}</span>
-                <span>Total Elements: ${totalElements}</span>
-            `;
-            statsDiv.style.display = 'flex';
-            accordionControlsDiv.style.display = 'flex';
-            
-            // Default expansion: remote expanded, local collapsed
-            if (expandedLibraries.size === 0) {
-                scanResults.forEach(library => {
-                    if (library.type === 'remote') {
-                        expandedLibraries.add(library.name);
-                    }
-                    // Local libraries remain collapsed by default
-                });
-            }
-            
-            // Render libraries
-            libraryListDiv.innerHTML = scanResults.map(library => {
-                const isExpanded = expandedLibraries.has(library.name);
-                return `
-                <div class="library-item" data-library="${library.name}">
-                    <div class="library-header ${isExpanded ? '' : 'collapsed'}" onclick="toggleLibrary('${library.name}')">
-                        <div class="library-title">
-                            <div class="library-name">${library.name}</div>
-                            <div class="element-count">(${library.elements.length} element${library.elements.length !== 1 ? 's' : ''})</div>
-                        </div>
-                        <div class="library-controls">
-                            <div class="library-type ${library.type}">${library.type}</div>
-                            <div class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</div>
-                        </div>
-                    </div>
-                    <div class="library-elements ${isExpanded ? '' : 'collapsed'}">
-                        ${library.elements.map(element => {
-                            const typeClass = element.type === 'variable' ? 'variable' : 
-                                            element.type === 'component' ? 'component' : 'style';
-                            const isRemote = library.type === 'remote';
-                            return `
-                            <div class="element-item" data-element-id="${element.elementId}">
-                                <div class="element-content">
-                                    <div class="element-type ${typeClass}">${element.type}</div>
-                                    <div class="element-info">
-                                        <div class="element-name">${element.name}</div>
-                                        <div class="node-name">${element.nodeName}</div>
-                                    </div>
-                                </div>
-                                <div class="element-actions">
-                                    <button class="inspect-button" onclick="inspectElement('${element.elementId}')">
-                                        Inspect
-                                    </button>
-                                    ${isRemote ? `
-                                    <button class="fix-individual-button" onclick="fixIndividualElement('${element.elementId}', '${library.name.replace(/'/g, "\\'")}')">
-                                        Fix
-                                    </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;}).join('')}
-                    </div>
-                </div>
-            `}).join('');
+        if (msg.entries) {
+          for (var fixedId in msg.entries) {
+            if (!Object.prototype.hasOwnProperty.call(msg.entries, fixedId)) continue;
+            var fixedPage = state.pageById[fixedId];
+            if (fixedPage) fixedPage.entry = msg.entries[fixedId];
+          }
         }
-    </script>
-    </div>
+        // Every touched page's cached references are now stale — a swap or rebind
+        // changes the tree under them — so drop the lot and rescan only the page
+        // actually on screen. The rest are re-fetched when the user opens them.
+        touched.forEach(function (id) {
+          delete state.reports[id];
+          delete state.hasRefs[id];
+        });
+        var parts = [];
+        if (msg.appliedTotal) parts.push('Fixed ' + msg.appliedTotal);
+        if (msg.review) parts.push(msg.review + ' need confirming');
+        if (msg.failed) parts.push(msg.failed + ' could not be fixed');
+        // Swaps that could not carry every variable-bound override across are
+        // reported, not buried — an unqualified "Fixed 40" would be a lie.
+        if (msg.warnings) parts.push(msg.warnings + ' need a visual check');
+        toast(parts.join(' · ') || 'Nothing changed.',
+          msg.warnings ? 'error' : (msg.appliedTotal ? 'success' : ''));
+
+        // The tree changed, so the cached refs for this scope are no longer
+        // reliable. Rescan rather than showing rows that may not exist.
+        if (msg.appliedTotal) {
+          var scopes = msg.scopeKeys || [];
+          if (scopes.indexOf('selection') !== -1) {
+            state.selectionReport = null;
+            send('scan-selection');
+          }
+          var viewing = state.view.kind === 'page' ? state.view.pageId : null;
+          if (viewing && touched.indexOf(viewing) !== -1) {
+            scanPage(viewing, true);
+          } else {
+            renderSidebar();
+            renderMain();
+          }
+        } else {
+          renderSidebar();
+          renderMain();
+        }
+        break;
+      }
+
+      case 'ref-result': {
+        if (msg.pageId && msg.entry) {
+          var refPage = state.pageById[msg.pageId];
+          if (refPage) refPage.entry = msg.entry;
+        }
+        markOcc(msg.refId, msg.ok ? 'fixed' : (msg.needsReview ? 'stale' : 'stale'));
+        var row = document.querySelector('.occ[data-ref-id="' + cssEscape(msg.refId) + '"]');
+        if (row) {
+          var actions = row.querySelector('.occ-actions');
+          if (actions && msg.ok) actions.innerHTML = '<span style="font-size:9px;color:var(--success-text)">fixed</span>';
+          var detail = row.querySelector('.occ-detail');
+          if (!msg.ok) {
+            if (detail) detail.textContent = msg.message;
+            else {
+              var span = document.createElement('span');
+              span.className = 'occ-detail';
+              span.textContent = msg.message;
+              var info = row.querySelector('.occ-info');
+              if (info) info.appendChild(span);
+            }
+          }
+        }
+        toast(msg.ok ? ('Fixed → ' + (msg.newName || 'local')) : msg.message, msg.ok ? 'success' : 'error');
+        renderSidebar();
+        break;
+      }
+
+      case 'ref-stale':
+        markOcc(msg.refId, 'stale');
+        toast(msg.message, 'error');
+        break;
+
+      case 'remap-candidates':
+        if (!state.remap || state.remap.refId !== msg.refId) break;
+        if (msg.error) {
+          document.getElementById('remapList').innerHTML = '<div class="plan-empty">' + esc(msg.error) + '</div>';
+          break;
+        }
+        state.remap.candidates = msg.candidates || [];
+        document.getElementById('remapTitle').textContent = 'Remap ' + msg.kind;
+        document.getElementById('remapCurrent').innerHTML =
+          'Currently <b>' + esc(msg.currentName) + '</b>' +
+          (state.remap.groupTotal > 1
+            ? ' — this changes only the first of ' + state.remap.groupTotal + ' layers.'
+            : '');
+        renderCandidates();
+        break;
+
+      case 'toast':
+        toast(msg.message, msg.kind === 'error' ? 'error' : (msg.kind === 'success' ? 'success' : ''));
+        break;
+
+      case 'error':
+        hideProgress();
+        finishScanAll();
+        state.scanningPageId = null;
+        renderSidebar();
+        toast(msg.message, 'error');
+        break;
+    }
+  };
+
+  function finishScanAll() {
+    state.scanning = false;
+    state.queuedPageIds = {};
+    state.scanQueueTotal = 0;
+    state.scanQueueDone = 0;
+    var btn = document.getElementById('scanAllBtn');
+    btn.disabled = false;
+    btn.textContent = 'Scan file';
+    hideProgress();
+    renderSidebar();
+  }
+
+  send('init');
+</script>
 </body>
 </html>
